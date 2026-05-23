@@ -271,7 +271,7 @@ entity AssetClasses : sap.common.CodeList {
 }
 
 entity States : sap.common.CodeList {
-  key code : String(10);
+  key code : String(100);
 }
 
 entity Regions : sap.common.CodeList {

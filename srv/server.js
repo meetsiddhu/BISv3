@@ -1005,6 +1005,33 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
   }));
 }
 
+// ── Module-scope auth helpers (must be defined before bootstrap AND served) ──
+// _isDummyAuth: true when running locally with SQLite + dummy auth (no VCAP_SERVICES).
+// Used by both the bootstrap custom-route middleware and the served launchpad routes.
+const _isDummyAuth = !process.env.VCAP_SERVICES && cds.env.requires?.auth?.kind === 'dummy'
+
+// _jwtHasScope: raw JWT scope check for routes that run before CDS XSUAA middleware.
+// Reads the Authorization: Bearer header directly and checks payload.scope[].
+// Matches exact scope name OR any scope ending with '.<scopeSuffix>'.
+const _jwtHasScope = (authHeader, scopeSuffix) => {
+  try {
+    const token = (authHeader || '').replace(/^Bearer\s+/i, '')
+    if (!token) return false
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
+    return (payload.scope || []).some(s => s === scopeSuffix || s.endsWith('.' + scopeSuffix))
+  } catch { return false }
+}
+
+// _jwtDecodeScopes: decode all scopes from raw JWT — used by the debug endpoint.
+const _jwtDecodeScopes = (authHeader) => {
+  try {
+    const token = (authHeader || '').replace(/^Bearer\s+/i, '')
+    if (!token) return []
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
+    return payload.scope || []
+  } catch { return [] }
+}
+
 cds.on('bootstrap', (app) => {
   // ── Health probe (no auth — used by BTP health checks and load balancers) ──
   app.get('/health', (_req, res) => {
@@ -1030,7 +1057,7 @@ cds.on('bootstrap', (app) => {
   // In CDS dummy-auth (dev), req.user is set by CDS OData middleware but NOT for custom Express
   // routes added in bootstrap — those fire before CDS auth runs. Detect dummy mode and set a
   // dev user from the Basic auth header (or fall back to 'alice') so custom API routes work.
-  const _isDummyAuth = !process.env.VCAP_SERVICES && cds.env.requires?.auth?.kind === 'dummy'
+  // NOTE: _isDummyAuth is defined at module scope above.
 
   const requiresAuthentication = (req, res, next) => {
     if (req.user || req.tokenInfo || req.authInfo) return next()
@@ -1063,54 +1090,8 @@ cds.on('bootstrap', (app) => {
     next()
   }
 
-  app.get('/launchpad/debug', requiresAuthentication, (req, res) => {
-    const user = req.user
-    const secCtx = req.authInfo || req.tokenInfo
-    res.json({
-      userType: user ? user.constructor?.name : null,
-      userId: user?.id,
-      userRoles: user?.roles,
-      userIsAdmin: typeof user?.is === 'function' ? user.is('admin') : 'no is() method',
-      userIsManage: typeof user?.is === 'function' ? user.is('manage') : 'no is() method',
-      userIsView: typeof user?.is === 'function' ? user.is('view') : 'no is() method',
-      hasAuthInfo: !!req.authInfo,
-      hasTokenInfo: !!req.tokenInfo,
-      authInfoType: secCtx ? secCtx.constructor?.name : null,
-      checkLocalScopeAdmin: secCtx && typeof secCtx.checkLocalScope === 'function' ? secCtx.checkLocalScope('admin') : 'no checkLocalScope',
-    })
-  })
-
-  const _jwtHasScope = (authHeader, scopeSuffix) => {
-    try {
-      const token = (authHeader || '').replace(/^Bearer\s+/i, '')
-      if (!token) return false
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
-      return (payload.scope || []).some(s => s === scopeSuffix || s.endsWith('.' + scopeSuffix))
-    } catch { return false }
-  }
-
-  // ── Launchpad config — returns role-filtered sandbox tile config ──
-  app.get('/launchpad/config', (req, res) => {
-    let isAdmin = false
-
-    try {
-      const user = req.user
-      if (user && typeof user.is === 'function') {
-        isAdmin = user.is('admin')
-      } else if (req.authInfo && typeof req.authInfo.checkLocalScope === 'function') {
-        isAdmin = req.authInfo.checkLocalScope('admin')
-      } else if (_isDummyAuth && Array.isArray(user?.roles)) {
-        isAdmin = user.roles.map(r => r.toLowerCase()).includes('admin')
-      } else {
-        isAdmin = _jwtHasScope(req.headers.authorization, 'admin')
-      }
-    } catch (_) {
-      isAdmin = false
-    }
-
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
-    res.json(buildSandboxConfig(isAdmin))
-  })
+  // NOTE: /launchpad/debug and /launchpad/config are registered in cds.on('served') below
+  // so that CDS XSUAA middleware has already run and req.user / req.authInfo are populated.
 
   // Track user activity on every API request
   app.use((req, _res, next) => {
@@ -2112,6 +2093,76 @@ cds.on('bootstrap', (app) => {
 })
 
 cds.on('served', async () => {
+  // ── Launchpad routes — registered HERE so CDS XSUAA middleware runs first ───
+  // Routes registered in cds.on('bootstrap') fire BEFORE CDS auth middleware, so
+  // req.user / req.authInfo are always null there.  Registering on cds.app here
+  // (after all middleware is wired up) ensures XSUAA has already processed the JWT
+  // and populated req.user before these handlers execute.
+  const servedApp = cds.app
+
+  servedApp.get('/launchpad/debug', (req, res) => {
+    const user = req.user
+    const secCtx = req.authInfo || req.tokenInfo
+    // Decode full JWT payload for diagnosis (no sub/email — those are PII)
+    const jwtPayload = (() => {
+      try {
+        const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+        if (!token) return {}
+        return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
+      } catch { return {} }
+    })()
+    res.json({
+      // CDS auth state (always null for custom Express routes in CAP v9)
+      userType:             user ? user.constructor?.name : null,
+      userId:               user?.id,
+      userIsAdmin:          typeof user?.is === 'function' ? user.is('admin')  : 'no is() method',
+      hasAuthInfo:          !!req.authInfo,
+      checkLocalScopeAdmin: secCtx && typeof secCtx.checkLocalScope === 'function'
+                              ? secCtx.checkLocalScope('admin')
+                              : 'no checkLocalScope',
+      // Raw JWT diagnosis fields
+      hasAuthorizationHeader: (req.headers.authorization || '').startsWith('Bearer '),
+      jwtScopes:            jwtPayload.scope    || [],
+      // Key fields to identify the token type:
+      // iss = 'https://<subdomain>.authentication.us10.hana.ondemand.com' → XSUAA token (correct)
+      // iss = 'https://<tenant>.accounts.ondemand.com' → IAS token (token exchange missing)
+      jwtIss:               jwtPayload.iss,
+      jwtAud:               jwtPayload.aud,
+      jwtClientId:          jwtPayload.client_id,
+      jwtZid:               jwtPayload.zid,
+      jwtExtAttr:           jwtPayload.ext_attr,
+      jwtGrantType:         jwtPayload.grant_type,
+      // _jwtHasScope result — what /launchpad/config uses to set isAdmin
+      scopeCheckAdmin:      _jwtHasScope(req.headers.authorization, 'admin'),
+      scopeCheckManage:     _jwtHasScope(req.headers.authorization, 'manage'),
+      scopeCheckView:       _jwtHasScope(req.headers.authorization, 'view')
+    })
+  })
+
+  servedApp.get('/launchpad/config', (req, res) => {
+    let isAdmin = false
+    try {
+      const user = req.user
+      if (user && typeof user.is === 'function') {
+        // CDS XSUAA user — preferred path (req.user populated by XSUAA middleware)
+        isAdmin = user.is('admin')
+      } else if (req.authInfo && typeof req.authInfo.checkLocalScope === 'function') {
+        // @sap/xssec SecurityContext available directly
+        isAdmin = req.authInfo.checkLocalScope('admin')
+      } else if (_isDummyAuth && Array.isArray(user?.roles)) {
+        // Local dev dummy auth
+        isAdmin = user.roles.map(r => r.toLowerCase()).includes('admin')
+      } else {
+        // Last-resort: raw JWT scope check (e.g. unauthenticated fallback in hybrid mode)
+        isAdmin = _jwtHasScope(req.headers.authorization, 'admin')
+      }
+    } catch (_) {
+      isAdmin = false
+    }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.json(buildSandboxConfig(isAdmin))
+  })
+
   // ── Register demo mode action handlers on AdminService ──────────────────────
   // cds.services is populated once all OData services are fully served.
   // Using 'served' (not 'connect') ensures the service object exists.
