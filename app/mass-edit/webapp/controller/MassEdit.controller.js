@@ -35,6 +35,8 @@ sap.ui.define([
       key: "BRIDGE",
       endpoint: "api/bridges",
       saveEndpoint: "api/bridges/save",
+      payloadKey: "bridges",
+      titleKey: "bridges",
       statusFilterLabelKey: "postingStatus",
       statusField: "postingStatus",
       statusOptionsPath: "/options/postingStatuses",
@@ -66,6 +68,8 @@ sap.ui.define([
       key: "RESTRICTION",
       endpoint: "api/restrictions",
       saveEndpoint: "api/restrictions/save",
+      payloadKey: "restrictions",
+      titleKey: "restrictions",
       statusFilterLabelKey: "restrictionStatus",
       statusField: "restrictionStatus",
       statusOptionsPath: "/options/restrictionStatuses",
@@ -95,6 +99,108 @@ sap.ui.define([
         { key: "approvedBy",            labelKey: "approvedBy",            type: "text",    editable: true,  minWidth: 140 },
         { key: "direction",             labelKey: "direction",             type: "select",  editable: true,  minWidth: 115, optionsPath: "/options/restrictionDirections" },
         { key: "remarks",               labelKey: "remarks",               type: "text",    editable: true,  minWidth: 180 }
+      ]
+    },
+    INSPECTION: {
+      key: "INSPECTION",
+      endpoint: "api/inspections",
+      saveEndpoint: "api/inspections/save",
+      payloadKey: "inspections",
+      titleKey: "inspections",
+      statusFilterLabelKey: "active",
+      statusField: null,
+      statusOptionsPath: null,
+      stateField: null,
+      searchFields: ["bridgeId", "bridgeName", "inspectionRef", "inspectionType", "inspector", "overallGrade", "inspectionNotes", "recommendations"],
+      fields: [
+        { key: "bridgeId",           labelKey: "bridgeId",           type: "text",    editable: false, minWidth: 110 },
+        { key: "bridgeName",         labelKey: "bridgeName",         type: "text",    editable: false, minWidth: 180 },
+        { key: "inspectionRef",      labelKey: "inspectionRef",      type: "text",    editable: false, minWidth: 135 },
+        { key: "inspectionType",     labelKey: "inspectionType",     type: "text",    editable: true,  minWidth: 150 },
+        { key: "inspectionDate",     labelKey: "inspectionDate",     type: "date",    editable: true,  minWidth: 130 },
+        { key: "inspector",          labelKey: "inspector",          type: "text",    editable: true,  minWidth: 160 },
+        { key: "accreditationLevel", labelKey: "accreditationLevel", type: "number",  editable: true,  minWidth: 120 },
+        { key: "conditionRating",    labelKey: "conditionRating",    type: "number",  editable: true,  minWidth: 120 },
+        { key: "structuralRating",   labelKey: "structuralRating",   type: "number",  editable: true,  minWidth: 120 },
+        { key: "overallGrade",       labelKey: "overallGrade",       type: "text",    editable: true,  minWidth: 120 },
+        { key: "nextInspectionDue",  labelKey: "nextInspectionDue",  type: "date",    editable: true,  minWidth: 140 },
+        { key: "inspectionNotes",    labelKey: "inspectionNotes",    type: "text",    editable: true,  minWidth: 220 },
+        { key: "recommendations",    labelKey: "recommendations",    type: "text",    editable: true,  minWidth: 220 },
+        { key: "active",             labelKey: "active",             type: "boolean", editable: true,  minWidth:  80 }
+      ]
+    },
+    DEFECT: {
+      key: "DEFECT",
+      endpoint: "api/defects",
+      saveEndpoint: "api/defects/save",
+      payloadKey: "defects",
+      titleKey: "defects",
+      statusFilterLabelKey: "defectStatus",
+      statusField: "status",
+      statusOptionsPath: null,
+      stateField: null,
+      searchFields: ["bridgeId", "bridgeName", "inspectionRef", "defectId", "defectType", "status", "location", "elementAffected", "defectDescription", "recommendedAction"],
+      fields: [
+        { key: "bridgeId",             labelKey: "bridgeId",             type: "text",    editable: false, minWidth: 110 },
+        { key: "bridgeName",           labelKey: "bridgeName",           type: "text",    editable: false, minWidth: 180 },
+        { key: "inspectionRef",        labelKey: "inspectionRef",        type: "text",    editable: false, minWidth: 135 },
+        { key: "defectId",             labelKey: "defectId",             type: "text",    editable: false, minWidth: 130 },
+        { key: "defectType",           labelKey: "defectType",           type: "text",    editable: true,  minWidth: 160 },
+        { key: "severity",             labelKey: "severity",             type: "number",  editable: true,  minWidth:  95 },
+        { key: "urgency",              labelKey: "urgency",              type: "number",  editable: true,  minWidth:  95 },
+        { key: "status",               labelKey: "defectStatus",         type: "text",    editable: true,  minWidth: 120 },
+        { key: "targetCompletionDate", labelKey: "targetCompletionDate", type: "date",    editable: true,  minWidth: 150 },
+        { key: "location",             labelKey: "location",             type: "text",    editable: true,  minWidth: 180 },
+        { key: "elementAffected",      labelKey: "elementAffected",      type: "text",    editable: true,  minWidth: 170 },
+        { key: "defectDescription",    labelKey: "defectDescription",    type: "text",    editable: true,  minWidth: 220 },
+        { key: "recommendedAction",    labelKey: "recommendedAction",    type: "text",    editable: true,  minWidth: 220 },
+        { key: "active",               labelKey: "active",               type: "boolean", editable: true,  minWidth:  80 }
+      ]
+    },
+    CAPACITY: {
+      key: "CAPACITY",
+      endpoint: "api/capacities",
+      saveEndpoint: "api/capacities/save",
+      payloadKey: "capacities",
+      titleKey: "capacities",
+      statusFilterLabelKey: "capacityStatus",
+      statusField: "capacityStatus",
+      statusOptionsPath: null,
+      stateField: null,
+      searchFields: ["bridgeId", "bridgeName", "capacityType", "ratingStandard", "ratingEngineer", "reportReference", "capacityStatus", "lastReviewedBy", "engineeringNotes"],
+      fields: [
+        { key: "bridgeId",              labelKey: "bridgeId",              type: "text",    editable: false, minWidth: 110 },
+        { key: "bridgeName",            labelKey: "bridgeName",            type: "text",    editable: false, minWidth: 180 },
+        { key: "capacityType",          labelKey: "capacityType",          type: "text",    editable: true,  minWidth: 140 },
+        { key: "grossMassLimit",        labelKey: "grossMassLimit",        type: "decimal", editable: true,  minWidth: 120 },
+        { key: "grossCombined",         labelKey: "grossCombined",         type: "decimal", editable: true,  minWidth: 125 },
+        { key: "steerAxleLimit",        labelKey: "steerAxleLimit",        type: "decimal", editable: true,  minWidth: 125 },
+        { key: "singleAxleLimit",       labelKey: "singleAxleLimit",       type: "decimal", editable: true,  minWidth: 125 },
+        { key: "tandemGroupLimit",      labelKey: "tandemGroupLimit",      type: "decimal", editable: true,  minWidth: 135 },
+        { key: "triAxleGroupLimit",     labelKey: "triAxleGroupLimit",     type: "decimal", editable: true,  minWidth: 135 },
+        { key: "minClearancePosted",    labelKey: "minClearancePosted",    type: "decimal", editable: true,  minWidth: 140 },
+        { key: "lane1Clearance",        labelKey: "lane1Clearance",        type: "decimal", editable: true,  minWidth: 125 },
+        { key: "lane2Clearance",        labelKey: "lane2Clearance",        type: "decimal", editable: true,  minWidth: 125 },
+        { key: "clearanceSurveyDate",   labelKey: "clearanceSurveyDate",   type: "date",    editable: true,  minWidth: 145 },
+        { key: "clearanceSurveyMethod", labelKey: "clearanceSurveyMethod", type: "text",    editable: true,  minWidth: 170 },
+        { key: "carriagewayWidth",      labelKey: "carriagewayWidth",      type: "decimal", editable: true,  minWidth: 135 },
+        { key: "trafficableWidth",      labelKey: "trafficableWidth",      type: "decimal", editable: true,  minWidth: 135 },
+        { key: "laneWidth",             labelKey: "laneWidth",             type: "decimal", editable: true,  minWidth: 110 },
+        { key: "ratingStandard",        labelKey: "ratingStandard",        type: "text",    editable: true,  minWidth: 150 },
+        { key: "ratingFactor",          labelKey: "ratingFactor",          type: "decimal", editable: true,  minWidth: 110 },
+        { key: "ratingEngineer",        labelKey: "ratingEngineer",        type: "text",    editable: true,  minWidth: 160 },
+        { key: "ratingDate",            labelKey: "ratingDate",            type: "date",    editable: true,  minWidth: 120 },
+        { key: "nextReviewDue",         labelKey: "nextReviewDue",         type: "date",    editable: true,  minWidth: 130 },
+        { key: "reportReference",       labelKey: "reportReference",       type: "text",    editable: true,  minWidth: 160 },
+        { key: "floodClosureLevel",     labelKey: "floodClosureLevel",     type: "decimal", editable: true,  minWidth: 135 },
+        { key: "designLife",            labelKey: "designLife",            type: "number",  editable: true,  minWidth: 110 },
+        { key: "consumedLife",          labelKey: "consumedLife",          type: "decimal", editable: true,  minWidth: 120 },
+        { key: "fatigueSensitive",      labelKey: "fatigueSensitive",      type: "boolean", editable: true,  minWidth: 120 },
+        { key: "criticalElement",       labelKey: "criticalElement",       type: "text",    editable: true,  minWidth: 180 },
+        { key: "capacityStatus",        labelKey: "capacityStatus",        type: "text",    editable: true,  minWidth: 140 },
+        { key: "lastReviewedBy",        labelKey: "lastReviewedBy",        type: "text",    editable: true,  minWidth: 160 },
+        { key: "statusReviewDue",       labelKey: "statusReviewDue",       type: "date",    editable: true,  minWidth: 135 },
+        { key: "engineeringNotes",      labelKey: "engineeringNotes",      type: "text",    editable: true,  minWidth: 220 }
       ]
     }
   };
@@ -141,6 +247,7 @@ sap.ui.define([
           structureTypes: [], pbsApprovalClasses: [],
           restrictionCategories: [], restrictionTypes: [], restrictionStatuses: [],
           restrictionUnits: [], restrictionDirections: [], vehicleClasses: [],
+          activeStatuses: [{ key: "", text: "-" }, { key: true, text: "Active" }, { key: false, text: "Inactive" }],
           bulkFields: [], bulkFieldOptions: []
         }
       }), "view");
@@ -316,7 +423,7 @@ sap.ui.define([
         const data = await this._fetchJson(config.endpoint, { headers: { Accept: "application/json" } });
         if (gen !== this._loadGeneration) { return; }
 
-        const payloadKey = config.key === "BRIDGE" ? "bridges" : "restrictions";
+        const payloadKey = config.payloadKey;
         const rows = (data[payloadKey] || []).map(function (businessRecord) {
           return Object.assign({}, businessRecord, { _dirty: false });
         });
@@ -541,11 +648,11 @@ sap.ui.define([
     _syncLabels: function () {
       const vm     = this._vm();
       const config = this._config();
-      vm.setProperty("/tableTitle",        this._t(config.key === "BRIDGE" ? "bridges" : "restrictions"));
+      vm.setProperty("/tableTitle",        this._t(config.titleKey));
       vm.setProperty("/showStateFilter",   !!config.stateField);
-      vm.setProperty("/showStatusFilter",  !!config.statusField);
+      vm.setProperty("/showStatusFilter",  !!config.statusField && !!config.statusOptionsPath);
       vm.setProperty("/statusFilterLabel", this._t(config.statusFilterLabelKey));
-      vm.setProperty("/statusFilterOptions", vm.getProperty(config.statusOptionsPath) || []);
+      vm.setProperty("/statusFilterOptions", config.statusOptionsPath ? (vm.getProperty(config.statusOptionsPath) || []) : []);
       vm.setProperty("/bulkButtonText",    this._t("bulkApply"));
       vm.setProperty("/applyButtonText",   this._t("applyToSelected", [0]));
       vm.setProperty("/options/bulkFields", config.fields

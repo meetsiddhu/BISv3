@@ -61,6 +61,9 @@
               <items>
                 <SegmentedButtonItem key="BRIDGE"      text="{i18n>bridges}"      icon="sap-icon://building"  width="7.5rem"/>
                 <SegmentedButtonItem key="RESTRICTION" text="{i18n>restrictions}" icon="sap-icon://alert"    width="9.5rem"/>
+                <SegmentedButtonItem key="INSPECTION"  text="{i18n>inspections}"  icon="sap-icon://inspection" width="9rem"/>
+                <SegmentedButtonItem key="DEFECT"      text="{i18n>defects}"      icon="sap-icon://quality-issue" width="8rem"/>
+                <SegmentedButtonItem key="CAPACITY"    text="{i18n>capacities}"   icon="sap-icon://simulate" width="9rem"/>
               </items>
             </SegmentedButton>
 

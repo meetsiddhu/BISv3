@@ -71,6 +71,75 @@ const MASS_EDIT_RESTRICTION_COLUMNS = [
   'remarks'
 ]
 
+const MASS_EDIT_INSPECTION_COLUMNS = [
+  'ID',
+  'bridge_ID',
+  'inspectionRef',
+  'inspectionType',
+  'inspectionDate',
+  'inspector',
+  'accreditationLevel',
+  'conditionRating',
+  'structuralRating',
+  'overallGrade',
+  'nextInspectionDue',
+  'inspectionNotes',
+  'recommendations',
+  'active'
+]
+
+const MASS_EDIT_DEFECT_COLUMNS = [
+  'ID',
+  'bridge_ID',
+  'inspection_ID',
+  'defectId',
+  'defectType',
+  'severity',
+  'urgency',
+  'defectDescription',
+  'location',
+  'elementAffected',
+  'recommendedAction',
+  'status',
+  'targetCompletionDate',
+  'active'
+]
+
+const MASS_EDIT_CAPACITY_COLUMNS = [
+  'ID',
+  'bridge_ID',
+  'capacityType',
+  'grossMassLimit',
+  'grossCombined',
+  'steerAxleLimit',
+  'singleAxleLimit',
+  'tandemGroupLimit',
+  'triAxleGroupLimit',
+  'minClearancePosted',
+  'lane1Clearance',
+  'lane2Clearance',
+  'clearanceSurveyDate',
+  'clearanceSurveyMethod',
+  'carriagewayWidth',
+  'trafficableWidth',
+  'laneWidth',
+  'ratingStandard',
+  'ratingFactor',
+  'ratingEngineer',
+  'ratingDate',
+  'nextReviewDue',
+  'reportReference',
+  'floodClosureLevel',
+  'designLife',
+  'consumedLife',
+  'fatigueSensitive',
+  'criticalElement',
+  'capacityStatus',
+  'lastReviewedBy',
+  'statusReviewDue',
+  'engineeringNotes'
+]
+
 const MASS_EDIT_FIELD_TYPES = {
   bridgeName: 'string',
   state: 'string',
@@ -114,6 +183,66 @@ const MASS_EDIT_RESTRICTION_FIELD_TYPES = {
   approvedBy: 'string',
   direction: 'string',
   remarks: 'string'
+}
+
+const MASS_EDIT_INSPECTION_FIELD_TYPES = {
+  inspectionType: 'string',
+  inspectionDate: 'date',
+  inspector: 'string',
+  accreditationLevel: 'integer',
+  conditionRating: 'integer',
+  structuralRating: 'integer',
+  overallGrade: 'string',
+  nextInspectionDue: 'date',
+  inspectionNotes: 'string',
+  recommendations: 'string',
+  active: 'boolean'
+}
+
+const MASS_EDIT_DEFECT_FIELD_TYPES = {
+  defectType: 'string',
+  severity: 'integer',
+  urgency: 'integer',
+  defectDescription: 'string',
+  location: 'string',
+  elementAffected: 'string',
+  recommendedAction: 'string',
+  status: 'string',
+  targetCompletionDate: 'date',
+  active: 'boolean'
+}
+
+const MASS_EDIT_CAPACITY_FIELD_TYPES = {
+  capacityType: 'string',
+  grossMassLimit: 'decimal',
+  grossCombined: 'decimal',
+  steerAxleLimit: 'decimal',
+  singleAxleLimit: 'decimal',
+  tandemGroupLimit: 'decimal',
+  triAxleGroupLimit: 'decimal',
+  minClearancePosted: 'decimal',
+  lane1Clearance: 'decimal',
+  lane2Clearance: 'decimal',
+  clearanceSurveyDate: 'date',
+  clearanceSurveyMethod: 'string',
+  carriagewayWidth: 'decimal',
+  trafficableWidth: 'decimal',
+  laneWidth: 'decimal',
+  ratingStandard: 'string',
+  ratingFactor: 'decimal',
+  ratingEngineer: 'string',
+  ratingDate: 'date',
+  nextReviewDue: 'date',
+  reportReference: 'string',
+  floodClosureLevel: 'decimal',
+  designLife: 'integer',
+  consumedLife: 'decimal',
+  fatigueSensitive: 'boolean',
+  criticalElement: 'string',
+  capacityStatus: 'string',
+  lastReviewedBy: 'string',
+  statusReviewDue: 'date',
+  engineeringNotes: 'string'
 }
 
 const MASS_EDIT_REQUIRED_FIELDS = new Set(['bridgeName', 'state', 'assetOwner'])
@@ -388,6 +517,196 @@ async function loadMassEditRestrictions() {
     temporary: Boolean(restriction.temporary),
     active: Boolean(restriction.active)
   }))
+}
+
+async function loadMassEditBridgeLookup(db) {
+  const bridges = await db.run(
+    SELECT.from('bridge.management.Bridges')
+      .columns('ID', 'bridgeId', 'bridgeName')
+  )
+  return new Map((bridges || []).map((bridge) => [String(bridge.ID), bridge]))
+}
+
+function addBridgeSummary(row, bridgeLookup) {
+  const bridge = bridgeLookup.get(String(row.bridge_ID))
+  return {
+    ...row,
+    bridgeId: bridge?.bridgeId || '',
+    bridgeName: bridge?.bridgeName || ''
+  }
+}
+
+async function loadMassEditInspections() {
+  const db = await cds.connect.to('db')
+  const [inspections, bridgeLookup] = await Promise.all([
+    db.run(
+      SELECT.from('bridge.management.BridgeInspections')
+        .columns(...MASS_EDIT_INSPECTION_COLUMNS)
+        .orderBy('inspectionRef')
+    ),
+    loadMassEditBridgeLookup(db)
+  ])
+
+  return (inspections || []).map((inspection) => addBridgeSummary({
+    ...inspection,
+    accreditationLevel: inspection.accreditationLevel == null ? null : Number(inspection.accreditationLevel),
+    conditionRating: inspection.conditionRating == null ? null : Number(inspection.conditionRating),
+    structuralRating: inspection.structuralRating == null ? null : Number(inspection.structuralRating),
+    active: Boolean(inspection.active)
+  }, bridgeLookup))
+}
+
+async function loadMassEditDefects() {
+  const db = await cds.connect.to('db')
+  const [defects, bridgeLookup, inspections] = await Promise.all([
+    db.run(
+      SELECT.from('bridge.management.BridgeDefects')
+        .columns(...MASS_EDIT_DEFECT_COLUMNS)
+        .orderBy('defectId')
+    ),
+    loadMassEditBridgeLookup(db),
+    db.run(
+      SELECT.from('bridge.management.BridgeInspections')
+        .columns('ID', 'inspectionRef')
+    )
+  ])
+  const inspectionLookup = new Map((inspections || []).map((inspection) => [String(inspection.ID), inspection.inspectionRef]))
+
+  return (defects || []).map((defect) => addBridgeSummary({
+    ...defect,
+    inspectionRef: inspectionLookup.get(String(defect.inspection_ID)) || '',
+    severity: defect.severity == null ? null : Number(defect.severity),
+    urgency: defect.urgency == null ? null : Number(defect.urgency),
+    active: Boolean(defect.active)
+  }, bridgeLookup))
+}
+
+async function loadMassEditCapacities() {
+  const db = await cds.connect.to('db')
+  const [capacities, bridgeLookup] = await Promise.all([
+    db.run(
+      SELECT.from('bridge.management.BridgeCapacities')
+        .columns(...MASS_EDIT_CAPACITY_COLUMNS)
+        .orderBy('capacityType')
+    ),
+    loadMassEditBridgeLookup(db)
+  ])
+
+  const decimalFields = [
+    'grossMassLimit', 'grossCombined', 'steerAxleLimit', 'singleAxleLimit',
+    'tandemGroupLimit', 'triAxleGroupLimit', 'minClearancePosted',
+    'lane1Clearance', 'lane2Clearance', 'carriagewayWidth', 'trafficableWidth',
+    'laneWidth', 'ratingFactor', 'floodClosureLevel', 'consumedLife'
+  ]
+
+  return (capacities || []).map((capacity) => {
+    const normalized = { ...capacity }
+    decimalFields.forEach((field) => {
+      normalized[field] = normalized[field] == null ? null : Number(normalized[field])
+    })
+    normalized.designLife = normalized.designLife == null ? null : Number(normalized.designLife)
+    normalized.fatigueSensitive = Boolean(normalized.fatigueSensitive)
+    return addBridgeSummary(normalized, bridgeLookup)
+  })
+}
+
+async function saveMassEditRecords(updates, config, { user } = {}) {
+  const db = await cds.connect.to('db')
+  const tx = db.tx()
+  let updated = 0
+  const batchId = cds.utils.uuid()
+  const auditEntries = []
+
+  try {
+    for (const update of updates || []) {
+      const id = update?.ID
+      if (!id || typeof id !== 'string') {
+        throw new Error(`Each ${config.label.toLowerCase()} update requires an ID`)
+      }
+
+      const patch = {}
+      for (const [field, rawValue] of Object.entries(update)) {
+        if (field === 'ID') continue
+        if (!Object.prototype.hasOwnProperty.call(config.fieldTypes, field)) {
+          throw new Error(`Field ${field} is not allowed in ${config.label.toLowerCase()} mass edit`)
+        }
+        const value = normalizeMassEditValue(field, rawValue, config.fieldTypes)
+        if (value !== undefined) {
+          patch[field] = value
+        }
+      }
+
+      if (!Object.keys(patch).length) continue
+
+      const oldRecord = await fetchCurrentRecord(db, config.table, { ID: id })
+
+      await tx.run(
+        UPDATE(config.table)
+          .set(patch)
+          .where({ ID: id })
+      )
+      updated += 1
+
+      if (oldRecord) {
+        const changes = diffRecords(
+          Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
+          patch
+        )
+        if (changes.length) {
+          auditEntries.push({
+            objectType: config.auditType,
+            objectId:   id,
+            objectName: oldRecord[config.nameField] || id,
+            source:     'MassEdit',
+            batchId,
+            changedBy:  user || 'system',
+            changes
+          })
+        }
+      }
+    }
+
+    await tx.commit()
+
+    for (const entry of auditEntries) {
+      await writeChangeLogs(db, entry)
+    }
+
+    return { updated }
+  } catch (error) {
+    await tx.rollback(error)
+    throw error
+  }
+}
+
+function saveMassEditInspections(updates, options) {
+  return saveMassEditRecords(updates, {
+    label: 'Inspection',
+    table: 'bridge.management.BridgeInspections',
+    fieldTypes: MASS_EDIT_INSPECTION_FIELD_TYPES,
+    auditType: 'BridgeInspection',
+    nameField: 'inspectionRef'
+  }, options)
+}
+
+function saveMassEditDefects(updates, options) {
+  return saveMassEditRecords(updates, {
+    label: 'Defect',
+    table: 'bridge.management.BridgeDefects',
+    fieldTypes: MASS_EDIT_DEFECT_FIELD_TYPES,
+    auditType: 'BridgeDefect',
+    nameField: 'defectId'
+  }, options)
+}
+
+function saveMassEditCapacities(updates, options) {
+  return saveMassEditRecords(updates, {
+    label: 'Capacity',
+    table: 'bridge.management.BridgeCapacities',
+    fieldTypes: MASS_EDIT_CAPACITY_FIELD_TYPES,
+    auditType: 'BridgeCapacity',
+    nameField: 'capacityType'
+  }, options)
 }
 
 async function saveMassEditRestrictions(updates, { user } = {}) {
@@ -1410,6 +1729,33 @@ cds.on('bootstrap', (app) => {
     }
   })
 
+  massEditRouter.get('/inspections', async (_req, res) => {
+    try {
+      const inspections = await loadMassEditInspections()
+      res.json({ inspections })
+    } catch (error) {
+      res.status(500).json({ error: { message: error.message || 'Failed to load inspections for mass edit' } })
+    }
+  })
+
+  massEditRouter.get('/defects', async (_req, res) => {
+    try {
+      const defects = await loadMassEditDefects()
+      res.json({ defects })
+    } catch (error) {
+      res.status(500).json({ error: { message: error.message || 'Failed to load defects for mass edit' } })
+    }
+  })
+
+  massEditRouter.get('/capacities', async (_req, res) => {
+    try {
+      const capacities = await loadMassEditCapacities()
+      res.json({ capacities })
+    } catch (error) {
+      res.status(500).json({ error: { message: error.message || 'Failed to load capacities for mass edit' } })
+    }
+  })
+
   massEditRouter.post('/bridges/save', async (req, res) => {
     try {
       const updates = req.body?.updates
@@ -1435,6 +1781,48 @@ cds.on('bootstrap', (app) => {
       res.json(result)
     } catch (error) {
       res.status(422).json({ error: { message: error.message || 'Failed to save restriction updates' } })
+    }
+  })
+
+  massEditRouter.post('/inspections/save', async (req, res) => {
+    try {
+      const updates = req.body?.updates
+      if (!Array.isArray(updates) || !updates.length) {
+        return res.status(400).json({ error: { message: 'updates must be a non-empty array' } })
+      }
+      const user = req.user?.id || 'system'
+      const result = await saveMassEditInspections(updates, { user })
+      res.json(result)
+    } catch (error) {
+      res.status(422).json({ error: { message: error.message || 'Failed to save inspection updates' } })
+    }
+  })
+
+  massEditRouter.post('/defects/save', async (req, res) => {
+    try {
+      const updates = req.body?.updates
+      if (!Array.isArray(updates) || !updates.length) {
+        return res.status(400).json({ error: { message: 'updates must be a non-empty array' } })
+      }
+      const user = req.user?.id || 'system'
+      const result = await saveMassEditDefects(updates, { user })
+      res.json(result)
+    } catch (error) {
+      res.status(422).json({ error: { message: error.message || 'Failed to save defect updates' } })
+    }
+  })
+
+  massEditRouter.post('/capacities/save', async (req, res) => {
+    try {
+      const updates = req.body?.updates
+      if (!Array.isArray(updates) || !updates.length) {
+        return res.status(400).json({ error: { message: 'updates must be a non-empty array' } })
+      }
+      const user = req.user?.id || 'system'
+      const result = await saveMassEditCapacities(updates, { user })
+      res.json(result)
+    } catch (error) {
+      res.status(422).json({ error: { message: error.message || 'Failed to save capacity updates' } })
     }
   })
 
