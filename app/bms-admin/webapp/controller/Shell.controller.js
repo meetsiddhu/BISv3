@@ -8,7 +8,6 @@ sap.ui.define([
     home:             "changeDocuments",
     changeDocuments:  "changeDocuments",
     dataQuality:      "dataQuality",
-    userAccess:       "userAccess",
     systemConfig:     "systemConfig",
     bnacConfig:       "bnacConfig",
     gisConfig:        "gisConfig",

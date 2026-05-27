@@ -25,7 +25,6 @@
           <tnt:NavigationList id="navList">
             <tnt:NavigationListItem text="Change Documents"  key="changeDocuments" icon="sap-icon://history"       />
             <tnt:NavigationListItem text="Data Quality"      key="dataQuality"     icon="sap-icon://quality-issue" />
-            <tnt:NavigationListItem text="User Access"       key="userAccess"      icon="sap-icon://employee"      />
             <tnt:NavigationListItem text="System Config"     key="systemConfig"    icon="sap-icon://settings"      />
             <tnt:NavigationListItem text="BNAC Config"       key="bnacConfig"      icon="sap-icon://chain-link"    />
             <tnt:NavigationListItem text="GIS Config"        key="gisConfig"       icon="sap-icon://map"           />
