@@ -87,8 +87,7 @@
         { "pattern": "bnac-config", "name": "bnacConfig", "target": "bnacConfig" },
         { "pattern": "attribute-config", "name": "attributeConfig", "target": "attributeConfig" },
         { "pattern": "gis-config",       "name": "gisConfig",       "target": "gisConfig" },
-        { "pattern": "demo-mode",        "name": "demoMode",        "target": "demoMode" },
-        { "pattern": "api-docs",         "name": "apiDocs",         "target": "apiDocs" }
+        { "pattern": "demo-mode",        "name": "demoMode",        "target": "demoMode" }
       ],
       "targets": {
         "changeDocuments": { "viewName": "ChangeDocuments",  "viewLevel": 1 },
@@ -98,8 +97,7 @@
         "bnacConfig":      { "viewName": "BnacConfig",       "viewLevel": 1 },
         "attributeConfig": { "viewName": "AttributeConfig",  "viewLevel": 1 },
         "gisConfig":       { "viewName": "GisConfig",        "viewLevel": 1 },
-        "demoMode":        { "viewName": "DemoMode",         "viewLevel": 1 },
-        "apiDocs":         { "viewName": "ApiDocs",          "viewLevel": 1 }
+        "demoMode":        { "viewName": "DemoMode",         "viewLevel": 1 }
       }
     },
     "contentDensities": { "compact": true, "cozy": true }
