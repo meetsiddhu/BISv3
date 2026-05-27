@@ -11,7 +11,6 @@
       "AdminService":      { "uri": "/odata/v4/admin/",    "type": "OData", "settings": { "odataVersion": "4.0" } },
       "AuditService":      { "uri": "/audit/api/",         "type": "HTTP" },
       "SystemService":     { "uri": "/system/api/",        "type": "HTTP" },
-      "QualityService":    { "uri": "/quality/api/",       "type": "HTTP" },
       "BnacService":       { "uri": "/bnac/api/",          "type": "HTTP" },
       "AttributesService": { "uri": "/attributes/api/",   "type": "HTTP" }
     },
@@ -80,7 +79,6 @@
       "routes": [
         { "pattern": "", "name": "home", "target": "changeDocuments" },
         { "pattern": "change-documents", "name": "changeDocuments", "target": "changeDocuments" },
-        { "pattern": "data-quality",       "name": "dataQuality",       "target": "dataQuality" },
         { "pattern": "system-config", "name": "systemConfig", "target": "systemConfig" },
         { "pattern": "bnac-config", "name": "bnacConfig", "target": "bnacConfig" },
         { "pattern": "attribute-config", "name": "attributeConfig", "target": "attributeConfig" },
@@ -89,7 +87,6 @@
       ],
       "targets": {
         "changeDocuments": { "viewName": "ChangeDocuments",  "viewLevel": 1 },
-        "dataQuality":      { "viewName": "DataQuality",      "viewLevel": 1 },
         "systemConfig":    { "viewName": "SystemConfig",     "viewLevel": 1 },
         "bnacConfig":      { "viewName": "BnacConfig",       "viewLevel": 1 },
         "attributeConfig": { "viewName": "AttributeConfig",  "viewLevel": 1 },

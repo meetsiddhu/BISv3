@@ -7,7 +7,6 @@ sap.ui.define([
   const ROUTE_TO_KEY = {
     home:             "changeDocuments",
     changeDocuments:  "changeDocuments",
-    dataQuality:      "dataQuality",
     systemConfig:     "systemConfig",
     bnacConfig:       "bnacConfig",
     gisConfig:        "gisConfig",
@@ -18,39 +17,8 @@ sap.ui.define([
   return Controller.extend("BridgeManagement.bmsadmin.controller.Shell", {
 
     onInit: function () {
-      this._qualityBase = this.getOwnerComponent().getManifestEntry("/sap.app/dataSources/QualityService/uri").replace(/\/$/, "");
       const oRouter = this.getOwnerComponent().getRouter();
       oRouter.attachRouteMatched(this._onRouteMatched, this);
-      // Poll data quality for critical issues every 5 minutes
-      this._pollQualityAlert();
-      this._qualityPollTimer = setInterval(this._pollQualityAlert.bind(this), 5 * 60 * 1000);
-    },
-
-    onExit: function () {
-      if (this._qualityPollTimer) clearInterval(this._qualityPollTimer);
-    },
-
-    // ── Quality alert badge ─────────────────────────────────────────────────
-    _pollQualityAlert: function () {
-      fetch(this._qualityBase + "/summary")
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (!data) return;
-          const critical = data.criticalCount || 0;
-          const btn = this.byId("qualityAlertBtn");
-          if (!btn) return;
-          if (critical > 0) {
-            btn.setVisible(true);
-            btn.setTooltip(critical + " bridge" + (critical !== 1 ? "s" : "") + " with critical data quality issues: click to view");
-          } else {
-            btn.setVisible(false);
-          }
-        })
-        .catch(() => { /* silent: do not disrupt shell */ });
-    },
-
-    onQualityAlertPress: function () {
-      this.getOwnerComponent().getRouter().navTo("dataQuality");
     },
 
     // ── Route matching ──────────────────────────────────────────────────────

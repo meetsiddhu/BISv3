@@ -12,10 +12,6 @@
         <Button icon="sap-icon://menu2" type="Transparent" press=".onToggleSideNav" tooltip="Toggle navigation" />
         <Title text="BMS Administration" titleStyle="H4" class="sapUiSmallMarginBegin" />
         <ToolbarSpacer />
-        <!-- Critical quality alert badge: shown when critical DQ issues exist -->
-        <Button id="qualityAlertBtn" icon="sap-icon://alert" type="Reject"
-                tooltip="Critical data quality issues detected: click to view"
-                press=".onQualityAlertPress" visible="false" class="sapUiSmallMarginEnd" />
       </tnt:ToolHeader>
     </tnt:header>
 
@@ -24,7 +20,6 @@
         <tnt:item>
           <tnt:NavigationList id="navList">
             <tnt:NavigationListItem text="Change Documents"  key="changeDocuments" icon="sap-icon://history"       />
-            <tnt:NavigationListItem text="Data Quality"      key="dataQuality"     icon="sap-icon://quality-issue" />
             <tnt:NavigationListItem text="System Config"     key="systemConfig"    icon="sap-icon://settings"      />
             <tnt:NavigationListItem text="BNAC Config"       key="bnacConfig"      icon="sap-icon://chain-link"    />
             <tnt:NavigationListItem text="GIS Config"        key="gisConfig"       icon="sap-icon://map"           />
