@@ -293,6 +293,9 @@ sap.ui.define([
       const dirty = (vm.getProperty("/allItems") || []).filter(function (bridgeRow) { return bridgeRow._dirty; });
       if (!dirty.length) { return; }
 
+      // Capture entity type before any awaits — used in finally to invalidate lookup cache.
+      const isDropdownSave = vm.getProperty("/entityKey") === "DROPDOWN";
+
       vm.setProperty("/busy", true);
       try {
         const payload = dirty.map(this._toPayload.bind(this));
@@ -307,6 +310,13 @@ sap.ui.define([
         MessageBox.error(err.message || this._t("saveError"));
       } finally {
         vm.setProperty("/busy", false);
+        // Invalidate the lookup option cache after any DROPDOWN save so the next
+        // entity-type switch re-fetches lookup options without deactivated values.
+        // Placed here (after reload) so the reload itself reuses the cached lookups,
+        // avoiding an extra sequential network round-trip on every save.
+        if (isDropdownSave) {
+          this._lookupsLoaded = false;
+        }
       }
     },
 
@@ -438,6 +448,10 @@ sap.ui.define([
           if (gen !== this._loadGeneration) { return; }
           this._applyLookups(lookups);
           this._lookupsLoaded = true;
+          // Re-sync labels now that lookup options are populated.
+          // _syncLabels runs before lookups load on init, so status filter options
+          // would be empty without this second call.
+          this._syncLabels();
         }
 
         const data = await this._fetchJson(config.endpoint, { headers: { Accept: "application/json" } });

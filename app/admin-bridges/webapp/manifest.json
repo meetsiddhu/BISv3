@@ -115,21 +115,6 @@
           "target": "BridgesDetails"
         },
         {
-          "pattern": "Bridges({key})/capacities({key2}):?query:",
-          "name": "BridgeCapacitiesDetails",
-          "target": "BridgeCapacitiesDetails"
-        },
-        {
-          "pattern": "Bridges({key})/restrictions({key2}):?query:",
-          "name": "BridgeRestrictionsDetails",
-          "target": "BridgeRestrictionsDetails"
-        },
-        {
-          "pattern": "Bridges({key})/inspections({key2}):?query:",
-          "name": "BridgeInspectionsDetails",
-          "target": "BridgeInspectionsDetails"
-        },
-        {
           "pattern": "GISConfig:?query:",
           "name": "GISConfig",
           "target": "GISConfig"
@@ -227,48 +212,7 @@
               "entitySet": "Bridges",
               "editableHeaderContent": false,
               "sharingEnabled": false,
-              "navigation": {
-                "capacities": {
-                  "detail": {
-                    "route": "BridgeCapacitiesDetails"
-                  }
-                },
-                "restrictions": {
-                  "detail": {
-                    "route": "BridgeRestrictionsDetails"
-                  }
-                },
-                "inspections": {
-                  "detail": {
-                    "route": "BridgeInspectionsDetails"
-                  }
-                }
-              },
               "controlConfiguration": {
-                "capacities/@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "enablePaste": false,
-                    "creationMode": {
-                      "name": "NewPage"
-                    }
-                  }
-                },
-                "restrictions/@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "enablePaste": false,
-                    "creationMode": {
-                      "name": "NewPage"
-                    }
-                  }
-                },
-                "inspections/@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "enablePaste": false,
-                    "creationMode": {
-                      "name": "NewPage"
-                    }
-                  }
-                },
                 "documents/@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": { "enablePaste": false }
                 }
@@ -303,42 +247,6 @@
                   }
                 }
               }
-            }
-          }
-        },
-        "BridgeCapacitiesDetails": {
-          "type": "Component",
-          "id": "BridgeCapacitiesDetails",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "entitySet": "BridgeCapacities",
-              "editableHeaderContent": false,
-              "sharingEnabled": false
-            }
-          }
-        },
-        "BridgeRestrictionsDetails": {
-          "type": "Component",
-          "id": "BridgeRestrictionsDetails",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "entitySet": "BridgeRestrictions",
-              "editableHeaderContent": false,
-              "sharingEnabled": false
-            }
-          }
-        },
-        "BridgeInspectionsDetails": {
-          "type": "Component",
-          "id": "BridgeInspectionsDetails",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "entitySet": "BridgeInspections",
-              "editableHeaderContent": false,
-              "sharingEnabled": false
             }
           }
         },

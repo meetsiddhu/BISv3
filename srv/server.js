@@ -446,42 +446,38 @@ async function loadMassEditBridges() {
 
 async function saveMassEditBridges(updates, { user } = {}) {
   const db = await cds.connect.to('db')
+  const batchId = cds.utils.uuid()
+
+  // Phase 1 — validate + build patches + pre-fetch old records (before the transaction
+  // is opened so reads and writes never compete for the same SQLite connection lock).
+  const validUpdates = []
+  for (const update of updates || []) {
+    const id = Number(update?.ID)
+    if (!Number.isInteger(id)) {
+      throw new Error('Each mass edit update requires a numeric ID')
+    }
+    const patch = {}
+    for (const [field, rawValue] of Object.entries(update)) {
+      if (field === 'ID') continue
+      if (!Object.prototype.hasOwnProperty.call(MASS_EDIT_FIELD_TYPES, field)) {
+        throw new Error(`Field ${field} is not allowed in mass edit`)
+      }
+      const value = normalizeMassEditValue(field, rawValue, MASS_EDIT_FIELD_TYPES)
+      if (value !== undefined) patch[field] = value
+    }
+    if (!Object.keys(patch).length) continue
+    const oldRecord = await fetchCurrentRecord(db, 'bridge.management.Bridges', { ID: id })
+    validUpdates.push({ id, patch, oldRecord })
+  }
+
+  // Phase 2 — write inside a single transaction (reads are already done).
   const tx = db.tx()
   let updated = 0
-  const batchId = cds.utils.uuid()
   const auditEntries = []
-
   try {
-    for (const update of updates || []) {
-      const id = Number(update?.ID)
-      if (!Number.isInteger(id)) {
-        throw new Error('Each mass edit update requires a numeric ID')
-      }
-
-      const patch = {}
-      for (const [field, rawValue] of Object.entries(update)) {
-        if (field === 'ID') continue
-        if (!Object.prototype.hasOwnProperty.call(MASS_EDIT_FIELD_TYPES, field)) {
-          throw new Error(`Field ${field} is not allowed in mass edit`)
-        }
-        const value = normalizeMassEditValue(field, rawValue, MASS_EDIT_FIELD_TYPES)
-        if (value !== undefined) {
-          patch[field] = value
-        }
-      }
-
-      if (!Object.keys(patch).length) continue
-
-      // Fetch old values before overwriting
-      const oldRecord = await fetchCurrentRecord(db, 'bridge.management.Bridges', { ID: id })
-
-      await tx.run(
-        UPDATE('bridge.management.Bridges')
-          .set(patch)
-          .where({ ID: id })
-      )
+    for (const { id, patch, oldRecord } of validUpdates) {
+      await tx.run(UPDATE('bridge.management.Bridges').set(patch).where({ ID: id }))
       updated += 1
-
       if (oldRecord) {
         const changes = diffRecords(
           Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
@@ -500,19 +496,20 @@ async function saveMassEditBridges(updates, { user } = {}) {
         }
       }
     }
-
     await tx.commit()
-
-    // Write audit after commit so it is never rolled back with business data
-    for (const entry of auditEntries) {
-      await writeChangeLogs(db, entry)
-    }
-
-    return { updated }
   } catch (error) {
     await tx.rollback(error)
     throw error
   }
+
+  // Phase 3 — fire audit-log writes in the background so they never delay the HTTP
+  // response.  writeChangeLogs already suppresses its own errors via try/catch.
+  if (auditEntries.length) {
+    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
+      .catch(err => LOG.error('Audit log write failed (bridges):', err.message))
+  }
+
+  return { updated }
 }
 
 async function loadMassEditRestrictions() {
@@ -654,44 +651,38 @@ async function loadMassEditDropdownValues() {
 
 async function saveMassEditDropdownValues(updates, { user } = {}) {
   const db = await cds.connect.to('db')
+  const batchId = cds.utils.uuid()
+
+  // Phase 1 — validate + build patches + pre-fetch old records (before transaction).
+  const validUpdates = []
+  for (const update of updates || []) {
+    const dataset = MASS_EDIT_DROPDOWN_DATASET_BY_KEY.get(update?.dataset)
+    if (!dataset) throw new Error('Each dropdown update requires a valid dataset')
+    const code = update?.code
+    if (!code) throw new Error('Each dropdown update requires a code')
+
+    const patch = {}
+    for (const [field, rawValue] of Object.entries(update)) {
+      if (['ID', 'dataset', 'datasetLabel', 'code', 'name', 'descr'].includes(field)) continue
+      if (!Object.prototype.hasOwnProperty.call(MASS_EDIT_DROPDOWN_FIELD_TYPES, field)) {
+        throw new Error(`Field ${field} is not allowed in dropdown mass edit`)
+      }
+      const value = normalizeMassEditValue(field, rawValue, MASS_EDIT_DROPDOWN_FIELD_TYPES)
+      if (value !== undefined) patch[field] = value
+    }
+    if (!Object.keys(patch).length) continue
+    const oldRecord = await fetchCurrentRecord(db, dataset.entity, { code })
+    validUpdates.push({ dataset, code, patch, oldRecord })
+  }
+
+  // Phase 2 — write inside a single transaction (reads already done).
   const tx = db.tx()
   let updated = 0
-  const batchId = cds.utils.uuid()
   const auditEntries = []
-
   try {
-    for (const update of updates || []) {
-      const dataset = MASS_EDIT_DROPDOWN_DATASET_BY_KEY.get(update?.dataset)
-      if (!dataset) {
-        throw new Error('Each dropdown update requires a valid dataset')
-      }
-      const code = update?.code
-      if (!code) {
-        throw new Error('Each dropdown update requires a code')
-      }
-
-      const patch = {}
-      for (const [field, rawValue] of Object.entries(update)) {
-        if (['ID', 'dataset', 'datasetLabel', 'code', 'name', 'descr'].includes(field)) continue
-        if (!Object.prototype.hasOwnProperty.call(MASS_EDIT_DROPDOWN_FIELD_TYPES, field)) {
-          throw new Error(`Field ${field} is not allowed in dropdown mass edit`)
-        }
-        const value = normalizeMassEditValue(field, rawValue, MASS_EDIT_DROPDOWN_FIELD_TYPES)
-        if (value !== undefined) {
-          patch[field] = value
-        }
-      }
-
-      if (!Object.keys(patch).length) continue
-
-      const oldRecord = await fetchCurrentRecord(db, dataset.entity, { code })
-      await tx.run(
-        UPDATE(dataset.entity)
-          .set(patch)
-          .where({ code })
-      )
+    for (const { dataset, code, patch, oldRecord } of validUpdates) {
+      await tx.run(UPDATE(dataset.entity).set(patch).where({ code }))
       updated += 1
-
       if (oldRecord) {
         const changes = diffRecords(
           Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
@@ -710,57 +701,54 @@ async function saveMassEditDropdownValues(updates, { user } = {}) {
         }
       }
     }
-
     await tx.commit()
-
-    for (const entry of auditEntries) {
-      await writeChangeLogs(db, entry)
-    }
-
-    return { updated }
   } catch (error) {
     await tx.rollback(error)
     throw error
   }
+
+  // Phase 3 — background audit writes (fire-and-forget; writeChangeLogs suppresses errors).
+  if (auditEntries.length) {
+    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
+      .catch(err => LOG.error('Audit log write failed (dropdowns):', err.message))
+  }
+
+  return { updated }
 }
 
 async function saveMassEditRecords(updates, config, { user } = {}) {
   const db = await cds.connect.to('db')
+  const batchId = cds.utils.uuid()
+
+  // Phase 1 — validate + build patches + pre-fetch old records (before transaction).
+  const validUpdates = []
+  for (const update of updates || []) {
+    const id = update?.ID
+    if (!id || typeof id !== 'string') {
+      throw new Error(`Each ${config.label.toLowerCase()} update requires an ID`)
+    }
+    const patch = {}
+    for (const [field, rawValue] of Object.entries(update)) {
+      if (field === 'ID') continue
+      if (!Object.prototype.hasOwnProperty.call(config.fieldTypes, field)) {
+        throw new Error(`Field ${field} is not allowed in ${config.label.toLowerCase()} mass edit`)
+      }
+      const value = normalizeMassEditValue(field, rawValue, config.fieldTypes)
+      if (value !== undefined) patch[field] = value
+    }
+    if (!Object.keys(patch).length) continue
+    const oldRecord = await fetchCurrentRecord(db, config.table, { ID: id })
+    validUpdates.push({ id, patch, oldRecord })
+  }
+
+  // Phase 2 — write inside a single transaction (reads already done).
   const tx = db.tx()
   let updated = 0
-  const batchId = cds.utils.uuid()
   const auditEntries = []
-
   try {
-    for (const update of updates || []) {
-      const id = update?.ID
-      if (!id || typeof id !== 'string') {
-        throw new Error(`Each ${config.label.toLowerCase()} update requires an ID`)
-      }
-
-      const patch = {}
-      for (const [field, rawValue] of Object.entries(update)) {
-        if (field === 'ID') continue
-        if (!Object.prototype.hasOwnProperty.call(config.fieldTypes, field)) {
-          throw new Error(`Field ${field} is not allowed in ${config.label.toLowerCase()} mass edit`)
-        }
-        const value = normalizeMassEditValue(field, rawValue, config.fieldTypes)
-        if (value !== undefined) {
-          patch[field] = value
-        }
-      }
-
-      if (!Object.keys(patch).length) continue
-
-      const oldRecord = await fetchCurrentRecord(db, config.table, { ID: id })
-
-      await tx.run(
-        UPDATE(config.table)
-          .set(patch)
-          .where({ ID: id })
-      )
+    for (const { id, patch, oldRecord } of validUpdates) {
+      await tx.run(UPDATE(config.table).set(patch).where({ ID: id }))
       updated += 1
-
       if (oldRecord) {
         const changes = diffRecords(
           Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
@@ -779,18 +767,19 @@ async function saveMassEditRecords(updates, config, { user } = {}) {
         }
       }
     }
-
     await tx.commit()
-
-    for (const entry of auditEntries) {
-      await writeChangeLogs(db, entry)
-    }
-
-    return { updated }
   } catch (error) {
     await tx.rollback(error)
     throw error
   }
+
+  // Phase 3 — background audit writes (fire-and-forget; writeChangeLogs suppresses errors).
+  if (auditEntries.length) {
+    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
+      .catch(err => LOG.error(`Audit log write failed (${config.label.toLowerCase()}):`, err.message))
+  }
+
+  return { updated }
 }
 
 function saveMassEditInspections(updates, options) {
@@ -825,41 +814,35 @@ function saveMassEditCapacities(updates, options) {
 
 async function saveMassEditRestrictions(updates, { user } = {}) {
   const db = await cds.connect.to('db')
+  const batchId = cds.utils.uuid()
+
+  // Phase 1 — validate + build patches + pre-fetch old records (before transaction).
+  const validUpdates = []
+  for (const update of updates || []) {
+    const id = update?.ID
+    if (!id || typeof id !== 'string') throw new Error('Each restriction update requires an ID')
+    const patch = {}
+    for (const [field, rawValue] of Object.entries(update)) {
+      if (field === 'ID') continue
+      if (!Object.prototype.hasOwnProperty.call(MASS_EDIT_RESTRICTION_FIELD_TYPES, field)) {
+        throw new Error(`Field ${field} is not allowed in restriction mass edit`)
+      }
+      const value = normalizeMassEditValue(field, rawValue, MASS_EDIT_RESTRICTION_FIELD_TYPES)
+      if (value !== undefined) patch[field] = value
+    }
+    if (!Object.keys(patch).length) continue
+    const oldRecord = await fetchCurrentRecord(db, 'bridge.management.Restrictions', { ID: id })
+    validUpdates.push({ id, patch, oldRecord })
+  }
+
+  // Phase 2 — write inside a single transaction (reads already done).
   const tx = db.tx()
   let updated = 0
-  const batchId = cds.utils.uuid()
   const auditEntries = []
-
   try {
-    for (const update of updates || []) {
-      const id = update?.ID
-      if (!id || typeof id !== 'string') {
-        throw new Error('Each restriction update requires an ID')
-      }
-
-      const patch = {}
-      for (const [field, rawValue] of Object.entries(update)) {
-        if (field === 'ID') continue
-        if (!Object.prototype.hasOwnProperty.call(MASS_EDIT_RESTRICTION_FIELD_TYPES, field)) {
-          throw new Error(`Field ${field} is not allowed in restriction mass edit`)
-        }
-        const value = normalizeMassEditValue(field, rawValue, MASS_EDIT_RESTRICTION_FIELD_TYPES)
-        if (value !== undefined) {
-          patch[field] = value
-        }
-      }
-
-      if (!Object.keys(patch).length) continue
-
-      const oldRecord = await fetchCurrentRecord(db, 'bridge.management.Restrictions', { ID: id })
-
-      await tx.run(
-        UPDATE('bridge.management.Restrictions')
-          .set(patch)
-          .where({ ID: id })
-      )
+    for (const { id, patch, oldRecord } of validUpdates) {
+      await tx.run(UPDATE('bridge.management.Restrictions').set(patch).where({ ID: id }))
       updated += 1
-
       if (oldRecord) {
         const changes = diffRecords(
           Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
@@ -878,18 +861,19 @@ async function saveMassEditRestrictions(updates, { user } = {}) {
         }
       }
     }
-
     await tx.commit()
-
-    for (const entry of auditEntries) {
-      await writeChangeLogs(db, entry)
-    }
-
-    return { updated }
   } catch (error) {
     await tx.rollback(error)
     throw error
   }
+
+  // Phase 3 — background audit writes (fire-and-forget; writeChangeLogs suppresses errors).
+  if (auditEntries.length) {
+    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
+      .catch(err => LOG.error('Audit log write failed (restrictions):', err.message))
+  }
+
+  return { updated }
 }
 
 async function loadDashboardAnalytics() {
