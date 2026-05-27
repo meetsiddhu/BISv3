@@ -245,7 +245,47 @@ const MASS_EDIT_CAPACITY_FIELD_TYPES = {
   engineeringNotes: 'string'
 }
 
+const MASS_EDIT_DROPDOWN_FIELD_TYPES = {
+  isActive: 'boolean'
+}
+
 const MASS_EDIT_REQUIRED_FIELDS = new Set(['bridgeName', 'state', 'assetOwner'])
+
+const MASS_EDIT_DROPDOWN_DATASETS = [
+  { key: 'AssetClasses', label: 'Asset Classes', entity: 'bridge.management.AssetClasses' },
+  { key: 'States', label: 'States', entity: 'bridge.management.States' },
+  { key: 'Regions', label: 'Regions', entity: 'bridge.management.Regions' },
+  { key: 'StructureTypes', label: 'Structure Types', entity: 'bridge.management.StructureTypes' },
+  { key: 'DesignLoads', label: 'Design Loads', entity: 'bridge.management.DesignLoads' },
+  { key: 'PostingStatuses', label: 'Posting Statuses', entity: 'bridge.management.PostingStatuses' },
+  { key: 'CapacityStatuses', label: 'Capacity Statuses', entity: 'bridge.management.CapacityStatuses' },
+  { key: 'ConditionStates', label: 'Condition States', entity: 'bridge.management.ConditionStates' },
+  { key: 'PbsApprovalClasses', label: 'PBS Approval Classes', entity: 'bridge.management.PbsApprovalClasses' },
+  { key: 'ConditionSummaries', label: 'Condition Summaries', entity: 'bridge.management.ConditionSummaries' },
+  { key: 'StructuralAdequacyTypes', label: 'Structural Adequacy Types', entity: 'bridge.management.StructuralAdequacyTypes' },
+  { key: 'RestrictionTypes', label: 'Restriction Types', entity: 'bridge.management.RestrictionTypes' },
+  { key: 'RestrictionStatuses', label: 'Restriction Statuses', entity: 'bridge.management.RestrictionStatuses' },
+  { key: 'VehicleClasses', label: 'Vehicle Classes', entity: 'bridge.management.VehicleClasses' },
+  { key: 'RestrictionCategories', label: 'Restriction Categories', entity: 'bridge.management.RestrictionCategories' },
+  { key: 'RestrictionUnits', label: 'Restriction Units', entity: 'bridge.management.RestrictionUnits' },
+  { key: 'RestrictionDirections', label: 'Restriction Directions', entity: 'bridge.management.RestrictionDirections' }
+]
+
+const MASS_EDIT_DROPDOWN_DATASET_BY_KEY = new Map(MASS_EDIT_DROPDOWN_DATASETS.map((dataset) => [dataset.key, dataset]))
+
+const MASS_EDIT_LOOKUP_OPTION_MAP = [
+  ['states', 'States'],
+  ['conditions', 'ConditionStates'],
+  ['postingStatuses', 'PostingStatuses'],
+  ['structureTypes', 'StructureTypes'],
+  ['pbsApprovalClasses', 'PbsApprovalClasses'],
+  ['restrictionCategories', 'RestrictionCategories'],
+  ['restrictionTypes', 'RestrictionTypes'],
+  ['restrictionStatuses', 'RestrictionStatuses'],
+  ['restrictionUnits', 'RestrictionUnits'],
+  ['restrictionDirections', 'RestrictionDirections'],
+  ['vehicleClasses', 'VehicleClasses']
+]
 
 function normalizeMassEditValue(field, value, fieldTypes = MASS_EDIT_FIELD_TYPES) {
   const type = fieldTypes[field]
@@ -368,41 +408,20 @@ function mapCodeList(rows) {
 
 async function loadMassEditLookups() {
   const db = await cds.connect.to('db')
-  const entities = [
-    'bridge.management.States',
-    'bridge.management.ConditionStates',
-    'bridge.management.PostingStatuses',
-    'bridge.management.StructureTypes',
-    'bridge.management.PbsApprovalClasses',
-    'bridge.management.RestrictionCategories',
-    'bridge.management.RestrictionTypes',
-    'bridge.management.RestrictionStatuses',
-    'bridge.management.RestrictionUnits',
-    'bridge.management.RestrictionDirections',
-    'bridge.management.VehicleClasses'
-  ]
-  const results = await Promise.all(
-    entities.map(e => db.run(SELECT.from(e).columns('code', 'name').orderBy('code')))
+  const lookupEntries = await Promise.all(
+    MASS_EDIT_LOOKUP_OPTION_MAP.map(async ([optionName, datasetKey]) => {
+      const dataset = MASS_EDIT_DROPDOWN_DATASET_BY_KEY.get(datasetKey)
+      const rows = await db.run(
+        SELECT.from(dataset.entity)
+          .columns('code', 'name')
+          .where({ isActive: { '!=': false } })
+          .orderBy('code')
+      )
+      return [optionName, mapCodeList(rows)]
+    })
   )
-  const [
-    states, conditions, postingStatuses, structureTypes,
-    pbsApprovalClasses, restrictionCategories, restrictionTypes,
-    restrictionStatuses, restrictionUnits, restrictionDirections, vehicleClasses
-  ] = results.map(mapCodeList)
 
-  return {
-    states,
-    conditions,
-    postingStatuses,
-    structureTypes,
-    pbsApprovalClasses,
-    restrictionCategories,
-    restrictionTypes,
-    restrictionStatuses,
-    restrictionUnits,
-    restrictionDirections,
-    vehicleClasses
-  }
+  return Object.fromEntries(lookupEntries)
 }
 
 async function loadMassEditBridges() {
@@ -608,6 +627,101 @@ async function loadMassEditCapacities() {
     normalized.fatigueSensitive = Boolean(normalized.fatigueSensitive)
     return addBridgeSummary(normalized, bridgeLookup)
   })
+}
+
+async function loadMassEditDropdownValues() {
+  const db = await cds.connect.to('db')
+  const datasetRows = await Promise.all(
+    MASS_EDIT_DROPDOWN_DATASETS.map(async (dataset) => {
+      const rows = await db.run(
+        SELECT.from(dataset.entity)
+          .columns('code', 'name', 'descr', 'isActive')
+          .orderBy('code')
+      )
+      return (rows || []).map((row) => ({
+        ID: `${dataset.key}:${row.code}`,
+        dataset: dataset.key,
+        datasetLabel: dataset.label,
+        code: row.code,
+        name: row.name || row.code,
+        descr: row.descr || '',
+        isActive: row.isActive !== false
+      }))
+    })
+  )
+  return datasetRows.flat()
+}
+
+async function saveMassEditDropdownValues(updates, { user } = {}) {
+  const db = await cds.connect.to('db')
+  const tx = db.tx()
+  let updated = 0
+  const batchId = cds.utils.uuid()
+  const auditEntries = []
+
+  try {
+    for (const update of updates || []) {
+      const dataset = MASS_EDIT_DROPDOWN_DATASET_BY_KEY.get(update?.dataset)
+      if (!dataset) {
+        throw new Error('Each dropdown update requires a valid dataset')
+      }
+      const code = update?.code
+      if (!code) {
+        throw new Error('Each dropdown update requires a code')
+      }
+
+      const patch = {}
+      for (const [field, rawValue] of Object.entries(update)) {
+        if (['ID', 'dataset', 'datasetLabel', 'code', 'name', 'descr'].includes(field)) continue
+        if (!Object.prototype.hasOwnProperty.call(MASS_EDIT_DROPDOWN_FIELD_TYPES, field)) {
+          throw new Error(`Field ${field} is not allowed in dropdown mass edit`)
+        }
+        const value = normalizeMassEditValue(field, rawValue, MASS_EDIT_DROPDOWN_FIELD_TYPES)
+        if (value !== undefined) {
+          patch[field] = value
+        }
+      }
+
+      if (!Object.keys(patch).length) continue
+
+      const oldRecord = await fetchCurrentRecord(db, dataset.entity, { code })
+      await tx.run(
+        UPDATE(dataset.entity)
+          .set(patch)
+          .where({ code })
+      )
+      updated += 1
+
+      if (oldRecord) {
+        const changes = diffRecords(
+          Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
+          patch
+        )
+        if (changes.length) {
+          auditEntries.push({
+            objectType: 'Lookup',
+            objectId:   `${dataset.key}:${code}`,
+            objectName: `${dataset.label}: ${oldRecord.name || code}`,
+            source:     'MassEdit',
+            batchId,
+            changedBy:  user || 'system',
+            changes
+          })
+        }
+      }
+    }
+
+    await tx.commit()
+
+    for (const entry of auditEntries) {
+      await writeChangeLogs(db, entry)
+    }
+
+    return { updated }
+  } catch (error) {
+    await tx.rollback(error)
+    throw error
+  }
 }
 
 async function saveMassEditRecords(updates, config, { user } = {}) {
@@ -1756,6 +1870,15 @@ cds.on('bootstrap', (app) => {
     }
   })
 
+  massEditRouter.get('/dropdowns', async (_req, res) => {
+    try {
+      const dropdowns = await loadMassEditDropdownValues()
+      res.json({ dropdowns })
+    } catch (error) {
+      res.status(500).json({ error: { message: error.message || 'Failed to load dropdown values for mass edit' } })
+    }
+  })
+
   massEditRouter.post('/bridges/save', async (req, res) => {
     try {
       const updates = req.body?.updates
@@ -1823,6 +1946,20 @@ cds.on('bootstrap', (app) => {
       res.json(result)
     } catch (error) {
       res.status(422).json({ error: { message: error.message || 'Failed to save capacity updates' } })
+    }
+  })
+
+  massEditRouter.post('/dropdowns/save', async (req, res) => {
+    try {
+      const updates = req.body?.updates
+      if (!Array.isArray(updates) || !updates.length) {
+        return res.status(400).json({ error: { message: 'updates must be a non-empty array' } })
+      }
+      const user = req.user?.id || 'system'
+      const result = await saveMassEditDropdownValues(updates, { user })
+      res.json(result)
+    } catch (error) {
+      res.status(422).json({ error: { message: error.message || 'Failed to save dropdown updates' } })
     }
   })
 
@@ -2554,6 +2691,25 @@ cds.on('served', async () => {
   // Using 'served' (not 'connect') ensures the service object exists.
   const adminSrv = cds.services['AdminService'];
   if (adminSrv) demoHandler(adminSrv);
+
+  // ── SQLite dev migration: add activation flag to code-list tables ───────────
+  // HANA gets this from normal deploy artifacts. Local sqlite files can outlive
+  // schema changes, so keep this idempotent to avoid breaking existing data.
+  if (!isHanaDb()) {
+    try {
+      const db = await cds.connect.to('db');
+      for (const dataset of MASS_EDIT_DROPDOWN_DATASETS) {
+        const table = `bridge_management_${dataset.key}`;
+        const cols = await db.run(`PRAGMA table_info(${table})`);
+        if (!cols.some((col) => col.name === 'isActive')) {
+          await db.run(`ALTER TABLE ${table} ADD COLUMN isActive BOOLEAN DEFAULT 1`);
+          await db.run(`UPDATE ${table} SET isActive = 1 WHERE isActive IS NULL`);
+        }
+      }
+    } catch (lookupMigrationError) {
+      cds.log('bms').warn('Lookup activation migration skipped:', lookupMigrationError.message);
+    }
+  }
 
   // ── Migrate ConditionStates: ensure code = name (title-case) ───────────────
   // Historic imports used numeric codes (1=Good, 2=Fair …).  Bridges store the

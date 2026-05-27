@@ -7,12 +7,28 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   const { Bridges, Restrictions, BridgeRestrictions, BridgeCapacities, BridgeStatusValues, ConditionStates } = this.entities
   const BridgeInspections = 'BridgeInspections'
   const BridgeDefects = 'BridgeDefects'
+  const LOOKUP_ENTITY_NAMES = [
+    'AssetClasses', 'States', 'Regions', 'StructureTypes', 'DesignLoads',
+    'PostingStatuses', 'CapacityStatuses', 'PbsApprovalClasses',
+    'ConditionSummaries', 'StructuralAdequacyTypes', 'RestrictionTypes',
+    'RestrictionStatuses', 'VehicleClasses', 'RestrictionCategories',
+    'RestrictionUnits', 'RestrictionDirections'
+  ]
 
   const bridgeIdFor = (ID, state) => {
     const stateMap = { NSW:'NSW', VIC:'VIC', QLD:'QLD', WA:'WA', SA:'SA', TAS:'TAS', ACT:'ACT', NT:'NT' }
     const stateCode = stateMap[state] || 'AUS'
     return `BRG-${stateCode}-${String(ID).padStart(3, '0')}`
   }
+
+  LOOKUP_ENTITY_NAMES.forEach((entityName) => {
+    this.on('READ', entityName, async () => {
+      return SELECT.from(`bridge.management.${entityName}`)
+        .columns('code', 'name', 'descr', 'isActive')
+        .where({ isActive: { '!=': false } })
+        .orderBy('code')
+    })
+  })
 
   const requiredFields = {
     Bridges: [
@@ -458,17 +474,22 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     }
   })
 
-  // Serve ConditionStates from memory so the filter dropdown always shows
-  // title-case names regardless of what numeric codes were imported historically.
-  // The localized DB view uses session_context (HANA-only) which is unreliable
-  // in SQLite dev — serving inline is the safest cross-environment approach.
-  this.on('READ', ConditionStates, () => [
-    { code: 'Good',      name: 'Good',      descr: 'Minor wear and tear. No significant structural defects.' },
-    { code: 'Fair',      name: 'Fair',      descr: 'Moderate deterioration. Some defects present but not immediately critical.' },
-    { code: 'Poor',      name: 'Poor',      descr: 'Significant defects. Structural integrity attention required.' },
-    { code: 'Very Poor', name: 'Very Poor', descr: 'Major defects. Urgent repairs required.' },
-    { code: 'Critical',  name: 'Critical',  descr: 'Imminent failure risk or structural failure possible.' }
-  ])
+  // Serve active ConditionStates from the base table so Mass Edit can retire
+  // values while preserving the historical title-case fallback for empty dev DBs.
+  this.on('READ', ConditionStates, async () => {
+    const rows = await SELECT.from('bridge.management.ConditionStates')
+      .columns('code', 'name', 'descr', 'isActive')
+      .where({ isActive: { '!=': false } })
+      .orderBy('code')
+    if (rows.length) return rows
+    return [
+      { code: 'Good',      name: 'Good',      descr: 'Minor wear and tear. No significant structural defects.', isActive: true },
+      { code: 'Fair',      name: 'Fair',      descr: 'Moderate deterioration. Some defects present but not immediately critical.', isActive: true },
+      { code: 'Poor',      name: 'Poor',      descr: 'Significant defects. Structural integrity attention required.', isActive: true },
+      { code: 'Very Poor', name: 'Very Poor', descr: 'Major defects. Urgent repairs required.', isActive: true },
+      { code: 'Critical',  name: 'Critical',  descr: 'Imminent failure risk or structural failure possible.', isActive: true }
+    ]
+  })
 
   // Serve the two-value status filter list inline — no DB table needed.
   // Active + Inactive together covers all bridges; no 'All' sentinel is needed.

@@ -202,6 +202,26 @@ sap.ui.define([
         { key: "statusReviewDue",       labelKey: "statusReviewDue",       type: "date",    editable: true,  minWidth: 135 },
         { key: "engineeringNotes",      labelKey: "engineeringNotes",      type: "text",    editable: true,  minWidth: 220 }
       ]
+    },
+    DROPDOWN: {
+      key: "DROPDOWN",
+      endpoint: "api/dropdowns",
+      saveEndpoint: "api/dropdowns/save",
+      payloadKey: "dropdowns",
+      titleKey: "dropdownValues",
+      payloadKeys: ["dataset", "code"],
+      statusFilterLabelKey: "activeStatus",
+      statusField: "isActive",
+      statusOptionsPath: "/options/activeStatuses",
+      stateField: null,
+      searchFields: ["datasetLabel", "code", "name", "descr"],
+      fields: [
+        { key: "datasetLabel", labelKey: "dropdown",    type: "text",    editable: false, minWidth: 200 },
+        { key: "code",         labelKey: "code",        type: "text",    editable: false, minWidth: 140 },
+        { key: "name",         labelKey: "name",        type: "text",    editable: false, minWidth: 180 },
+        { key: "descr",        labelKey: "description", type: "text",    editable: false, minWidth: 260 },
+        { key: "isActive",     labelKey: "active",      type: "boolean", editable: true,  minWidth:  90 }
+      ]
     }
   };
 
@@ -247,7 +267,7 @@ sap.ui.define([
           structureTypes: [], pbsApprovalClasses: [],
           restrictionCategories: [], restrictionTypes: [], restrictionStatuses: [],
           restrictionUnits: [], restrictionDirections: [], vehicleClasses: [],
-          activeStatuses: [{ key: "", text: "-" }, { key: true, text: "Active" }, { key: false, text: "Inactive" }],
+          activeStatuses: [{ key: "", text: "-" }, { key: "true", text: "Active" }, { key: "false", text: "Inactive" }],
           bulkFields: [], bulkFieldOptions: []
         }
       }), "view");
@@ -600,7 +620,10 @@ sap.ui.define([
           list.push(new Filter(config.stateField, FilterOperator.EQ, filters.state));
         }
         if (config.statusField && filters.status) {
-          list.push(new Filter(config.statusField, FilterOperator.EQ, filters.status));
+          list.push(new Filter({
+            path: config.statusField,
+            test: function (cellValue) { return String(cellValue) === String(filters.status); }
+          }));
         }
         if (search) {
           list.push(new Filter({
@@ -627,7 +650,7 @@ sap.ui.define([
       const visible = all.filter(function (row) {
         if (filters.onlyDirty && !row._dirty) { return false; }
         if (config.stateField  && filters.state  && row[config.stateField]  !== filters.state)  { return false; }
-        if (config.statusField && filters.status && row[config.statusField] !== filters.status) { return false; }
+        if (config.statusField && filters.status && String(row[config.statusField]) !== String(filters.status)) { return false; }
         if (!search) { return true; }
         return config.searchFields.some(function (sf) {
           return String(row[sf] || "").toLowerCase().includes(search);
@@ -684,6 +707,9 @@ sap.ui.define([
 
     _toPayload: function (row) {
       const bridgePatch = { ID: row.ID };
+      (this._config().payloadKeys || []).forEach(function (key) {
+        bridgePatch[key] = row[key];
+      });
       // Sanitize values before sending to the backend:
       //   • date fields: only pass valid YYYY-MM-DD strings; send null for anything else
       //     (CAP can store Julian-epoch sentinels like "-4713-11-25" for NULLs)

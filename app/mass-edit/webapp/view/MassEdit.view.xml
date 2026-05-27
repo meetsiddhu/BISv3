@@ -64,6 +64,7 @@
                 <SegmentedButtonItem key="INSPECTION"  text="{i18n>inspections}"  icon="sap-icon://inspection" width="9rem"/>
                 <SegmentedButtonItem key="DEFECT"      text="{i18n>defects}"      icon="sap-icon://quality-issue" width="8rem"/>
                 <SegmentedButtonItem key="CAPACITY"    text="{i18n>capacities}"   icon="sap-icon://simulate" width="9rem"/>
+                <SegmentedButtonItem key="DROPDOWN"    text="{i18n>dropdownValues}" icon="sap-icon://slim-arrow-down" width="11rem"/>
               </items>
             </SegmentedButton>
 
