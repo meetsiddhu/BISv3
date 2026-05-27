@@ -79,6 +79,8 @@
           "options": {
             "settings": {
               "contextPath": "/Restrictions",
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "navigation": {
                 "Restrictions": {
                   "detail": {

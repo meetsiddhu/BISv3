@@ -158,6 +158,8 @@
           "options": {
             "settings": {
               "entitySet": "Bridges",
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "filterDefaultValues": {
                 "status": "Active"
               },
