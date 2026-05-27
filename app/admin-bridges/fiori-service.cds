@@ -764,7 +764,7 @@ annotate AdminService.BridgeCapacities with {
 annotate AdminService.BridgeCapacities with @(
   Capabilities.InsertRestrictions.Insertable : true,
   Capabilities.UpdateRestrictions.Updatable  : true,
-  Capabilities.DeleteRestrictions.Deletable  : true,
+  Capabilities.DeleteRestrictions.Deletable  : false,
   UI: {
     HeaderInfo: {
       TypeName      : 'Bridge Capacity',

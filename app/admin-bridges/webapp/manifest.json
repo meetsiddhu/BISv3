@@ -187,18 +187,6 @@
                     "route": "BridgesDetails"
                   }
                 }
-              },
-              "controlConfiguration": {
-                "@com.sap.vocabularies.UI.v1.LineItem": {
-                  "actions": {
-                    "exportCsv": {
-                      "press": "BridgeManagement.adminbridges.ext.controller.ListReportExt.onExportCsv",
-                      "text": "Export CSV",
-                      "enabled": true,
-                      "requiresSelection": false
-                    }
-                  }
-                }
               }
             }
           }
