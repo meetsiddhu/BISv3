@@ -13,9 +13,9 @@ const BRIDGE_HEADERS = [
   'managingAuthority', 'structureType', 'yearBuilt', 'designLoad', 'designStandard',
   'clearanceHeight', 'spanLength', 'material', 'spanCount', 'totalLength', 'deckWidth',
   'numberOfLanes', 'condition', 'conditionRating', 'structuralAdequacyRating', 'postingStatus',
-  'conditionStandard', 'seismicZone', 'asBuiltDrawingReference', 'scourDepthLastMeasured',
+  'conditionStandard', 'seismicZone', 'asBuiltDrawingReference',
   'floodImmunityAriYears', 'floodImpacted', 'highPriorityAsset', 'remarks', 'status',
-  'scourRisk', 'lastInspectionDate', 'nhvrAssessed', 'nhvrAssessmentDate', 'loadRating',
+  'lastInspectionDate', 'nhvrAssessed', 'nhvrAssessmentDate', 'loadRating',
   'pbsApprovalClass', 'importanceLevel', 'averageDailyTraffic', 'heavyVehiclePercent',
   'gazetteReference', 'nhvrReferenceUrl', 'freightRoute', 'overMassRoute', 'hmlApproved',
   'bDoubleApproved', 'dataSource', 'sourceReferenceUrl', 'openDataReference', 'sourceRecordId',
@@ -96,13 +96,11 @@ function mapRow(r) {
     '',                                                   // conditionStandard
     src(r, 'seismicZone'),                                // seismicZone
     '',                                                   // asBuiltDrawingReference
-    '',                                                   // scourDepthLastMeasured
     src(r, 'floodImmunityAriYears', 'floodImmunityAri'), // floodImmunityAriYears
     mapBool(src(r, 'floodImpacted')),                     // floodImpacted
     mapBool(src(r, 'highPriorityAsset')),                 // highPriorityAsset
     src(r, 'remarks'),                                    // remarks
     'Active',                                             // status
-    src(r, 'scourRisk', 'scourRiskLevel'),                // scourRisk
     '',                                                   // lastInspectionDate
     mapBool(src(r, 'nhvrAssessed', 'nhvrRouteAssessed')), // nhvrAssessed
     '',                                                   // nhvrAssessmentDate

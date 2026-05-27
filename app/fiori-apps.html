@@ -13,8 +13,31 @@
       xhr.open('GET', '/appconfig/fioriSandboxConfig.json', false)
       xhr.send(null)
       var tileConfig = xhr.status === 200 ? JSON.parse(xhr.responseText) : {}
+
+      // Freeze groups/catalogs so sandbox.js cannot merge SAP sample apps into our config
+      var _groups = (tileConfig.services && tileConfig.services.LaunchPage &&
+                     tileConfig.services.LaunchPage.adapter &&
+                     tileConfig.services.LaunchPage.adapter.config &&
+                     tileConfig.services.LaunchPage.adapter.config.groups) || []
+      Object.defineProperty(
+        tileConfig.services.LaunchPage.adapter.config,
+        'groups',
+        { get: function() { return _groups }, set: function() {}, configurable: true, enumerable: true }
+      )
+      Object.defineProperty(
+        tileConfig.services.LaunchPage.adapter.config,
+        'catalogs',
+        { get: function() { return [] }, set: function() {}, configurable: true, enumerable: true }
+      )
+      Object.defineProperty(
+        tileConfig.services.LaunchPage.adapter.config,
+        'catalogueEntries',
+        { get: function() { return [] }, set: function() {}, configurable: true, enumerable: true }
+      )
+
       window['sap-ushell-config'] = Object.assign({
         defaultRenderer: 'fiori2',
+        bootstrapConfig: { mergeApplications: false, mergeCatalogs: false },
         renderers: {
           fiori2: {
             componentData: {

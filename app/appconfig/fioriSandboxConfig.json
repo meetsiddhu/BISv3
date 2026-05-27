@@ -54,6 +54,45 @@
               ]
             },
             {
+              "id": "bms.group.subdomains",
+              "title": "BRIDGE SUB-DOMAINS",
+              "isPreset": true,
+              "isVisible": true,
+              "isGroupLocked": false,
+              "tiles": [
+                {
+                  "id": "BridgeInspections",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Inspections",
+                    "subtitle": "All Bridge Inspections",
+                    "icon": "sap-icon://inspection",
+                    "targetURL": "#Bridges-manage&/BridgeInspections"
+                  }
+                },
+                {
+                  "id": "BridgeDefects",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Defects",
+                    "subtitle": "View-Only — Create via Inspections",
+                    "icon": "sap-icon://quality-issue",
+                    "targetURL": "#Bridges-manage&/BridgeDefects"
+                  }
+                },
+                {
+                  "id": "BridgeCapacities",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Bridge Capacity",
+                    "subtitle": "Load & Geometric Capacities",
+                    "icon": "sap-icon://simulate",
+                    "targetURL": "#Bridges-manage&/BridgeCapacities"
+                  }
+                }
+              ]
+            },
+            {
               "id": "bms.group.admin",
               "title": "BMS BUSINESS ADMIN",
               "isPreset": true,

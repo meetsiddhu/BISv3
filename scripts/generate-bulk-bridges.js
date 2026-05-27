@@ -187,15 +187,6 @@ const FREIGHT_ROUTE_RATE   = { 1: 0.7, 2: 0.55, 3: 0.3, 4: 0.1, 5: 0.05 }
 // PBS approval class by bridge age and condition
 const PBS_CLASSES = ['Not Assessed', 'General Access', 'Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5']
 
-// Scour risk distribution
-const SCOUR_RISKS = [
-    { level: 'VeryLow', display: 'Very Low', weight: 30 },
-    { level: 'Low',     display: 'Low',      weight: 35 },
-    { level: 'Medium',  display: 'Medium',   weight: 20 },
-    { level: 'High',    display: 'High',     weight: 12 },
-    { level: 'VeryHigh',display: 'Very High',weight: 3  },
-]
-
 // Feature crossed types
 const FEATURES_CROSSED = [
     'Creek', 'River', 'Gully', 'Drainage Channel', 'Flood Way',
@@ -254,7 +245,6 @@ function generateBridge (bridgeId, lgaData, index) {
     const condObj     = rng.weighted(CONDITION_DIST)
     const postingObj  = rng.weighted(POSTING_STATUSES)
     const yearRange   = rng.weighted(YEAR_RANGES)
-    const scourObj    = rng.weighted(SCOUR_RISKS)
     const feature     = rng.pick(FEATURES_CROSSED)
     const yearBuilt   = rng.int(yearRange.min, yearRange.max)
     const cond        = condObj.rating
@@ -285,8 +275,7 @@ function generateBridge (bridgeId, lgaData, index) {
                          cond === 3 ? 'Important' : 'Ordinary'
 
     const highPriority = cond >= 4 || (cond === 3 && aadt > 15000)
-    const scourHigh    = ['High','VeryHigh'].includes(scourObj.level)
-    const flood        = scourHigh && rng.bool(0.6)
+    const flood        = rng.bool(0.2)
     const floodAri     = flood ? rng.pick([10, 20, 50, 100]) : rng.pick([50, 100, 200])
 
     const waterway     = rng.pick(RIVER_NAMES)
@@ -319,8 +308,6 @@ function generateBridge (bridgeId, lgaData, index) {
         postingStatus:    postingObj.status,
         assetOwner:       lgaData.assetOwner,
         maintenanceAuthority: lgaData.assetOwner,
-        scourRisk:        scourObj.display,
-        scourRiskLevel:   scourObj.level,
         floodImpacted:    flood,
         floodImmunityAri: floodAri,
         hmlApproved:      hml,
@@ -351,7 +338,7 @@ const HEADERS = [
     'deckWidthM','clearanceHeightM','numberOfSpans','numberOfLanes',
     'condition','conditionRating','conditionRatingTfnsw',
     'postingStatus','assetOwner','maintenanceAuthority',
-    'scourRisk','scourRiskLevel','floodImpacted','floodImmunityAri',
+    'floodImpacted','floodImmunityAri',
     'hmlApproved','bdoubleApproved','freightRoute','overMassRoute',
     'nhvrRouteAssessed','pbsApprovalClass','networkClassification',
     'importanceLevel','seismicZone','aadt','heavyVehiclePercentage',

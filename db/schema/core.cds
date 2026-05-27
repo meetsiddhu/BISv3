@@ -26,7 +26,6 @@ entity Bridge : cuid, managed {
     numberOfLanes       : Integer;
     designLoad          : String(100);
     loadRating          : Decimal(8,3);
-    scourRisk           : String(20);
     floodImpacted       : Boolean default false;
     nhvrRouteAssessed   : Boolean default false;
     freightRoute        : Boolean default false;
@@ -54,7 +53,6 @@ entity Bridge : cuid, managed {
     pbsApprovalClass        : String(20);
     aadt                    : Integer;
     heavyVehiclePercentage  : Decimal(5,2);
-    scourRiskLevel          : String(20);
     floodImmunityAri        : Integer;
     seismicZone             : String(20);
     designLoadCode          : String(20);

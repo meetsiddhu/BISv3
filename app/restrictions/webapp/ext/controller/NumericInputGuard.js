@@ -10,16 +10,14 @@
 
   var DECIMAL_FIELDS = [
     "latitude", "longitude", "clearanceHeight", "spanLength", "totalLength",
-    "deckWidth", "scourDepthLastMeasured", "loadRating", "heavyVehiclePercent",
+    "deckWidth", "loadRating", "heavyVehiclePercent",
     "grossMassLimit", "axleMassLimit", "heightLimit", "widthLimit", "lengthLimit",
     "grossCombined", "steerAxleLimit", "singleAxleLimit", "tandemGroupLimit",
     "triAxleGroupLimit", "quadAxleGroupLimit", "minClearancePosted",
     "designClearanceHeight", "lane1Clearance", "lane2Clearance",
     "carriagewayWidth", "trafficableWidth", "laneWidth", "leftShoulderWidth",
-    "rightShoulderWidth", "ratingFactor", "scourCriticalDepth",
-    "currentScourDepth", "scourSafetyMargin", "floodClosureLevel",
-    "windClosureSpeed", "consumedLife", "remainingLife", "dynamicLoadAllowance",
-    "measuredDepth"
+    "rightShoulderWidth", "ratingFactor", "floodClosureLevel",
+    "windClosureSpeed", "consumedLife", "remainingLife", "dynamicLoadAllowance"
   ];
 
   var INTEGER_PATTERN = /^-?\d*$/;

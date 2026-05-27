@@ -48,13 +48,11 @@ entity Bridges : managed {
       conditionStandard : String(111);
       seismicZone  : String(40);
       asBuiltDrawingReference : String(111);
-      scourDepthLastMeasured : Decimal(9,2);
       floodImmunityAriYears : Integer;
       floodImpacted : Boolean;
       highPriorityAsset : Boolean;
       remarks      : LargeString;
       status       : String(40);
-      scourRisk    : String(20);
       lastInspectionDate : Date;
       nhvrAssessed : Boolean;
       nhvrAssessmentDate : Date;
@@ -74,14 +72,16 @@ entity Bridges : managed {
       openDataReference : String(255);
       sourceRecordId : String(111);
       restriction  : Association to Restrictions;
-      capacities   : Composition of many BridgeCapacities
+      capacities   : Association to many BridgeCapacities
                        on capacities.bridge = $self;
-      restrictions : Composition of many BridgeRestrictions
+      restrictions : Association to many BridgeRestrictions
                        on restrictions.bridge = $self;
+      inspections  : Association to many BridgeInspections
+                       on inspections.bridge = $self;
+      defects      : Association to many BridgeDefects
+                       on defects.bridge = $self;
       attributes   : Composition of many BridgeAttributes
                        on attributes.bridge = $self;
-      scourAssessments : Composition of many BridgeScourAssessments
-                       on scourAssessments.bridge = $self;
       documents    : Composition of many BridgeDocuments
                        on documents.bridge = $self;
       geoJson      : LargeString;
@@ -201,9 +201,6 @@ entity BridgeCapacities : cuid, managed {
   nextReviewDue         : Date;
   reportReference       : String(111);
 
-  // ── Scour & Environment ──────────────────────────────────────────────────
-  scourCriticalDepth    : Decimal(9,2);   // Scour Critical Depth (m)
-  currentScourDepth     : Decimal(9,2);   // Current Scour Depth (m)
   floodClosureLevel     : Decimal(9,2);   // Flood Closure Level (m AHD)
 
   // ── Fatigue Life Assessment (AS 5100.7 S11) ──────────────────────────────
@@ -233,18 +230,38 @@ entity BridgeAttributes : cuid, managed {
   remarks             : LargeString;
 }
 
-entity BridgeScourAssessments : cuid, managed {
+entity BridgeInspections : cuid, managed {
   bridge              : Association to Bridges;
-  assessmentDate      : Date;
-  assessmentType      : String(60);
-  scourRisk           : String(20);
-  measuredDepth       : Decimal(9,2);
-  floodImmunityAriYears : Integer;
-  mitigationStatus    : String(60);
-  assessor            : String(111);
-  nextReviewDate      : Date;
-  reportReference     : String(111);
-  remarks             : LargeString;
+  inspectionRef       : String(40);
+  inspectionType      : String(40);
+  inspectionDate      : Date;
+  inspector           : String(111);
+  accreditationLevel  : Integer @assert.range: [1, 4];
+  conditionRating     : Integer @assert.range: [1, 10];
+  structuralRating    : Integer @assert.range: [1, 10];
+  overallGrade        : String(20);
+  nextInspectionDue   : Date;
+  inspectionNotes     : LargeString;
+  recommendations     : LargeString;
+  active              : Boolean default true;
+  defects             : Association to many BridgeDefects
+                          on defects.inspection = $self;
+}
+
+entity BridgeDefects : cuid, managed {
+  bridge              : Association to Bridges;
+  inspection          : Association to BridgeInspections;
+  defectId            : String(40);
+  defectType          : String(60);
+  severity            : Integer @assert.range: [1, 4];
+  urgency             : Integer @assert.range: [1, 4];
+  defectDescription   : LargeString;
+  location            : String(255);
+  elementAffected     : String(111);
+  recommendedAction   : LargeString;
+  status              : String(20) default 'Open';
+  targetCompletionDate: Date;
+  active              : Boolean default true;
 }
 
 entity BridgeDocuments : cuid, managed {
@@ -296,10 +313,6 @@ entity CapacityStatuses : sap.common.CodeList {
 
 entity ConditionStates : sap.common.CodeList {
   key code : String(40);
-}
-
-entity ScourRiskLevels : sap.common.CodeList {
-  key code : String(20);
 }
 
 entity PbsApprovalClasses : sap.common.CodeList {

@@ -39,7 +39,7 @@ sap.ui.define([
           ep("POST", "/mass-edit/api/restrictions/save","Batch update restrictions. Body: { changes: [{ID, field, newValue}] }")
         ],
         auditEndpoints: [
-          ep("GET",  "/audit/api/changes",  "Field-level change log. Query: ?objectType=Bridge|Restriction|BridgeRestriction|BridgeCapacity|ScourAssessment &objectId=:uuid &user=:email &source=OData|MassEdit|MassUpload &from=:date &to=:date &batchId=:uuid"),
+          ep("GET",  "/audit/api/changes",  "Field-level change log. Query: ?objectType=Bridge|Restriction|BridgeRestriction|BridgeCapacity &objectId=:uuid &user=:email &source=OData|MassEdit|MassUpload &from=:date &to=:date &batchId=:uuid"),
           ep("GET",  "/audit/api/summary",  "Audit summary: totalChanges, byObjectType[], bySource[], topUsers[]")
         ],
         accessEndpoints: [

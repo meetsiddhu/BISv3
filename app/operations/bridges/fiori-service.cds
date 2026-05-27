@@ -44,7 +44,7 @@ annotate srv.Bridges with @(
         { Value: spanCount }, { Value: numberOfLanes }
     ]},
     UI.FieldGroup#Engineering: { Data: [
-        { Value: designLoad }, { Value: loadRating }, { Value: scourRisk },
+        { Value: designLoad }, { Value: loadRating },
         { Value: floodImpacted }, { Value: nhvrAssessed },
         { Value: hmlApproved }, { Value: bDoubleApproved },
         { Value: freightRoute }, { Value: assetOwner }, { Value: managingAuthority }

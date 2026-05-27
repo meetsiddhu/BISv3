@@ -53,7 +53,6 @@ sap.ui.define([
         { key: "conditionRating",   labelKey: "conditionRating",   type: "number",  editable: true,  minWidth: 110 },
         { key: "postingStatus",     labelKey: "postingStatus",     type: "select",  editable: true,  minWidth: 170, optionsPath: "/options/postingStatuses"    },
         { key: "lastInspectionDate",labelKey: "lastInspectionDate",type: "date",    editable: true,  minWidth: 140 },
-        { key: "scourRisk",         labelKey: "scourRisk",         type: "select",  editable: true,  minWidth: 130, optionsPath: "/options/scourRisks"         },
         { key: "pbsApprovalClass",  labelKey: "pbsApprovalClass",  type: "select",  editable: true,  minWidth: 155, optionsPath: "/options/pbsApprovalClasses" },
         { key: "nhvrAssessed",      labelKey: "nhvrAssessed",      type: "boolean", editable: true,  minWidth: 100 },
         { key: "freightRoute",      labelKey: "freightRoute",      type: "boolean", editable: true,  minWidth: 100 },
@@ -139,7 +138,7 @@ sap.ui.define([
         filters: { search: "", state: "", status: "", onlyDirty: false },
         options: {
           states: [], conditions: [], postingStatuses: [],
-          structureTypes: [], scourRisks: [], pbsApprovalClasses: [],
+          structureTypes: [], pbsApprovalClasses: [],
           restrictionCategories: [], restrictionTypes: [], restrictionStatuses: [],
           restrictionUnits: [], restrictionDirections: [], vehicleClasses: [],
           bulkFields: [], bulkFieldOptions: []

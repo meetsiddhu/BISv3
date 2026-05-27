@@ -53,10 +53,16 @@ service AdminService {
   entity BridgeAttributes as projection on my.BridgeAttributes;
 
   @restrict: [
-    { grant: 'READ',                       to: 'view'   },
-    { grant: ['CREATE','UPDATE','DELETE'],  to: 'manage' }
+    { grant: 'READ',                       to: 'view'    },
+    { grant: ['CREATE','UPDATE','DELETE'],  to: 'inspect' }
   ]
-  entity BridgeScourAssessments as projection on my.BridgeScourAssessments;
+  entity BridgeInspections as projection on my.BridgeInspections;
+
+  @restrict: [
+    { grant: 'READ',                       to: 'view'    },
+    { grant: ['CREATE','UPDATE','DELETE'],  to: 'inspect' }
+  ]
+  entity BridgeDefects as projection on my.BridgeDefects;
 
   @restrict: [
     { grant: 'READ',                       to: 'view'   },
@@ -112,12 +118,6 @@ service AdminService {
     { grant: ['CREATE','UPDATE','DELETE'],  to: 'admin' }
   ]
   entity ConditionStates as projection on my.ConditionStates;
-
-  @restrict: [
-    { grant: 'READ',                       to: 'view'  },
-    { grant: ['CREATE','UPDATE','DELETE'],  to: 'admin' }
-  ]
-  entity ScourRiskLevels as projection on my.ScourRiskLevels;
 
   @restrict: [
     { grant: 'READ',                       to: 'view'  },

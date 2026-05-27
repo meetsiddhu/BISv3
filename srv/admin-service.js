@@ -9,7 +9,9 @@ const {
 
 module.exports = class AdminService extends cds.ApplicationService { init() {
 
-  const { Bridges, Restrictions, BridgeRestrictions, BridgeCapacities, BridgeScourAssessments, BridgeStatusValues, ConditionStates } = this.entities
+  const { Bridges, Restrictions, BridgeRestrictions, BridgeCapacities, BridgeStatusValues, ConditionStates } = this.entities
+  const BridgeInspections = 'BridgeInspections'
+  const BridgeDefects = 'BridgeDefects'
 
   const bridgeIdFor = (ID, state) => {
     const stateMap = { NSW:'NSW', VIC:'VIC', QLD:'QLD', WA:'WA', SA:'SA', TAS:'TAS', ACT:'ACT', NT:'NT' }
@@ -50,12 +52,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       ['grossMassLimit', 'Gross Mass Limit'],
       ['minClearancePosted', 'Min Clearance Posted']
     ],
-    BridgeScourAssessments: [
-      ['assessmentDate', 'Assessment Date'],
-      ['assessmentType', 'Assessment Type'],
-      ['scourRisk', 'Scour Risk Level'],
-      ['assessor', 'Assessor']
-    ]
   }
 
   const numericFields = {
@@ -77,7 +73,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         ['spanLength', 'Span Length'],
         ['totalLength', 'Total Length'],
         ['deckWidth', 'Deck Width'],
-        ['scourDepthLastMeasured', 'Scour Depth Last Measured'],
         ['loadRating', 'Load Rating'],
         ['heavyVehiclePercent', 'Heavy Vehicle Percentage']
       ],
@@ -93,7 +88,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         ['spanLength', 'Span Length', 0, 9999999.99],
         ['totalLength', 'Total Length', 0, 9999999.99],
         ['deckWidth', 'Deck Width', 0, 9999999.99],
-        ['scourDepthLastMeasured', 'Scour Depth Last Measured', 0, 9999999.99],
         ['floodImmunityAriYears', 'Flood Immunity', 0, 10000],
         ['loadRating', 'Load Rating', 0, 9999999.99],
         ['importanceLevel', 'Importance Level', 1, 4],
@@ -159,8 +153,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         ['trafficableWidth', 'Trafficable Width'],
         ['laneWidth', 'Lane Width'],
         ['ratingFactor', 'Rating Factor'],
-        ['scourCriticalDepth', 'Scour Critical Depth'],
-        ['currentScourDepth', 'Current Scour Depth'],
         ['floodClosureLevel', 'Flood Closure Level'],
         ['consumedLife', 'Consumed Life']
       ],
@@ -178,25 +170,11 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         ['trafficableWidth', 'Trafficable Width', 0, 9999999.99],
         ['laneWidth', 'Lane Width', 0, 9999999.99],
         ['ratingFactor', 'Rating Factor', 0, 9999999.9999],
-        ['scourCriticalDepth', 'Scour Critical Depth', 0, 9999999.99],
-        ['currentScourDepth', 'Current Scour Depth', 0, 9999999.99],
         ['floodClosureLevel', 'Flood Closure Level', 0, 9999999.99],
         ['designLife', 'Design Fatigue Life', 0, 200],
         ['consumedLife', 'Consumed Life', 0, 100]
       ]
     },
-    BridgeScourAssessments: {
-      integer: [
-        ['floodImmunityAriYears', 'Flood Immunity']
-      ],
-      decimal: [
-        ['measuredDepth', 'Measured Scour Depth']
-      ],
-      range: [
-        ['measuredDepth', 'Measured Scour Depth', 0, 9999999.99],
-        ['floodImmunityAriYears', 'Flood Immunity', 0, 10000]
-      ]
-    }
   }
 
   const isBlank = value => value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
@@ -360,11 +338,9 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     validateRestrictionTypeUnit(req.data, req)
   })
   this.before('SAVE', BridgeCapacities, req => validateEntityFields('BridgeCapacities', req))
-  this.before('SAVE', BridgeScourAssessments, req => validateEntityFields('BridgeScourAssessments', req))
   this.before(['CREATE', 'UPDATE'], Bridges, req => validateRequiredFieldsWithExisting(Bridges, 'Bridges', req))
   this.before(['CREATE', 'UPDATE'], BridgeRestrictions, req => validateRequiredFieldsWithExisting(BridgeRestrictions, 'BridgeRestrictions', req))
   this.before(['CREATE', 'UPDATE'], BridgeCapacities, req => validateRequiredFieldsWithExisting(BridgeCapacities, 'BridgeCapacities', req))
-  this.before(['CREATE', 'UPDATE'], BridgeScourAssessments, req => validateRequiredFieldsWithExisting(BridgeScourAssessments, 'BridgeScourAssessments', req))
   this.before('CREATE', Restrictions, req => validateEntityFields('Restrictions', req))
   this.before('UPDATE', Restrictions, async req => {
     await validateRequiredFieldsWithExisting(Restrictions, 'Restrictions', req)
@@ -392,12 +368,11 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       return !!existing && (!currentCapacityId || existing.ID !== currentCapacityId)
     }
 
-    if (await duplicateIn(BridgeCapacities) || await duplicateIn(BridgeCapacities.drafts)) {
+    if (await duplicateIn(BridgeCapacities)) {
       rejectSecondCapacity(req)
     }
   }
 
-  this.before('NEW', BridgeCapacities.drafts, ensureSingleCapacityPerBridge)
   this.before('CREATE', BridgeCapacities, ensureSingleCapacityPerBridge)
 
   this.after('READ', Bridges, async results => {
@@ -536,7 +511,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   })
 
   // ── BridgeRestrictions lifecycle — auto-ref, defaults, soft-delete ──────
-  this.before('NEW', BridgeRestrictions.drafts, async (req) => {
+  this.before('CREATE', BridgeRestrictions, async (req) => {
     if (!req.data.restrictionRef) {
       const { cnt } = await SELECT.one.from(BridgeRestrictions).columns('count(1) as cnt')
       req.data.restrictionRef = `BR-${String((cnt || 0) + 1).padStart(4, '0')}`
@@ -594,6 +569,31 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       ]
     })
     return db.run(SELECT.one.from('bridge.management.BridgeRestrictions').where({ ID }))
+  })
+
+  // ── BridgeInspections lifecycle — auto-ref INS-NNNN ──────────────────────
+  this.before('CREATE', 'BridgeInspections', async (req) => {
+    if (!req.data.inspectionRef) {
+      const last = await SELECT.one.from('bridge.management.BridgeInspections')
+        .columns('inspectionRef').orderBy('createdAt desc').limit(1)
+      const m = last?.inspectionRef?.match(/^INS-(\d+)$/)
+      const seq = m ? parseInt(m[1], 10) + 1 : 1
+      req.data.inspectionRef = `INS-${String(seq).padStart(4, '0')}`
+    }
+    if (req.data.active === undefined) req.data.active = true
+  })
+
+  // ── BridgeDefects lifecycle — auto-ref DEF-NNNN ──────────────────────────
+  this.before('CREATE', 'BridgeDefects', async (req) => {
+    if (!req.data.defectId) {
+      const last = await SELECT.one.from('bridge.management.BridgeDefects')
+        .columns('defectId').orderBy('createdAt desc').limit(1)
+      const m = last?.defectId?.match(/^DEF-(\d+)$/)
+      const seq = m ? parseInt(m[1], 10) + 1 : 1
+      req.data.defectId = `DEF-${String(seq).padStart(4, '0')}`
+    }
+    if (req.data.active === undefined) req.data.active = true
+    if (!req.data.status) req.data.status = 'Open'
   })
 
   this.before (['CREATE', 'UPDATE'], Restrictions, req => {
@@ -810,66 +810,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     })
   })
 
-  // ── Audit: BridgeScourAssessments ─────────────────────────────────────────
-  this.before('UPDATE', BridgeScourAssessments, async (req) => {
-    if (!req.data?.ID) return
-    const db = await cds.connect.to('db')
-    req._auditOld = await fetchCurrentRecord(db, 'bridge.management.BridgeScourAssessments', { ID: req.data.ID })
-  })
 
-  this.after('UPDATE', BridgeScourAssessments, async (_result, req) => {
-    if (!req._auditOld) return
-    const db = await cds.connect.to('db')
-    const fresh = await fetchCurrentRecord(db, 'bridge.management.BridgeScourAssessments', { ID: req._auditOld.ID })
-    if (!fresh) return
-    const changes = diffRecords(req._auditOld, fresh)
-    if (!changes.length) return
-    await writeChangeLogs(db, {
-      objectType:  'ScourAssessment',
-      objectId:    req._auditOld.ID,
-      objectName:  fresh.assessmentType || req._auditOld.assessmentType || req._auditOld.ID,
-      source:      'OData',
-      batchId:     cds.utils.uuid(),
-      changedBy:   req.user?.id || 'system',
-      changes
-    })
-  })
-
-  this.after('CREATE', BridgeScourAssessments, async (result, req) => {
-    if (!result?.ID) return
-    const db = await cds.connect.to('db')
-    const fresh = await fetchCurrentRecord(db, 'bridge.management.BridgeScourAssessments', { ID: result.ID })
-    if (!fresh) return
-    const changes = Object.entries(fresh)
-      .filter(([k, v]) => !['modifiedAt','modifiedBy','createdAt','createdBy'].includes(k) && v != null && v !== '')
-      .map(([k, v]) => ({ fieldName: k, oldValue: '', newValue: String(v) }))
-    await writeChangeLogs(db, {
-      objectType:  'ScourAssessment',
-      objectId:    result.ID,
-      objectName:  fresh.assessmentType || result.ID,
-      source:      'OData',
-      batchId:     cds.utils.uuid(),
-      changedBy:   req.user?.id || 'system',
-      changes
-    })
-  })
-
-  this.before('DELETE', BridgeScourAssessments, async (req) => {
-    const id = req.data?.ID
-    if (!id) return
-    const db = await cds.connect.to('db')
-    const record = await fetchCurrentRecord(db, 'bridge.management.BridgeScourAssessments', { ID: id })
-    if (!record) return
-    await writeChangeLogs(db, {
-      objectType: 'ScourAssessment',
-      objectId:   id,
-      objectName: record.assessmentType || id,
-      source:     'OData',
-      batchId:    cds.utils.uuid(),
-      changedBy:  req.user?.id || 'system',
-      changes:    [{ fieldName: '_record', oldValue: JSON.stringify(record), newValue: 'DELETED' }]
-    })
-  })
 
   // ── Configurable Attributes — integrity guards ───────────────────────────
 

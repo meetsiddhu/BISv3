@@ -658,7 +658,7 @@ sap.ui.define([
           + "Optional: conditionRating (1-10), condition (GOOD|FAIR|POOR|CRITICAL), postingStatus (UNRESTRICTED|POSTED|CLOSED), "
           + "assetClass, route, routeNumber, region, lga, location, managingAuthority, structureType, yearBuilt, designLoad, designStandard, "
           + "clearanceHeight, spanLength, material, spanCount, totalLength, deckWidth, numberOfLanes, structuralAdequacyRating, "
-          + "scourRisk, seismicZone, floodImpacted (true|false), highPriorityAsset (true|false), remarks.";
+          + "seismicZone, floodImpacted (true|false), highPriorityAsset (true|false), remarks.";
       }
       if (dataset.name === "Restrictions") {
         return "Required: restrictionRef, restrictionCategory, restrictionType, restrictionStatus. "
@@ -688,9 +688,6 @@ sap.ui.define([
       }
       if (dataset.name === "ConditionStates") {
         return "Required: code (e.g. GOOD, FAIR, POOR, CRITICAL). Optional: name, descr.";
-      }
-      if (dataset.name === "ScourRiskLevels") {
-        return "Required: code (e.g. LOW, MEDIUM, HIGH, VERY_HIGH). Optional: name, descr.";
       }
       if (dataset.name === "PbsApprovalClasses") {
         return "Required: code (e.g. CLASS_1, CLASS_2, CLASS_3). Optional: name, descr.";
@@ -743,9 +740,6 @@ sap.ui.define([
       }
       if (dataset.name === "ConditionStates") {
         return "Manage bridge condition state dropdown values (GOOD, FAIR, POOR, CRITICAL).";
-      }
-      if (dataset.name === "ScourRiskLevels") {
-        return "Manage scour risk level dropdown values (LOW, MEDIUM, HIGH, VERY_HIGH).";
       }
       if (dataset.name === "PbsApprovalClasses") {
         return "Manage PBS approval class dropdown values used on bridge records.";

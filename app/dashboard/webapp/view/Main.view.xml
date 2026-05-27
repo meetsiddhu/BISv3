@@ -185,18 +185,6 @@
                 <Text text="{i18n>indicatorSufficiencyHint}" class="dashboardMuted" />
               </VBox>
 
-              <VBox class="dashboardIndicatorCard sapUiTinyMarginEnd sapUiTinyMarginBottom">
-                <HBox justifyContent="SpaceBetween" alignItems="Center">
-                  <Text text="{i18n>indicatorScourCritical}" class="dashboardIndicatorLabel" />
-                  <Button icon="sap-icon://information" tooltip="About: Scour Critical Bridges" type="Transparent" press=".onTileInfo">
-                    <customData><core:CustomData key="tileKey" value="scourCritical"/></customData>
-                  </Button>
-                </HBox>
-                <HBox alignItems="Baseline">
-                  <Text text="{view>/scourCritical}" class="{= ${view>/scourCritical} > 0 ? 'dashboardIndicatorValueCritical' : 'dashboardIndicatorValue' }" />
-                </HBox>
-                <Text text="{i18n>indicatorScourCriticalHint}" class="dashboardMuted" />
-              </VBox>
 
               <VBox class="dashboardIndicatorCard sapUiTinyMarginEnd sapUiTinyMarginBottom">
                 <HBox justifyContent="SpaceBetween" alignItems="Center">

@@ -61,10 +61,8 @@ sap.ui.define([
     // Bridge — risk & inspection
     postingStatus:            "Posting Status",
     status:                   "Status",
-    scourRisk:                "Scour Risk",
     lastInspectionDate:       "Last Inspection Date",
     seismicZone:              "Seismic Zone",
-    scourDepthLastMeasured:   "Scour Depth Last Measured (m)",
     floodImmunityAriYears:    "Flood Immunity ARI (years)",
     floodImpacted:            "Flood Impacted",
     highPriorityAsset:        "High Priority Asset",
@@ -142,14 +140,7 @@ sap.ui.define([
     consumedLife:             "Consumed Life (%)",
     designLife:               "Design Life (years)",
     pbsClass:                 "PBS Class",
-    // Scour assessment
-    assessmentDate:           "Assessment Date",
-    assessmentType:           "Assessment Type",
-    assessor:                 "Assessor",
-    scourCriticalDepth:       "Scour Critical Depth (m)",
-    currentScourDepth:        "Current Scour Depth (m)",
     floodClosureLevel:        "Flood Closure Level (m)",
-    measuredDepth:            "Measured Scour Depth (m)",
     notes:                    "Notes",
     // System
     ID:                       "Record ID",
@@ -337,7 +328,6 @@ sap.ui.define([
         case "restriction":        return "Warning";
         case "bridgerestriction":  return "Warning";
         case "bridgecapacity":     return "Information";
-        case "scourassessment":    return "Information";
         case "gisconfig":          return "None";
         default:                   return "None";
       }

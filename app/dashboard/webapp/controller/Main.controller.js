@@ -27,7 +27,6 @@ sap.ui.define([
         activeRestrictions: 0,
         closedBridges: 0,
         postedRestrictions: 0,
-        scourCritical: 0,
         deficient: 0,
         sufficiencyPct: 0,
         conditionRows: [],
@@ -125,7 +124,6 @@ sap.ui.define([
       model.setProperty("/activeRestrictions", data.activeRestrictions || 0);
       model.setProperty("/closedBridges",      data.closedBridges      || 0);
       model.setProperty("/postedRestrictions", data.postedRestrictions || 0);
-      model.setProperty("/scourCritical",      data.scourCritical      || 0);
       model.setProperty("/deficient",          data.deficient          || 0);
       model.setProperty("/sufficiencyPct",     data.sufficiencyPct     || 0);
       model.setProperty("/conditionRows",      conditionRows);
@@ -147,7 +145,6 @@ sap.ui.define([
         "<h4>Key Indicators</h4>",
         "<ul>",
         "<li><strong>Sufficiency Rating:</strong> Average structural sufficiency score across all bridges.</li>",
-        "<li><strong>Scour Critical:</strong> Bridges flagged as scour-critical (vulnerable to flooding).</li>",
         "<li><strong>Structurally Deficient:</strong> Bridges rated structurally deficient requiring attention.</li>",
         "</ul>",
         "<p>Use the refresh icon to reload analytics from the latest data.</p>"
@@ -177,11 +174,6 @@ sap.ui.define([
           title: "Sufficiency Rating",
           html: "<p><strong>Sufficiency Rating</strong> is the average structural sufficiency score (0–100%) across all bridges.</p>" +
                 "<p>Scores below 50% typically indicate bridges requiring priority intervention or replacement.</p>"
-        },
-        scourCritical: {
-          title: "Scour Critical Bridges",
-          html: "<p><strong>Scour Critical</strong> counts bridges flagged as scour-critical: vulnerable to undermining by flood or water flow.</p>" +
-                "<p>Any value above 0 warrants review of the affected bridges after flood events.</p>"
         },
         deficient: {
           title: "Structurally Deficient",

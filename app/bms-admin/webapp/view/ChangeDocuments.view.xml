@@ -38,7 +38,6 @@
                     <core:Item key="Restriction" text="Restriction" />
                     <core:Item key="BridgeRestriction" text="Bridge Restriction" />
                     <core:Item key="BridgeCapacity" text="Bridge Capacity" />
-                    <core:Item key="ScourAssessment" text="Scour Assessment" />
                     <core:Item key="GISConfig" text="GIS Config" />
                     <core:Item key="Lookup" text="Lookup / Code List" />
                   </items>

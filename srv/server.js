@@ -35,7 +35,6 @@ const MASS_EDIT_COLUMNS = [
   'conditionRating',
   'postingStatus',
   'lastInspectionDate',
-  'scourRisk',
   'pbsApprovalClass',
   'nhvrAssessed',
   'freightRoute',
@@ -84,7 +83,6 @@ const MASS_EDIT_FIELD_TYPES = {
   conditionRating: 'integer',
   postingStatus: 'string',
   lastInspectionDate: 'date',
-  scourRisk: 'string',
   pbsApprovalClass: 'string',
   nhvrAssessed: 'boolean',
   freightRoute: 'boolean',
@@ -246,7 +244,6 @@ async function loadMassEditLookups() {
     'bridge.management.ConditionStates',
     'bridge.management.PostingStatuses',
     'bridge.management.StructureTypes',
-    'bridge.management.ScourRiskLevels',
     'bridge.management.PbsApprovalClasses',
     'bridge.management.RestrictionCategories',
     'bridge.management.RestrictionTypes',
@@ -259,7 +256,7 @@ async function loadMassEditLookups() {
     entities.map(e => db.run(SELECT.from(e).columns('code', 'name').orderBy('code')))
   )
   const [
-    states, conditions, postingStatuses, structureTypes, scourRisks,
+    states, conditions, postingStatuses, structureTypes,
     pbsApprovalClasses, restrictionCategories, restrictionTypes,
     restrictionStatuses, restrictionUnits, restrictionDirections, vehicleClasses
   ] = results.map(mapCodeList)
@@ -269,7 +266,6 @@ async function loadMassEditLookups() {
     conditions,
     postingStatuses,
     structureTypes,
-    scourRisks,
     pbsApprovalClasses,
     restrictionCategories,
     restrictionTypes,
@@ -473,13 +469,12 @@ async function loadDashboardAnalytics() {
   // Field value reference (from seed data):
   //   condition      → 'Good' | 'Fair' | 'Poor' | 'Critical'  (title case)
   //   postingStatus  → 'Unrestricted' | 'Restricted' | 'Under Review'  (title case)
-  //   scourRisk      → 'High' | 'Medium' | 'Low'  (title case)
   //   Restrictions.active           → boolean true/false
   //   Restrictions.restrictionStatus → 'Active' (title case)
   const [bridges, restrictions] = await Promise.all([
     db.run(SELECT.from('bridge.management.Bridges').columns(
       'ID', 'condition', 'conditionRating', 'structuralAdequacyRating',
-      'postingStatus', 'scourRisk'
+      'postingStatus'
     )),
     db.run(SELECT.from('bridge.management.Restrictions').columns(
       'ID', 'active', 'restrictionStatus'
@@ -511,8 +506,6 @@ async function loadDashboardAnalytics() {
   // ── Other KPIs ────────────────────────────────────────────────────────────
   const closedBridges = bridgeList.filter(b => b.postingStatus === 'Closed').length
 
-  const scourCritical = bridgeList.filter(b => b.scourRisk === 'High').length
-
   // Deficient = condition Poor or Critical
   const deficient = dist.poor + dist.critical
 
@@ -525,7 +518,6 @@ async function loadDashboardAnalytics() {
     activeRestrictions,
     closedBridges,
     postedRestrictions,
-    scourCritical,
     deficient,
     sufficiencyPct,
     conditionDistribution: {
@@ -559,7 +551,6 @@ async function loadMapBridges({ bbox } = {}) {
     'spanLength',
     'lastInspectionDate',
     'nhvrAssessed',
-    'scourRisk',
     'freightRoute',
     'overMassRoute',
     'hmlApproved',
@@ -574,7 +565,6 @@ async function loadMapBridges({ bbox } = {}) {
     'averageDailyTraffic',
     'loadRating',
     'importanceLevel',
-    'scourDepthLastMeasured',
     'geoJson'
   )
 
@@ -662,7 +652,6 @@ async function _mapBridgeRows(bridges, db) {
       spanLength: bridge.spanLength == null ? null : Number(bridge.spanLength),
       lastInspectionDate: bridge.lastInspectionDate || null,
       nhvrAssessed: Boolean(bridge.nhvrAssessed),
-      scourRisk: bridge.scourRisk || null,
       freightRoute: Boolean(bridge.freightRoute),
       overMassRoute: Boolean(bridge.overMassRoute),
       hmlApproved: Boolean(bridge.hmlApproved),
@@ -757,7 +746,7 @@ async function loadMapRestrictions({ bbox } = {}) {
 function buildBridgesCsv(bridges, customAttributeColumns = [], customFieldValuesByObjectId = new Map()) {
   const BRIDGE_EXPORT_FIELDS = ['ID','bridgeId','bridgeName','state','latitude','longitude','postingStatus',
     'conditionRating','yearBuilt','structureType','route','region','clearanceHeight','spanLength',
-    'assetOwner','scourRisk','nhvrAssessed','freightRoute','overMassRoute','hmlApproved','bDoubleApproved'];
+    'assetOwner','nhvrAssessed','freightRoute','overMassRoute','hmlApproved','bDoubleApproved'];
   const customFieldHeaders = customAttributeColumns.map(customFieldColumn => customFieldColumn.label);
   const header = [...BRIDGE_EXPORT_FIELDS, ...customFieldHeaders].join(',');
   const rows = bridges.map(bridge => {
@@ -958,7 +947,7 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
     bridges = await db.run(`
       SELECT "ID","bridgeId","bridgeName","state","latitude","longitude",
              "postingStatus","conditionRating","structureType","route","region",
-             "clearanceHeight","spanLength","nhvrAssessed","scourRisk",
+             "clearanceHeight","spanLength","nhvrAssessed",
              "geoLocation".ST_Distance(NEW ST_Point(?, ?, 4326), 'meter') / 1000 AS "distanceKm"
       FROM "BRIDGE_MANAGEMENT_BRIDGES"
       WHERE "LATITUDE" BETWEEN ? AND ?
@@ -972,7 +961,7 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
     const candidateQuery = SELECT.from('bridge.management.Bridges')
       .columns('ID', 'bridgeId', 'bridgeName', 'state', 'latitude', 'longitude',
         'postingStatus', 'conditionRating', 'structureType', 'route', 'region',
-        'clearanceHeight', 'spanLength', 'nhvrAssessed', 'scourRisk')
+        'clearanceHeight', 'spanLength', 'nhvrAssessed')
       .where('latitude >=', minLat).and('latitude <=', maxLat)
       .and('longitude >=', minLon).and('longitude <=', maxLon);
     const candidates = await db.run(candidateQuery);
@@ -1000,7 +989,6 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
     clearanceHeight: b.clearanceHeight != null ? Number(b.clearanceHeight) : null,
     spanLength: b.spanLength != null ? Number(b.spanLength) : null,
     nhvrAssessed: Boolean(b.nhvrAssessed),
-    scourRisk: b.scourRisk || null,
     distanceKm: Math.round(Number(b.distanceKm || 0) * 100) / 100
   }));
 }
@@ -1033,6 +1021,16 @@ const _jwtDecodeScopes = (authHeader) => {
 }
 
 cds.on('bootstrap', (app) => {
+  // ── Mock SAP UI5 Flexibility LREP endpoints (local dev only) ─────────────
+  // Prevents 404 console errors from FE4's LREP connector on startup.
+  // Returns empty-but-valid responses so FE4 continues loading without error.
+  app.get('/sap/bc/lrep/flex/settings', (_req, res) => {
+    res.json({ isKeyUser: false, isVariantAdaptationEnabled: false, isContextSharingEnabled: false })
+  })
+  app.get('/sap/bc/lrep/flex/data/:appId', (_req, res) => {
+    res.json({ changes: [], appDescriptorChanges: [], variants: [], variantChanges: [], variantDependentControlChanges: [], variantManagementChanges: [], ui2personalization: {}, cacheKey: null, etag: null })
+  })
+
   // ── Health probe (no auth — used by BTP health checks and load balancers) ──
   app.get('/health', (_req, res) => {
     res.json({
@@ -1563,7 +1561,7 @@ cds.on('bootstrap', (app) => {
       SELECT.from('bridge.management.Bridges').columns(
         'ID', 'bridgeId', 'bridgeName', 'state', 'region', 'assetOwner',
         'latitude', 'longitude', 'condition', 'conditionRating',
-        'postingStatus', 'scourRisk', 'lastInspectionDate',
+        'postingStatus', 'lastInspectionDate',
         'nhvrAssessed', 'freightRoute', 'geoJson', 'structureType', 'yearBuilt'
       )
     )
@@ -1895,7 +1893,7 @@ cds.on('bootstrap', (app) => {
   const EXPORT_COLUMNS = [
     'bridgeId', 'bridgeName', 'state', 'route', 'region', 'assetOwner',
     'structureType', 'yearBuilt', 'condition', 'conditionRating',
-    'postingStatus', 'lastInspectionDate', 'scourRisk',
+    'postingStatus', 'lastInspectionDate',
     'latitude', 'longitude',
     'nhvrAssessed', 'freightRoute', 'overMassRoute',
     'hmlApproved', 'bDoubleApproved', 'pbsApprovalClass',

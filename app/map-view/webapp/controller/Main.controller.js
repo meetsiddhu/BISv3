@@ -181,7 +181,6 @@ sap.ui.define([
           states: [],
           postingStatuses: [],
           structureTypes: [],
-          scourRisks: [],
           routeFlags: [],
           vehicleClasses: []
         },
@@ -671,8 +670,6 @@ sap.ui.define([
         lastInspectionDate: bridge.lastInspectionDate || null,
         nhvrAssessed: !!bridge.nhvrAssessed,
         nhvrAssessedLabel: bridge.nhvrAssessed ? this._text("statusAssessed") : this._text("statusNotAssessed"),
-        scourRisk: bridge.scourRisk || null,
-        scourRiskLabel: this._text("statusScour") + ": " + (bridge.scourRisk || "-"),
         vehicleClass: bridge.vehicleClass || null,
         freightRoute: !!bridge.freightRoute,
         freightRouteLabel: bridge.freightRoute ? this._text("statusFreight") : "No Freight Route",
@@ -947,7 +944,6 @@ sap.ui.define([
           return { key: status, label: status, selected: false };
         }),
         structureTypes: this._uniqueOptions(bridges, "structureType"),
-        scourRisks: this._uniqueOptions(bridges, "scourRisk"),
         routeFlags: ROUTE_FLAGS.map(function (flag) {
           return { key: flag.key, label: flag.label, selected: false };
         }),
@@ -973,7 +969,6 @@ sap.ui.define([
       const selectedStates = this._selectedKeys(options.states);
       const selectedStatuses = this._selectedKeys(options.postingStatuses);
       const selectedTypes = this._selectedKeys(options.structureTypes);
-      const selectedScour = this._selectedKeys(options.scourRisks);
       const selectedVehicleClasses = this._selectedKeys(options.vehicleClasses);
       const selectedRouteFlags = this._selectedKeys(options.routeFlags);
 
@@ -981,7 +976,6 @@ sap.ui.define([
         if (selectedStates.length && !selectedStates.includes(bridge.state)) return false;
         if (selectedStatuses.length && !selectedStatuses.includes(bridge.postingStatus)) return false;
         if (selectedTypes.length && !selectedTypes.includes(bridge.structureType)) return false;
-        if (selectedScour.length && !selectedScour.includes(bridge.scourRisk)) return false;
         if (selectedVehicleClasses.length && !selectedVehicleClasses.includes(bridge.vehicleClass)) return false;
         if (selectedRouteFlags.length && !selectedRouteFlags.every(function (flag) { return bridge[flag]; })) return false;
         if (!this._matchesRange(bridge.conditionRating, filters.minCondition, filters.maxCondition, limits.minCondition, limits.maxCondition)) return false;

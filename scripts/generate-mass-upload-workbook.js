@@ -125,13 +125,11 @@ function buildBridgeRows() {
       '',                                    // conditionStandard
       r.seismicZone ?? '',                   // seismicZone
       '',                                    // asBuiltDrawingReference
-      '',                                    // scourDepthLastMeasured
       mapInt(r.floodImmunityAri),            // floodImmunityAriYears
       mapBool(r.floodImpacted),              // floodImpacted
       mapBool(r.highPriorityAsset),          // highPriorityAsset
       r.remarks ?? '',                       // remarks
       'Active',                              // status
-      r.scourRisk ?? '',                     // scourRisk
       '',                                    // lastInspectionDate
       mapBool(r.nhvrRouteAssessed),          // nhvrAssessed
       '',                                    // nhvrAssessmentDate
@@ -247,9 +245,9 @@ const BRIDGE_HEADERS = [
   'managingAuthority', 'structureType', 'yearBuilt', 'designLoad', 'designStandard',
   'clearanceHeight', 'spanLength', 'material', 'spanCount', 'totalLength', 'deckWidth',
   'numberOfLanes', 'condition', 'conditionRating', 'structuralAdequacyRating', 'postingStatus',
-  'conditionStandard', 'seismicZone', 'asBuiltDrawingReference', 'scourDepthLastMeasured',
+  'conditionStandard', 'seismicZone', 'asBuiltDrawingReference',
   'floodImmunityAriYears', 'floodImpacted', 'highPriorityAsset', 'remarks', 'status',
-  'scourRisk', 'lastInspectionDate', 'nhvrAssessed', 'nhvrAssessmentDate', 'loadRating',
+  'lastInspectionDate', 'nhvrAssessed', 'nhvrAssessmentDate', 'loadRating',
   'pbsApprovalClass', 'importanceLevel', 'averageDailyTraffic', 'heavyVehiclePercent',
   'gazetteReference', 'nhvrReferenceUrl', 'freightRoute', 'overMassRoute', 'hmlApproved',
   'bDoubleApproved', 'dataSource', 'sourceReferenceUrl', 'openDataReference', 'sourceRecordId',
@@ -295,7 +293,6 @@ function main() {
     ['DesignLoads', 'designLoad', ''],
     ['PostingStatuses', 'postingStatus', ''],
     ['ConditionStates', 'condition', ''],
-    ['ScourRiskLevels', 'scourRisk', ''],
     ['PbsApprovalClasses', 'pbsApprovalClass', ''],
     ['RestrictionTypes', '', 'restrictionType'],
     ['RestrictionStatuses', '', 'restrictionStatus'],
@@ -309,7 +306,7 @@ function main() {
   // All 15 lookup sheets
   const lookups = [
     'AssetClasses', 'States', 'Regions', 'StructureTypes', 'DesignLoads',
-    'PostingStatuses', 'ConditionStates', 'ScourRiskLevels', 'PbsApprovalClasses',
+    'PostingStatuses', 'ConditionStates', 'PbsApprovalClasses',
     'RestrictionTypes', 'RestrictionStatuses', 'VehicleClasses',
     'RestrictionCategories', 'RestrictionUnits', 'RestrictionDirections'
   ]

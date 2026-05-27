@@ -5,7 +5,7 @@
     "type": "application",
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
-    "i18n": "i18n/i18n.properties",
+    "i18n": { "bundleUrl": "i18n/i18n.properties", "supportedLocales": [""], "fallbackLocale": "" },
     "applicationVersion": {
       "version": "1.0.0"
     },
@@ -95,6 +95,46 @@
           "pattern": "GISConfig:?query:",
           "name": "GISConfig",
           "target": "GISConfig"
+        },
+        {
+          "pattern": "BridgeCapacities:?query:",
+          "name": "BridgeCapacitiesList",
+          "target": "BridgeCapacitiesList"
+        },
+        {
+          "pattern": "BridgeCapacities({key}):?query:",
+          "name": "BridgeCapacitiesPage",
+          "target": "BridgeCapacitiesPage"
+        },
+        {
+          "pattern": "BridgeRestrictions:?query:",
+          "name": "BridgeRestrictionsList",
+          "target": "BridgeRestrictionsList"
+        },
+        {
+          "pattern": "BridgeRestrictions({key}):?query:",
+          "name": "BridgeRestrictionsPage",
+          "target": "BridgeRestrictionsPage"
+        },
+        {
+          "pattern": "BridgeInspections:?query:",
+          "name": "BridgeInspectionsList",
+          "target": "BridgeInspectionsList"
+        },
+        {
+          "pattern": "BridgeInspections({key}):?query:",
+          "name": "BridgeInspectionsPage",
+          "target": "BridgeInspectionsPage"
+        },
+        {
+          "pattern": "BridgeDefects:?query:",
+          "name": "BridgeDefectsList",
+          "target": "BridgeDefectsList"
+        },
+        {
+          "pattern": "BridgeDefects({key}):?query:",
+          "name": "BridgeDefectsPage",
+          "target": "BridgeDefectsPage"
         }
       ],
       "targets": {
@@ -177,9 +217,6 @@
                     }
                   }
                 },
-                "scourAssessments/@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": { "enablePaste": false }
-                },
                 "documents/@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": { "enablePaste": false }
                 }
@@ -236,6 +273,106 @@
           "options": {
             "settings": {
               "entitySet": "BridgeRestrictions",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "BridgeCapacitiesList": {
+          "type": "Component",
+          "id": "BridgeCapacitiesList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeCapacities",
+              "navigation": {
+                "BridgeCapacities": { "detail": { "route": "BridgeCapacitiesPage" } }
+              }
+            }
+          }
+        },
+        "BridgeCapacitiesPage": {
+          "type": "Component",
+          "id": "BridgeCapacitiesPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeCapacities",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "BridgeRestrictionsList": {
+          "type": "Component",
+          "id": "BridgeRestrictionsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeRestrictions",
+              "navigation": {
+                "BridgeRestrictions": { "detail": { "route": "BridgeRestrictionsPage" } }
+              }
+            }
+          }
+        },
+        "BridgeRestrictionsPage": {
+          "type": "Component",
+          "id": "BridgeRestrictionsPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeRestrictions",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "BridgeInspectionsList": {
+          "type": "Component",
+          "id": "BridgeInspectionsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeInspections",
+              "navigation": {
+                "BridgeInspections": { "detail": { "route": "BridgeInspectionsPage" } }
+              }
+            }
+          }
+        },
+        "BridgeInspectionsPage": {
+          "type": "Component",
+          "id": "BridgeInspectionsPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeInspections",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "BridgeDefectsList": {
+          "type": "Component",
+          "id": "BridgeDefectsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeDefects",
+              "navigation": {
+                "BridgeDefects": { "detail": { "route": "BridgeDefectsPage" } }
+              }
+            }
+          }
+        },
+        "BridgeDefectsPage": {
+          "type": "Component",
+          "id": "BridgeDefectsPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeDefects",
               "editableHeaderContent": false,
               "sharingEnabled": false
             }
