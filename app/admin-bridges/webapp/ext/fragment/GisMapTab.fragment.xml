@@ -1,19 +1,3 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
-<core:HTML id="gisMapHost" content="
-&lt;div style='border-radius:8px;border:1px solid #e5e5e5;overflow:hidden;font-family:72,Arial,sans-serif;margin:0.5rem'&gt;
-  &lt;div style='display:flex;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid #e5e5e5'&gt;
-    &lt;span style='font-size:15px;font-weight:600;color:#32363a'&gt;Location&lt;/span&gt;
-    &lt;div style='flex:1'&gt;&lt;/div&gt;
-    &lt;button id='gisOpenBtn' style='padding:6px 14px;background:#0a6ed1;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;margin-right:6px'&gt;&#128506; Open Map&lt;/button&gt;
-    &lt;button id='gisCopyBtn' style='padding:6px 10px;background:transparent;color:#0a6ed1;border:1px solid #0a6ed1;border-radius:4px;font-size:13px;cursor:pointer'&gt;&#128203; Copy&lt;/button&gt;
-  &lt;/div&gt;
-  &lt;div id='gisCoordBar' style='padding:8px 14px;font-size:13px;color:#32363a;background:#fafafa;border-bottom:1px solid #e5e5e5'&gt;&#128205; Loading...&lt;/div&gt;
-  &lt;div id='gisMapCanvas' style='width:100%;height:360px'&gt;&lt;/div&gt;
-  &lt;div id='gisNoCoords' style='display:none;align-items:center;justify-content:center;flex-direction:column;height:220px;color:#8696a9;text-align:center'&gt;
-    &lt;div style='font-size:40px;margin-bottom:8px'&gt;&#128506;&lt;/div&gt;
-    &lt;div style='font-weight:600'&gt;No Location Data&lt;/div&gt;
-    &lt;div style='font-size:12px;color:#aaa;margin-top:4px'&gt;Add latitude and longitude to see the map.&lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-"/>
+  <core:HTML id="gisMapHost" content="&lt;div id='gisMapHostEl'&gt;&lt;/div&gt;"/>
 </core:FragmentDefinition>

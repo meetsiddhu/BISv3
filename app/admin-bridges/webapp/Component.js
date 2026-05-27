@@ -7,6 +7,7 @@ sap.ui.define([
     var GIS_SCRIPT = "/admin-bridges/webapp/ext/controller/gisMapInit.js";
     var NUMERIC_GUARD_SCRIPT = "/admin-bridges/webapp/ext/controller/NumericInputGuard.js";
     var RESTRICTIONS_VALIDATION_SCRIPT = "/admin-bridges/webapp/ext/controller/RestrictionsValidation.js";
+    var CUSTOM_ATTRS_SCRIPT = "/admin-bridges/webapp/ext/controller/CustomAttributesInit.js";
 
     function loadScript(id, src) {
         if (document.getElementById(id)) return;
@@ -36,6 +37,10 @@ sap.ui.define([
         loadScript("_bms_restrictions_validation_script", RESTRICTIONS_VALIDATION_SCRIPT);
     }
 
+    function startCustomAttributes() {
+        loadScript("_bms_custom_attrs_script", CUSTOM_ATTRS_SCRIPT);
+    }
+
     return AppComponent.extend("BridgeManagement.adminbridges.Component", {
         metadata: { manifest: "json" },
         init: function () {
@@ -43,6 +48,7 @@ sap.ui.define([
             startGIS();
             startNumericInputGuard();
             startRestrictionsValidation();
+            startCustomAttributes();
         }
     });
 });

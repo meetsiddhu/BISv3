@@ -27,9 +27,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       ['latitude', 'Latitude'],
       ['longitude', 'Longitude'],
       ['postingStatus', 'Posting Status'],
-      ['conditionRating', 'Condition Rating'],
       ['structureType', 'Structure Type'],
-      ['lastInspectionDate', 'Last Inspection Date']
     ],
     Restrictions: [
       ['bridgeRef', 'Bridge'],
@@ -189,8 +187,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     consumedLife: 'Enter a percentage from 0 to 100.'
   }
 
-  const message = (key, req, args = {}) => cds.i18n.messages.at(key, req.locale || cds.context?.locale, args) || key
-
   const rangeByField = rules => new Map((rules.range || []).map(([field, label, min, max]) => [field, { label, min, max }]))
 
   const validateRequiredFields = (entityName, req, data = req.data) => {
@@ -198,7 +194,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       if (!isBlank(data[field])) continue
       req.error({
         code: 'MANDATORY_FIELD_MISSING',
-        message: message('MANDATORY_FIELD_MISSING', req, { label }),
+        args: [label],
         target: field,
         status: 400
       })
@@ -227,9 +223,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       const range = ranges.get(field)
       req.error({
         code: range ? 'INVALID_INTEGER_WITH_RANGE' : 'INVALID_INTEGER',
-        message: range
-          ? message('INVALID_INTEGER_WITH_RANGE', req, { label, min: range.min, max: range.max })
-          : message('INVALID_INTEGER', req, { label }),
+        args: range ? [label, range.min, range.max] : [label],
         target: field,
         status: 400
       })
@@ -241,14 +235,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       const range = ranges.get(field)
       req.error({
         code: range ? 'INVALID_NUMBER_WITH_RANGE' : 'INVALID_NUMBER',
-        message: range
-          ? message('INVALID_NUMBER_WITH_RANGE', req, {
-              label,
-              min: range.min,
-              max: range.max,
-              hint: validationHints[field] || ''
-            })
-          : message('INVALID_NUMBER', req, { label }),
+        args: range ? [label, range.min, range.max] : [label],
         target: field,
         status: 400
       })
@@ -258,14 +245,10 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       if (!(field in data) || isBlank(data[field]) || !isDecimalValue(data[field])) continue
       const value = Number(data[field])
       if (value >= min && value <= max) continue
+      const hint = validationHints[field] || ''
       req.error({
         code: 'VALUE_OUT_OF_RANGE',
-        message: message('VALUE_OUT_OF_RANGE', req, {
-          label,
-          min,
-          max,
-          hint: validationHints[field] || ''
-        }),
+        args: [label, min, max, hint],
         target: field,
         status: 400
       })
@@ -355,6 +338,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const { ID:id2 } = await SELECT.one.from(Bridges.drafts).columns('max(ID) as ID')
     req.data.ID = Math.max(id1||0, id2||0) + 1
     if (!req.data.bridgeId) req.data.bridgeId = bridgeIdFor(req.data.ID, req.data.state)
+    if (!req.data.status) req.data.status = 'Active'
   })
 
   const ensureSingleCapacityPerBridge = async req => {

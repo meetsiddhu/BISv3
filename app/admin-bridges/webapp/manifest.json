@@ -92,6 +92,11 @@
           "target": "BridgeRestrictionsDetails"
         },
         {
+          "pattern": "Bridges({key})/inspections({key2}):?query:",
+          "name": "BridgeInspectionsDetails",
+          "target": "BridgeInspectionsDetails"
+        },
+        {
           "pattern": "GISConfig:?query:",
           "name": "GISConfig",
           "target": "GISConfig"
@@ -197,6 +202,11 @@
                   "detail": {
                     "route": "BridgeRestrictionsDetails"
                   }
+                },
+                "inspections": {
+                  "detail": {
+                    "route": "BridgeInspectionsDetails"
+                  }
                 }
               },
               "controlConfiguration": {
@@ -209,6 +219,14 @@
                   }
                 },
                 "restrictions/@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false,
+                    "creationMode": {
+                      "name": "NewPage"
+                    }
+                  }
+                },
+                "inspections/@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
                     "enablePaste": false,
                     "creationMode": {
@@ -272,6 +290,18 @@
           "options": {
             "settings": {
               "entitySet": "BridgeRestrictions",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "BridgeInspectionsDetails": {
+          "type": "Component",
+          "id": "BridgeInspectionsDetails",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeInspections",
               "editableHeaderContent": false,
               "sharingEnabled": false
             }

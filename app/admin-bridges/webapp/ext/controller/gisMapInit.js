@@ -12,8 +12,84 @@
     };
     var _map = null;
 
+    // ── Structure builder ───────────────────────────────────────────────────
+    // Injects the full map UI into #gisMapHostEl the first time _gisInit runs.
+    // Bypasses sap.ui.core.HTML content parsing (and jQuery DOMEval) entirely.
+    function ensureStructure() {
+        if (document.getElementById("gisMapCanvas")) return; // already built
+        var host = document.getElementById("gisMapHostEl");
+        if (!host) return; // host element not yet in DOM
+
+        var wrapper = document.createElement("div");
+        wrapper.style.cssText = "border-radius:8px;border:1px solid #e5e5e5;overflow:hidden;font-family:72,Arial,sans-serif;margin:0.5rem";
+
+        // Header bar
+        var header = document.createElement("div");
+        header.style.cssText = "display:flex;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid #e5e5e5";
+
+        var title = document.createElement("span");
+        title.style.cssText = "font-size:15px;font-weight:600;color:#32363a";
+        title.textContent = "Location";
+
+        var spacer = document.createElement("div");
+        spacer.style.cssText = "flex:1";
+
+        var openBtn = document.createElement("button");
+        openBtn.id = "gisOpenBtn";
+        openBtn.style.cssText = "padding:6px 14px;background:#0a6ed1;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;margin-right:6px";
+        openBtn.textContent = "🗺 Open Map";
+
+        var copyBtn = document.createElement("button");
+        copyBtn.id = "gisCopyBtn";
+        copyBtn.style.cssText = "padding:6px 10px;background:transparent;color:#0a6ed1;border:1px solid #0a6ed1;border-radius:4px;font-size:13px;cursor:pointer";
+        copyBtn.textContent = "📋 Copy";
+
+        header.appendChild(title);
+        header.appendChild(spacer);
+        header.appendChild(openBtn);
+        header.appendChild(copyBtn);
+
+        // Coordinate bar
+        var coordBar = document.createElement("div");
+        coordBar.id = "gisCoordBar";
+        coordBar.style.cssText = "padding:8px 14px;font-size:13px;color:#32363a;background:#fafafa;border-bottom:1px solid #e5e5e5";
+        coordBar.textContent = "📍 Loading...";
+
+        // Map canvas (Leaflet target)
+        var canvas = document.createElement("div");
+        canvas.id = "gisMapCanvas";
+        canvas.style.cssText = "width:100%;height:360px";
+
+        // No-coordinates placeholder
+        var noCoords = document.createElement("div");
+        noCoords.id = "gisNoCoords";
+        noCoords.style.cssText = "display:none;align-items:center;justify-content:center;flex-direction:column;height:220px;color:#8696a9;text-align:center";
+
+        var noIcon = document.createElement("div");
+        noIcon.style.cssText = "font-size:40px;margin-bottom:8px";
+        noIcon.textContent = "🗺";
+
+        var noLabel = document.createElement("div");
+        noLabel.style.cssText = "font-weight:600";
+        noLabel.textContent = "No Location Data";
+
+        var noHint = document.createElement("div");
+        noHint.style.cssText = "font-size:12px;color:#aaa;margin-top:4px";
+        noHint.textContent = "Add latitude and longitude to see the map.";
+
+        noCoords.appendChild(noIcon);
+        noCoords.appendChild(noLabel);
+        noCoords.appendChild(noHint);
+
+        wrapper.appendChild(header);
+        wrapper.appendChild(coordBar);
+        wrapper.appendChild(canvas);
+        wrapper.appendChild(noCoords);
+        host.appendChild(wrapper);
+    }
+
+    // ── Key/ID helpers ──────────────────────────────────────────────────────
     function getBridgeKeyPredicate() {
-        // Bridge.ID is an Integer: hash looks like: /Bridges(ID=42,IsActiveEntity=false)
         var bridgeKeyMatch = (window.location.hash || "").match(/Bridges\(ID=(\d+),IsActiveEntity=(true|false)\)/);
         if (!bridgeKeyMatch) return null;
         return "ID=" + bridgeKeyMatch[1] + ",IsActiveEntity=" + bridgeKeyMatch[2];
@@ -34,7 +110,9 @@
             });
     }
 
+    // ── Public init ─────────────────────────────────────────────────────────
     window._gisInit = function () {
+        ensureStructure();
         var el = document.getElementById("gisMapCanvas");
         if (!el) return;
         var openBtn = document.getElementById("gisOpenBtn");
@@ -47,6 +125,7 @@
             .catch(function (error) { setCoord("Error: " + error.message); });
     };
 
+    // ── Map drawing ─────────────────────────────────────────────────────────
     function draw(bridgeLocation) {
         var lat = parseFloat(bridgeLocation.latitude), lng = parseFloat(bridgeLocation.longitude);
         var noEl = document.getElementById("gisNoCoords");
@@ -64,12 +143,12 @@
             if (_map) { try { _map.remove(); } catch (error) {} _map = null; }
             var map = window.L.map(canv, { zoomControl: true, scrollWheelZoom: false });
             window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                { attribution: "\u00a9 OpenStreetMap", maxZoom: 19 }).addTo(map);
+                { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
             var colour = STATUS_COLOR[bridgeLocation.postingStatus] || "#0a6ed1";
             window.L.circleMarker([lat, lng],
                 { radius: 10, color: "#fff", weight: 2, fillColor: colour, fillOpacity: 0.9 })
                 .bindPopup("<b>" + (bridgeLocation.bridgeName || "") + "</b><br><small>" +
-                           (bridgeLocation.bridgeId || "") + " \u00b7 " + (bridgeLocation.state || "") + "</small>")
+                           (bridgeLocation.bridgeId || "") + " · " + (bridgeLocation.state || "") + "</small>")
                 .addTo(map);
             map.setView([lat, lng], 14);
             _map = map;
@@ -105,15 +184,15 @@
 
     function setCoord(html) {
         var coordinateBar = document.getElementById("gisCoordBar");
-        if (coordinateBar) coordinateBar.innerHTML = "\uD83D\uDCCD " + html;
+        if (coordinateBar) coordinateBar.innerHTML = "📍 " + html;
     }
 
+    // ── Button actions ──────────────────────────────────────────────────────
     window._gisOpen = function () {
         var id = getId();
         if (id && MAP_APP) {
             window.open(MAP_APP + "?highlightId=" + encodeURIComponent(id), "_blank", "noopener,noreferrer");
         } else if (id) {
-            // Fiori shell hash navigation fallback
             window.location.hash = "Map-display?bridgeId=" + id;
         }
     };
@@ -133,6 +212,7 @@
             });
     };
 
+    // ── Hash-change re-init ─────────────────────────────────────────────────
     window.addEventListener("hashchange", function () {
         if (window.location.hash.indexOf("/Bridges(") !== -1) {
             var el = document.getElementById("gisMapCanvas");

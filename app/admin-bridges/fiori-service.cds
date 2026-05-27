@@ -78,18 +78,7 @@ annotate AdminService.Bridges with @(
           {$Type: 'UI.ReferenceFacet', Label: 'Dimensions', Target: '@UI.FieldGroup#Dimensions'},
         ]
       },
-      // ── Tab 3: Condition & Inspection (3 sub-sections) ───────────────────
-      {
-        $Type : 'UI.CollectionFacet',
-        Label : 'Condition & Inspection',
-        ID    : 'ConditionInspection',
-        Facets: [
-          {$Type: 'UI.ReferenceFacet', Label: 'Condition Assessment', Target: '@UI.FieldGroup#ConditionAssessment'},
-          {$Type: 'UI.ReferenceFacet', Label: 'Risk & Resilience',    Target: '@UI.FieldGroup#RiskResilience'},
-          {$Type: 'UI.ReferenceFacet', Label: 'Field Notes',          Target: '@UI.FieldGroup#FieldNotes'},
-        ]
-      },
-      // ── Tab 4: NHVR & Traffic Approvals (3 sub-sections) ─────────────────
+      // ── Tab 3: NHVR & Traffic Approvals (3 sub-sections) ────────────────
       {
         $Type : 'UI.CollectionFacet',
         Label : 'NHVR & Traffic Approvals',
@@ -100,9 +89,10 @@ annotate AdminService.Bridges with @(
           {$Type: 'UI.ReferenceFacet', Label: 'NHVR Approvals',       Target: '@UI.FieldGroup#NHVRApprovals'},
         ]
       },
-      // ── Tab 5–7: Sub-entity tables ────────────────────────────────────────
-      {$Type: 'UI.ReferenceFacet', Label: 'Capacity',         Target: 'capacities/@UI.LineItem'},
-      {$Type: 'UI.ReferenceFacet', Label: 'Restrictions',     Target: 'restrictions/@UI.LineItem'},
+      // ── Sub-entity tables ─────────────────────────────────────────────────
+      {$Type: 'UI.ReferenceFacet', Label: 'Capacity',     Target: 'capacities/@UI.LineItem'},
+      {$Type: 'UI.ReferenceFacet', Label: 'Restrictions', Target: 'restrictions/@UI.LineItem'},
+      {$Type: 'UI.ReferenceFacet', Label: 'Inspections',  Target: 'inspections/@UI.LineItem'},
       // ── Tab 8: Data Provenance (source + audit sub-sections) ─────────────
       {
         $Type : 'UI.CollectionFacet',
@@ -113,8 +103,6 @@ annotate AdminService.Bridges with @(
           {$Type: 'UI.ReferenceFacet', Label: 'Audit Trail',        Target: '@UI.FieldGroup#AuditTrail'},
         ]
       },
-      // ── Tab 9: Bridge Geometry (read-only) ────────────────────────────────
-      {$Type: 'UI.ReferenceFacet', Label: 'Bridge Geometry', Target: '@UI.FieldGroup#BridgeGeometry'},
     ],
 
     // ── FieldGroups ─────────────────────────────────────────────────────────
@@ -122,10 +110,12 @@ annotate AdminService.Bridges with @(
     // Tab 1 — Core Identity & Location
     FieldGroup#AssetIdentity: {
       Data: [
-        {Value: bridgeId},      // server-generated and read-only
+        {Value: bridgeId},        // server-generated and read-only
         {Value: bridgeName},
         {Value: assetClass},
-        {Value: status},        // @Common.FieldControl #ReadOnly — lifecycle managed by actions
+        {Value: status},          // @Common.FieldControl #ReadOnly — lifecycle managed by actions
+        {Value: postingStatus},   // moved here from Condition & Inspection tab
+        {Value: highPriorityAsset},
       ]
     },
     FieldGroup#GeoLocation: {
@@ -145,6 +135,7 @@ annotate AdminService.Bridges with @(
         {Value: assetOwner},
         {Value: managingAuthority},
         {Value: descr},
+        {Value: remarks},         // moved here from Condition & Inspection tab
       ]
     },
 
@@ -166,37 +157,13 @@ annotate AdminService.Bridges with @(
         {Value: deckWidth},
         {Value: clearanceHeight},
         {Value: numberOfLanes},
-      ]
-    },
-
-    // Tab 3 — Condition & Inspection
-    FieldGroup#ConditionAssessment: {
-      Data: [
-        {Value: conditionRating},
-        {Value: conditionSummary},
-        {Value: postingStatus},
-        {Value: lastInspectionDate},
-        {Value: conditionAssessor},
-        {Value: conditionReportRef},
-        {Value: structuralAdequacy},
-        {Value: highPriorityAsset},
-        {Value: conditionNotes},
-      ]
-    },
-    FieldGroup#RiskResilience: {
-      Data: [
-        {Value: seismicZone},
+        {Value: seismicZone},           // moved here from Condition & Inspection tab
         {Value: floodImmunityAriYears},
         {Value: floodImpacted},
       ]
     },
-    FieldGroup#FieldNotes: {
-      Data: [
-        {Value: remarks},
-      ]
-    },
 
-    // Tab 4 — NHVR & Traffic Approvals
+    // Tab 3 — NHVR & Traffic Approvals
     FieldGroup#TrafficData: {
       Data: [
         {Value: averageDailyTraffic},
@@ -238,13 +205,6 @@ annotate AdminService.Bridges with @(
         {Value: createdAt},
         {Value: modifiedBy},
         {Value: modifiedAt},
-      ]
-    },
-
-    // Tab 9 — Bridge Geometry
-    FieldGroup#BridgeGeometry: {
-      Data: [
-        {Value: geoJson},
       ]
     },
 
@@ -299,7 +259,7 @@ annotate AdminService.Bridges with {
     }
   ) @title: 'Bridge Status';
   // GeoJSON is maintained on the object page, not in the create dialog
-  geoJson    @Common.FieldControl: #Optional  @UI.MultiLineText  @title: 'Bridge Geometry (GeoJSON)';
+  geoJson    @UI.Hidden  @title: 'Bridge Geometry (GeoJSON)';  // maintained via GIS map, not shown in form
   // Bridge ID auto-generated on create; never user-entered.
   // The ValueList on Bridges itself powers the search-help in the filter bar.
   bridgeId @(
@@ -319,18 +279,9 @@ annotate AdminService.Bridges with {
 
 annotate AdminService.Bridges with {
   // Mandatory fields
-  bridgeName @(
-    Common.FieldControl: #Mandatory,
-    Common.ValueList: {
-      SearchSupported : true,
-      CollectionPath  : 'Bridges',
-      Parameters      : [
-        { $Type: 'Common.ValueListParameterOut',         LocalDataProperty: bridgeName, ValueListProperty: 'bridgeName' },
-        { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeId'  },
-        { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'state'     }
-      ]
-    }
-  ) @title: 'Bridge Name';
+  bridgeName @Common.FieldControl: #Mandatory
+             @title: 'Bridge Name'
+             @mandatory.message: 'Bridge Name is required';
   state @(
     Common.FieldControl: #Mandatory,
     Common.ValueListWithFixedValues,
@@ -338,10 +289,14 @@ annotate AdminService.Bridges with {
       { $Type: 'Common.ValueListParameterOut', LocalDataProperty: state, ValueListProperty: 'code' },
       { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
     ]}
-  ) @title: 'State';
-  assetOwner   @Common.FieldControl: #Mandatory  @title: 'Asset Owner';
-  latitude     @Common.FieldControl: #Mandatory  @title: 'Latitude (°)'  @Common.QuickInfo: 'Valid range: -90 to 90';
-  longitude    @Common.FieldControl: #Mandatory  @title: 'Longitude (°)'  @Common.QuickInfo: 'Valid range: -180 to 180';
+  ) @title: 'State'
+    @mandatory.message: 'State is required';
+  assetOwner   @Common.FieldControl: #Mandatory  @title: 'Asset Owner'
+               @mandatory.message: 'Asset Owner is required';
+  latitude     @Common.FieldControl: #Mandatory  @title: 'Latitude (°)'  @Common.QuickInfo: 'Valid range: -90 to 90'
+               @mandatory.message: 'Latitude is required';
+  longitude    @Common.FieldControl: #Mandatory  @title: 'Longitude (°)'  @Common.QuickInfo: 'Valid range: -180 to 180'
+               @mandatory.message: 'Longitude is required';
   postingStatus @(
     Common.FieldControl: #Mandatory,
     Common.ValueListWithFixedValues,
@@ -349,8 +304,9 @@ annotate AdminService.Bridges with {
       { $Type: 'Common.ValueListParameterOut', LocalDataProperty: postingStatus, ValueListProperty: 'code' },
       { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
     ]}
-  ) @title: 'Posting Status';
-  conditionRating @Common.FieldControl: #Mandatory  @title: 'Condition Rating (1–10)';
+  ) @title: 'Posting Status'
+    @mandatory.message: 'Posting Status is required';
+  conditionRating @title: 'Condition Rating (1–10)';  // populated from BridgeInspections
 
   // Value lists
   assetClass @(
@@ -374,7 +330,8 @@ annotate AdminService.Bridges with {
       { $Type: 'Common.ValueListParameterOut', LocalDataProperty: structureType, ValueListProperty: 'code' },
       { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
     ]}
-  ) @title: 'Structure Type';
+  ) @title: 'Structure Type'
+    @mandatory.message: 'Structure Type is required';
   designLoad @(
     Common.ValueListWithFixedValues,
     Common.ValueList: { SearchSupported: true, CollectionPath: 'DesignLoads', Parameters: [
@@ -426,7 +383,7 @@ annotate AdminService.Bridges with {
   numberOfLanes          @title: 'Number of Lanes';
   conditionStandard      @title: 'Condition Rating Standard';
   structuralAdequacyRating @title: 'Structural Adequacy Rating (1–10)';
-  lastInspectionDate     @Common.FieldControl: #Mandatory  @title: 'Last Inspection Date';
+  lastInspectionDate     @title: 'Last Inspection Date';  // populated from BridgeInspections
   highPriorityAsset      @title: 'High Priority Asset';
   asBuiltDrawingReference @title: 'As-Built Drawing Reference';
   seismicZone            @title: 'Seismic Zone';
