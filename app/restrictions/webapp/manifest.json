@@ -79,7 +79,6 @@
           "options": {
             "settings": {
               "contextPath": "/Restrictions",
-              "liveMode": true,
               "navigation": {
                 "Restrictions": {
                   "detail": {

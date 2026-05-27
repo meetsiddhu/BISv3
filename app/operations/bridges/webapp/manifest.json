@@ -77,7 +77,6 @@
           "options": {
             "settings": {
               "entitySet": "Bridges",
-              "liveMode": true,
               "navigation": {
                 "Bridges": {
                   "detail": {
