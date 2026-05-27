@@ -77,7 +77,8 @@
           "options": {
             "settings": {
               "entitySet": "UploadLogs",
-              "liveMode": true,
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "navigation": {
                 "UploadLogs": {
                   "detail": {

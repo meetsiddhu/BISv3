@@ -77,7 +77,8 @@
           "options": {
             "settings": {
               "entitySet": "Restrictions",
-              "liveMode": true,
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "navigation": {
                 "Restrictions": {
                   "detail": {

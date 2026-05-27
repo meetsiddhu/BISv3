@@ -77,7 +77,8 @@
           "options": {
             "settings": {
               "entitySet": "Lookups",
-              "liveMode": true,
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "navigation": {
                 "Lookups": {
                   "detail": {

@@ -349,6 +349,8 @@
           "options": {
             "settings": {
               "entitySet": "BridgeCapacities",
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "filterDefaultValues": {
                 "IsActiveEntity": true
               },
@@ -412,6 +414,8 @@
           "options": {
             "settings": {
               "entitySet": "BridgeInspections",
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "filterDefaultValues": {
                 "IsActiveEntity": true
               },
@@ -450,6 +454,8 @@
           "options": {
             "settings": {
               "entitySet": "BridgeDefects",
+              "liveMode": false,
+              "initialLoad": "Enabled",
               "filterDefaultValues": {
                 "IsActiveEntity": true
               },
