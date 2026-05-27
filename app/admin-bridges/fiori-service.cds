@@ -89,10 +89,6 @@ annotate AdminService.Bridges with @(
           {$Type: 'UI.ReferenceFacet', Label: 'NHVR Approvals',       Target: '@UI.FieldGroup#NHVRApprovals'},
         ]
       },
-      // ── Sub-entity tables ─────────────────────────────────────────────────
-      {$Type: 'UI.ReferenceFacet', Label: 'Capacity',     Target: 'capacities/@UI.LineItem'},
-      {$Type: 'UI.ReferenceFacet', Label: 'Restrictions', Target: 'restrictions/@UI.LineItem'},
-      {$Type: 'UI.ReferenceFacet', Label: 'Inspections',  Target: 'inspections/@UI.LineItem'},
       // ── Tab 8: Data Provenance (source + audit sub-sections) ─────────────
       {
         $Type : 'UI.CollectionFacet',
@@ -437,6 +433,7 @@ annotate AdminService.Restrictions with {
 annotate AdminService.BridgeRestrictions with {
   ID    @UI.Hidden;
   bridge @(
+    Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,
     Common.TextArrangement: #TextOnly,
     Common.ValueList: { CollectionPath: 'Bridges', Parameters: [
@@ -631,6 +628,8 @@ annotate AdminService.BridgeRestrictions with @(
     ],
     FieldGroup#BRDetails: {
       Data: [
+        {Value: bridge_ID, Label: 'Bridge'},
+        {Value: bridge.bridgeId},
         {Value: restrictionRef},    // auto-generated BR-NNNN
         {Value: restrictionCategory},
         {Value: restrictionType},
@@ -713,6 +712,7 @@ annotate AdminService.BridgeRestrictions with @(
 annotate AdminService.BridgeCapacities with {
   ID         @UI.Hidden;
   bridge @(
+    Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,
     Common.TextArrangement: #TextOnly,
     Common.ValueList: { CollectionPath: 'Bridges', Parameters: [
@@ -803,6 +803,7 @@ annotate AdminService.BridgeCapacities with @(
     ],
     FieldGroup#CapacityGeneral: {
       Data: [
+        {Value: bridge_ID, Label: 'Bridge'},
         {Value: capacityType},
       ]
     },
@@ -997,6 +998,7 @@ annotate AdminService.BridgeCapacities with {
 annotate AdminService.BridgeInspections with {
   ID            @UI.Hidden;
   bridge @(
+    Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,
     Common.TextArrangement: #TextOnly,
     Common.ValueList: { CollectionPath: 'Bridges', Parameters: [
@@ -1057,7 +1059,7 @@ annotate AdminService.BridgeInspections with @(
       }
     ],
     FieldGroup#InspIdentity: { Data: [
-      { Value: bridge.bridgeName,   Label: 'Bridge'           },
+      { Value: bridge_ID,           Label: 'Bridge'           },
       { Value: bridge.bridgeId,     Label: 'Bridge ID'        },
       { Value: inspectionRef,       Label: 'Inspection Ref'   },
       { Value: inspectionType,      Label: 'Inspection Type'  },
@@ -1080,12 +1082,13 @@ annotate AdminService.BridgeInspections with @(
 );
 
 ////////////////////////////////////////////////////////////////////////////
-//  BridgeDefects — standalone tile (view-only; created via Inspections)
+//  BridgeDefects — standalone tile
 ////////////////////////////////////////////////////////////////////////////
 
 annotate AdminService.BridgeDefects with {
   ID            @UI.Hidden;
   bridge @(
+    Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,
     Common.TextArrangement: #TextOnly,
     Common.ValueList: { CollectionPath: 'Bridges', Parameters: [
@@ -1118,7 +1121,7 @@ annotate AdminService.BridgeDefects with {
 };
 
 annotate AdminService.BridgeDefects with @(
-  Capabilities.InsertRestrictions.Insertable : false,
+  Capabilities.InsertRestrictions.Insertable : true,
   Capabilities.UpdateRestrictions.Updatable  : true,
   Capabilities.DeleteRestrictions.Deletable  : false,
   UI: {
@@ -1153,9 +1156,9 @@ annotate AdminService.BridgeDefects with @(
       }
     ],
     FieldGroup#DefIdentity: { Data: [
-      { Value: bridge.bridgeName,    Label: 'Bridge'           },
+      { Value: bridge_ID,            Label: 'Bridge'           },
       { Value: bridge.bridgeId,      Label: 'Bridge ID'        },
-      { Value: inspection.inspectionRef, Label: 'Inspection'   },
+      { Value: inspection_ID,        Label: 'Inspection'       },
       { Value: defectId,             Label: 'Defect ID'        },
       { Value: defectType,           Label: 'Defect Type'      },
       { Value: location,             Label: 'Location'         },
@@ -1181,6 +1184,12 @@ annotate AdminService.BridgeDefects with @(
 
 annotate bridge.management.Bridges with @fiori.draft.enabled;
 annotate AdminService.Bridges with @odata.draft.enabled;
+annotate bridge.management.BridgeCapacities with @fiori.draft.enabled;
+annotate AdminService.BridgeCapacities with @odata.draft.enabled;
+annotate bridge.management.BridgeInspections with @fiori.draft.enabled;
+annotate AdminService.BridgeInspections with @odata.draft.enabled;
+annotate bridge.management.BridgeDefects with @fiori.draft.enabled;
+annotate AdminService.BridgeDefects with @odata.draft.enabled;
 
 ////////////////////////////////////////////////////////////////////////////
 //  Action side-effects — force FE to re-read status after deactivate/reactivate

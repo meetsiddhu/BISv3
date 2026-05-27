@@ -54,13 +54,13 @@ service AdminService {
 
   @restrict: [
     { grant: 'READ',                       to: 'view'    },
-    { grant: ['CREATE','UPDATE','DELETE'],  to: 'inspect' }
+    { grant: ['CREATE','UPDATE','DELETE'],  to: 'manage'  }
   ]
   entity BridgeInspections as projection on my.BridgeInspections;
 
   @restrict: [
     { grant: 'READ',                       to: 'view'    },
-    { grant: ['CREATE','UPDATE','DELETE'],  to: 'inspect' }
+    { grant: ['CREATE','UPDATE','DELETE'],  to: 'manage'  }
   ]
   entity BridgeDefects as projection on my.BridgeDefects;
 

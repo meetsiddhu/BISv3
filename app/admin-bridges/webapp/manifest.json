@@ -32,6 +32,39 @@
           "info": "{{appDescription}}",
           "subTitle": "{{appSubTitle}}",
           "icon": "sap-icon://course-book"
+        },
+        "BridgeInspections-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "BridgeInspections",
+          "action": "manage",
+          "title": "Inspections",
+          "subTitle": "All Bridge Inspections",
+          "icon": "sap-icon://inspection"
+        },
+        "BridgeDefects-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "BridgeDefects",
+          "action": "manage",
+          "title": "Defects",
+          "subTitle": "Create & Manage Defects",
+          "icon": "sap-icon://quality-issue"
+        },
+        "BridgeCapacities-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "BridgeCapacities",
+          "action": "manage",
+          "title": "Bridge Capacity",
+          "subTitle": "Load & Geometric Capacities",
+          "icon": "sap-icon://simulate"
         }
       }
     }
@@ -316,8 +349,21 @@
           "options": {
             "settings": {
               "entitySet": "BridgeCapacities",
+              "filterDefaultValues": {
+                "IsActiveEntity": true
+              },
               "navigation": {
                 "BridgeCapacities": { "detail": { "route": "BridgeCapacitiesPage" } }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false,
+                    "creationMode": {
+                      "name": "NewPage"
+                    }
+                  }
+                }
               }
             }
           }
@@ -366,8 +412,21 @@
           "options": {
             "settings": {
               "entitySet": "BridgeInspections",
+              "filterDefaultValues": {
+                "IsActiveEntity": true
+              },
               "navigation": {
                 "BridgeInspections": { "detail": { "route": "BridgeInspectionsPage" } }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false,
+                    "creationMode": {
+                      "name": "NewPage"
+                    }
+                  }
+                }
               }
             }
           }
@@ -391,8 +450,21 @@
           "options": {
             "settings": {
               "entitySet": "BridgeDefects",
+              "filterDefaultValues": {
+                "IsActiveEntity": true
+              },
               "navigation": {
                 "BridgeDefects": { "detail": { "route": "BridgeDefectsPage" } }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false,
+                    "creationMode": {
+                      "name": "NewPage"
+                    }
+                  }
+                }
               }
             }
           }

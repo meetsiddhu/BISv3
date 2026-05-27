@@ -37,6 +37,24 @@ function buildSandboxConfig (isAdmin) {
     }
   ]
 
+  const subdomainTiles = [
+    {
+      id: 'BridgeInspections',
+      tileType: 'sap.ushell.ui.tile.StaticTile',
+      properties: { title: 'Inspections', subtitle: 'All Bridge Inspections', icon: 'sap-icon://inspection', targetURL: '#BridgeInspections-manage&/BridgeInspections' }
+    },
+    {
+      id: 'BridgeDefects',
+      tileType: 'sap.ushell.ui.tile.StaticTile',
+      properties: { title: 'Defects', subtitle: 'Create & Manage Defects', icon: 'sap-icon://quality-issue', targetURL: '#BridgeDefects-manage&/BridgeDefects' }
+    },
+    {
+      id: 'BridgeCapacities',
+      tileType: 'sap.ushell.ui.tile.StaticTile',
+      properties: { title: 'Bridge Capacity', subtitle: 'Load & Geometric Capacities', icon: 'sap-icon://simulate', targetURL: '#BridgeCapacities-manage&/BridgeCapacities' }
+    }
+  ]
+
   if (isAdmin) {
     adminGroupTiles.push(
       {
@@ -55,6 +73,21 @@ function buildSandboxConfig (isAdmin) {
     },
     'Bridges-manage': {
       semanticObject: 'Bridges', action: 'manage', title: 'Bridges',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    },
+    'BridgeInspections-manage': {
+      semanticObject: 'BridgeInspections', action: 'manage', title: 'Inspections',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    },
+    'BridgeDefects-manage': {
+      semanticObject: 'BridgeDefects', action: 'manage', title: 'Defects',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    },
+    'BridgeCapacities-manage': {
+      semanticObject: 'BridgeCapacities', action: 'manage', title: 'Bridge Capacity',
       signature: { parameters: {}, additionalParameters: 'allowed' },
       resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
     },
@@ -100,6 +133,12 @@ function buildSandboxConfig (isAdmin) {
                 title: 'OPERATIONS',
                 isPreset: true, isVisible: true, isGroupLocked: false,
                 tiles: operationsTiles
+              },
+              {
+                id: 'bms.group.subdomains',
+                title: 'BRIDGE SUB-DOMAINS',
+                isPreset: true, isVisible: true, isGroupLocked: false,
+                tiles: subdomainTiles
               },
               {
                 id: 'bms.group.admin',

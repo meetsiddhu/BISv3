@@ -41,6 +41,34 @@ sap.ui.define([
         loadScript("_bms_custom_attrs_script", CUSTOM_ATTRS_SCRIPT);
     }
 
+    function titleForHash() {
+        var hash = window.location.hash || "";
+        if (hash.indexOf("/BridgeInspections") !== -1 || hash.indexOf("BridgeInspections-manage") !== -1) {
+            return "Inspections";
+        }
+        if (hash.indexOf("/BridgeDefects") !== -1 || hash.indexOf("BridgeDefects-manage") !== -1) {
+            return "Defects";
+        }
+        if (hash.indexOf("/BridgeCapacities") !== -1 || hash.indexOf("BridgeCapacities-manage") !== -1) {
+            return "Bridge Capacity";
+        }
+        return "Bridge Asset Registry";
+    }
+
+    function updateShellTitle() {
+        var title = titleForHash();
+        document.title = title;
+
+        if (sap.ushell && sap.ushell.Container) {
+            sap.ushell.Container.getServiceAsync("ShellUIService").then(function (service) {
+                if (service && service.setTitle) service.setTitle(title);
+            }).catch(function () {});
+        }
+
+        var button = document.getElementById("shellAppTitle-button");
+        if (button) button.title = title;
+    }
+
     return AppComponent.extend("BridgeManagement.adminbridges.Component", {
         metadata: { manifest: "json" },
         init: function () {
@@ -49,6 +77,8 @@ sap.ui.define([
             startNumericInputGuard();
             startRestrictionsValidation();
             startCustomAttributes();
+            updateShellTitle();
+            window.addEventListener("hashchange", updateShellTitle);
         }
     });
 });

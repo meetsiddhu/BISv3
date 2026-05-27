@@ -1,11 +1,6 @@
 const cds = require('@sap/cds')
 
 const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-log')
-const {
-  getBridgeIdFromCapacityRequest,
-  getCapacityIdFromRequest,
-  rejectSecondCapacity
-} = require('./capacity-cardinality')
 
 module.exports = class AdminService extends cds.ApplicationService { init() {
 
@@ -38,6 +33,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       ['effectiveFrom', 'Effective From']
     ],
     BridgeRestrictions: [
+      ['bridge_ID', 'Bridge'],
       ['restrictionCategory', 'Category'],
       ['restrictionType', 'Restriction Type'],
       ['restrictionValue', 'Value'],
@@ -45,10 +41,23 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       ['effectiveFrom', 'Effective From']
     ],
     BridgeCapacities: [
+      ['bridge_ID', 'Bridge'],
       ['capacityType', 'Capacity Type'],
       ['capacityStatus', 'Capacity Status'],
       ['grossMassLimit', 'Gross Mass Limit'],
       ['minClearancePosted', 'Min Clearance Posted']
+    ],
+    BridgeInspections: [
+      ['bridge_ID', 'Bridge'],
+      ['inspectionType', 'Inspection Type'],
+      ['inspectionDate', 'Inspection Date'],
+      ['inspector', 'Inspector']
+    ],
+    BridgeDefects: [
+      ['bridge_ID', 'Bridge'],
+      ['defectType', 'Defect Type'],
+      ['severity', 'Severity'],
+      ['urgency', 'Urgency']
     ],
   }
 
@@ -176,6 +185,21 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   }
 
   const isBlank = value => value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+  const firstDefined = (...values) => values.find(value => !isBlank(value))
+
+  const getBridgeAssociationId = req => {
+    const data = req?.data || {}
+    const params = Array.isArray(req?.params) ? req.params : []
+    const parent = params.find(param => param && firstDefined(param.bridge_ID, param.bridge?.ID) !== undefined)
+
+    return firstDefined(
+      data.bridge_ID,
+      data.bridge?.ID,
+      data.bridge?.ID_ID,
+      parent?.bridge_ID,
+      parent?.bridge?.ID
+    )
+  }
 
   const validationHints = {
     latitude: 'Use decimal degrees, for example -33.852300.',
@@ -270,6 +294,41 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     validateEntityFields(entityName, req, { ...existing, ...req.data })
   }
 
+  const validateBridgeAssociation = async (req, { existing } = {}) => {
+    const bridgeId = firstDefined(getBridgeAssociationId(req), existing?.bridge_ID)
+    if (!req.data.bridge_ID && bridgeId !== undefined) req.data.bridge_ID = bridgeId
+    if (isBlank(bridgeId)) {
+      return req.error({
+        code: 'MANDATORY_FIELD_MISSING',
+        args: ['Bridge'],
+        target: 'bridge_ID',
+        status: 400
+      })
+    }
+
+    const bridge = await SELECT.one.from(Bridges).columns('ID').where({ ID: bridgeId })
+    if (!bridge) {
+      req.error({
+        code: 'UNKNOWN_BRIDGE',
+        message: 'Select an existing bridge before saving.',
+        target: 'bridge_ID',
+        status: 400
+      })
+    }
+  }
+
+  const validateBridgeLinkedEntity = entityName => async req => {
+    const entity = this.entities[entityName] || entityName
+    let existing
+    if (req.event === 'UPDATE') {
+      const ID = req.data?.ID || req.params?.[0]?.ID
+      if (ID) existing = await SELECT.one.from(entity).where({ ID })
+    }
+
+    await validateBridgeAssociation(req, { existing })
+    validateEntityFields(entityName, req, { ...existing, ...req.data })
+  }
+
   this.before('SAVE', Bridges, req => validateEntityFields('Bridges', req))
   const TYPE_UNIT_MAP = {
     'Speed Restriction': ['km/h'],
@@ -317,17 +376,32 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     validateEntityFields('BridgeRestrictions', req)
     validateRestrictionTypeUnit(req.data, req)
   })
+  this.before('SAVE', BridgeCapacities, validateBridgeLinkedEntity('BridgeCapacities'))
+  this.before('SAVE', BridgeInspections, validateBridgeLinkedEntity('BridgeInspections'))
+  this.before('SAVE', BridgeDefects, validateBridgeLinkedEntity('BridgeDefects'))
   this.before(['CREATE', 'UPDATE'], BridgeRestrictions, async req => {
     validateRestrictionTypeUnit(req.data, req)
   })
-  this.before('SAVE', BridgeCapacities, req => validateEntityFields('BridgeCapacities', req))
   this.before(['CREATE', 'UPDATE'], Bridges, req => validateRequiredFieldsWithExisting(Bridges, 'Bridges', req))
-  this.before(['CREATE', 'UPDATE'], BridgeRestrictions, req => validateRequiredFieldsWithExisting(BridgeRestrictions, 'BridgeRestrictions', req))
-  this.before(['CREATE', 'UPDATE'], BridgeCapacities, req => validateRequiredFieldsWithExisting(BridgeCapacities, 'BridgeCapacities', req))
+  this.before(['CREATE', 'UPDATE'], BridgeRestrictions, validateBridgeLinkedEntity('BridgeRestrictions'))
+  this.before(['CREATE', 'UPDATE'], BridgeCapacities, validateBridgeLinkedEntity('BridgeCapacities'))
+  this.before(['CREATE', 'UPDATE'], BridgeInspections, validateBridgeLinkedEntity('BridgeInspections'))
+  this.before(['CREATE', 'UPDATE'], BridgeDefects, validateBridgeLinkedEntity('BridgeDefects'))
   this.before('CREATE', Restrictions, req => validateEntityFields('Restrictions', req))
   this.before('UPDATE', Restrictions, async req => {
     await validateRequiredFieldsWithExisting(Restrictions, 'Restrictions', req)
   })
+
+  const hideDraftRowsFromTileList = results => {
+    if (!Array.isArray(results)) return
+    const activeRows = results.filter(row => row?.IsActiveEntity !== false)
+    results.splice(0, results.length, ...activeRows)
+    if ('$count' in results) results.$count = activeRows.length
+  }
+
+  this.after('READ', BridgeCapacities, hideDraftRowsFromTileList)
+  this.after('READ', BridgeInspections, hideDraftRowsFromTileList)
+  this.after('READ', BridgeDefects, hideDraftRowsFromTileList)
 
   /**
    * Generate IDs for new Bridges drafts
@@ -340,24 +414,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     if (!req.data.bridgeId) req.data.bridgeId = bridgeIdFor(req.data.ID, req.data.state)
     if (!req.data.status) req.data.status = 'Active'
   })
-
-  const ensureSingleCapacityPerBridge = async req => {
-    const bridgeId = getBridgeIdFromCapacityRequest(req)
-    if (bridgeId == null) return
-
-    const currentCapacityId = getCapacityIdFromRequest(req)
-    const duplicateIn = async entity => {
-      if (!entity) return false
-      const existing = await SELECT.one.from(entity).columns('ID').where({ bridge_ID: bridgeId })
-      return !!existing && (!currentCapacityId || existing.ID !== currentCapacityId)
-    }
-
-    if (await duplicateIn(BridgeCapacities)) {
-      rejectSecondCapacity(req)
-    }
-  }
-
-  this.before('CREATE', BridgeCapacities, ensureSingleCapacityPerBridge)
 
   this.after('READ', Bridges, async results => {
     if (!results) return

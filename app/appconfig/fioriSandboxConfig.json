@@ -67,7 +67,7 @@
                     "title": "Inspections",
                     "subtitle": "All Bridge Inspections",
                     "icon": "sap-icon://inspection",
-                    "targetURL": "#Bridges-manage&/BridgeInspections"
+                    "targetURL": "#BridgeInspections-manage&/BridgeInspections"
                   }
                 },
                 {
@@ -75,9 +75,9 @@
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
                     "title": "Defects",
-                    "subtitle": "View-Only — Create via Inspections",
+                    "subtitle": "Create & Manage Defects",
                     "icon": "sap-icon://quality-issue",
-                    "targetURL": "#Bridges-manage&/BridgeDefects"
+                    "targetURL": "#BridgeDefects-manage&/BridgeDefects"
                   }
                 },
                 {
@@ -87,7 +87,7 @@
                     "title": "Bridge Capacity",
                     "subtitle": "Load & Geometric Capacities",
                     "icon": "sap-icon://simulate",
-                    "targetURL": "#Bridges-manage&/BridgeCapacities"
+                    "targetURL": "#BridgeCapacities-manage&/BridgeCapacities"
                   }
                 }
               ]
@@ -162,6 +162,48 @@
               "semanticObject": "Bridges",
               "action": "manage",
               "title": "Bridges",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/admin-bridges/webapp"
+              }
+            },
+            "BridgeInspections-manage": {
+              "semanticObject": "BridgeInspections",
+              "action": "manage",
+              "title": "Inspections",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/admin-bridges/webapp"
+              }
+            },
+            "BridgeDefects-manage": {
+              "semanticObject": "BridgeDefects",
+              "action": "manage",
+              "title": "Defects",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/admin-bridges/webapp"
+              }
+            },
+            "BridgeCapacities-manage": {
+              "semanticObject": "BridgeCapacities",
+              "action": "manage",
+              "title": "Bridge Capacity",
               "signature": {
                 "parameters": {},
                 "additionalParameters": "allowed"
