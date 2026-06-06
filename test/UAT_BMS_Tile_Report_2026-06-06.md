@@ -116,6 +116,30 @@ All synthetic records (local SQLite only — **no BTP data was written**):
 **Purge recipe**: delete `db.sqlite` and re-run `cds deploy --to sqlite:db.sqlite`,
 or `rm db.sqlite`. Nothing to purge on BTP.
 
+## Live UI walkthrough (deployed BTP) — BLOCKED by P1-000
+
+After allowlisting the domain and logging in, I drove the **deployed** launchpad in
+Chrome. Result: the launchpad loads but exposes **none of the BMS apps** — "My Home"
+shows the stock SAP Fiori sandbox samples, and every BMS intent (e.g.
+`#Dashboard-display`) errors *"navigation target could not be resolved."*
+
+Root cause (**P1-000**): `fiori-apps.html`'s synchronous XHR to
+`/appconfig/fioriSandboxConfig.json` is rewritten to the protected backend route
+`/launchpad/config`, which returns the **XSUAA Login HTML page** (not JSON), so the
+sandbox config never loads and the default sample catalog appears. Verified via the
+error dialog, `ushell.getLinks()` (25 intents, 0 BMS), response content-types, and a
+terminal `curl` showing `<title>Login</title>`.
+
+**Consequence**: the live UI create/edit walkthrough could not be performed — no BMS
+tile is launchable from the deployed launchpad. The application logic itself is sound
+(see the local full-CRUD results above; backend OData, FkMessageGuard asset, and
+`/dashboard/api` all respond on BTP). The gap is purely the launchpad config delivery.
+This is **not** caused by the v3.01 code changes (launchpad/approuter files were not
+touched in this release).
+
+**To unblock**: apply P1-000's fix (serve the sandbox config statically) and redeploy,
+then re-run this walkthrough.
+
 ## Caveats / honesty notes
 
 - This pass tested the **deployed artifact's code** locally, plus black-box smoke

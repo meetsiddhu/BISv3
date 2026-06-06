@@ -11,6 +11,18 @@ Priority legend: **P1** blocks core flow / security / data loss · **P2** degrad
 
 ---
 
+### [P1-000] Deployed launchpad surfaces NO BMS apps (live BTP) — config XHR returns Login HTML
+- **File**: `app/router/xs-app.json` route 1 (`^/appconfig/fioriSandboxConfig\.json$` → rewrite `/launchpad/config` → `srv-api`); `app/fiori-apps.html:11-14` (synchronous XHR + `JSON.parse`)
+- **Symptom**: On the live deployment the launchpad "My Home" shows the **stock SAP Fiori sandbox sample apps** (Default Application, AppNavSample, …) and opening any BMS intent errors: *"The navigation target '#Dashboard-display' could not be resolved."* Runtime `ushell` `getLinks()` returns **25 intents, all samples, 0 BMS**.
+- **Root cause**: `fiori-apps.html` issues a **synchronous XHR** to `/appconfig/fioriSandboxConfig.json`; the approuter rewrites it to the protected backend route `/launchpad/config`. That request returns the **XSUAA Login page** (`content-type: text/html`, `<title>Login</title>`, HTTP 200) instead of JSON. `JSON.parse(html)` throws, the bootstrap script aborts before `window['sap-ushell-config']` is set, and `sandbox.js` falls back to its built-in sample catalog.
+- **Verified**: (a) error dialog in UI; (b) `getLinks()` → 0 BMS intents; (c) `fetch('/appconfig/fioriSandboxConfig.json')` and `/launchpad/config` both `content-type text/html`; (d) terminal `curl` of the path → `<title>Login</title>`.
+- **NOT caused by v3.01**: `xs-app.json`, `fiori-apps.html`, `launchpad.js` were not modified in this release. Pre-existing or environment/auth-timing.
+- **Fix (recommended)**: Serve the sandbox config as a **static, already-authenticated** resource instead of a backend round-trip. The file exists at `app/router/appconfig/fioriSandboxConfig.json`. Change route 1 to `{"source":"^/appconfig/fioriSandboxConfig\\.json$","localDir":".","authenticationType":"xsuaa"}` (drop the `target`/`destination` rewrite) so the static JSON is delivered within the authenticated shell. Trade-off: loses dynamic `isAdmin` tile gating from `buildSandboxConfig()`; if that gating is required, instead make `fiori-apps.html` fetch **asynchronously** with credentials and follow the auth redirect, or expose `/launchpad/config` as a non-redirecting JSON endpoint. Rebuild MTA + redeploy + re-verify `getLinks()` shows the BMS intents.
+- **Test**: After redeploy, `fetch('/appconfig/fioriSandboxConfig.json')` returns `application/json`; ushell `getLinks()` includes `#Bridges-manage`, `#Dashboard-display`, etc.; My Home shows BMS tiles.
+- **Persona**: PO/SME (app unusable via launchpad), Dev, DevOps.
+
+---
+
 ### [P2-001] `GET /<Entity>/$count` (path-segment count) crashes the server process
 - **File**: `node_modules/@sap/cds/libx/odata/middleware/read.js:129` (`_getCountFromResult`); surfaced via `srv/admin-service.cds` entities
 - **Symptom**: A request to `…/odata/v4/admin/States/$count` throws an uncaught `TypeError: Cannot read properties of undefined (reading '$count')` and the Node process **shuts down** (`server shutdown …`). Reproduced twice locally on `@sap/cds` v9.9.1.
