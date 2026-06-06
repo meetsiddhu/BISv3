@@ -16,7 +16,21 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   ]
 
   // ── Risk prioritisation engine (Phase 2/4) — see srv/lib/risk.js (unit-tested) ──
-  const { deriveRisk } = require('./lib/risk')
+  const { deriveRisk, weightsFromConfig } = require('./lib/risk')
+
+  // Load active RiskConfig weights (config-driven scoring; rule 4). Cached per
+  // process; the admin can refresh via recalcRisk after editing weights.
+  let _riskWeights = null
+  const getRiskWeights = async () => {
+    if (_riskWeights) return _riskWeights
+    try {
+      const db = await cds.connect.to('db')
+      const rows = await db.run(SELECT.from('bridge.management.RiskConfig')
+        .columns('factor', 'weight', 'active'))
+      _riskWeights = weightsFromConfig(rows)
+    } catch (e) { _riskWeights = {} }
+    return _riskWeights
+  }
 
   const bridgeIdFor = (ID, state) => {
     const stateMap = { NSW:'NSW', VIC:'VIC', QLD:'QLD', WA:'WA', SA:'SA', TAS:'TAS', ACT:'ACT', NT:'NT' }
@@ -351,8 +365,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   this.before('SAVE', Bridges, req => validateEntityFields('Bridges', req))
 
   // Compute risk score/priority on every bridge save (Phase 2).
-  this.before('SAVE', Bridges, (req) => {
-    const r = deriveRisk(req.data)
+  this.before('SAVE', Bridges, async (req) => {
+    const r = deriveRisk(req.data, await getRiskWeights())
     req.data.riskConsequence = r.consequence
     req.data.riskLikelihood  = r.likelihood
     req.data.riskScore       = r.score
@@ -364,12 +378,14 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // Backfill / refresh risk for all bridges (admin action).
   this.on('recalcRisk', async (req) => {
     const db = await cds.connect.to('db')
+    _riskWeights = null // force a reload so freshly-edited weights take effect
+    const weights = await getRiskWeights()
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
       .columns('ID', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
-               'structuralAdequacyRating', 'riskOverride', 'riskConsequence', 'riskLikelihood'))
+               'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence', 'riskLikelihood'))
     let n = 0
     for (const b of bridges) {
-      const r = deriveRisk(b)
+      const r = deriveRisk(b, weights)
       await db.run(UPDATE('bridge.management.Bridges').set({
         riskConsequence: r.consequence, riskLikelihood: r.likelihood,
         riskScore: r.score, riskPriority: r.priority,

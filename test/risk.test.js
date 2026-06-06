@@ -1,4 +1,4 @@
-const { deriveRisk, RISK_BANDS } = require('../srv/lib/risk')
+const { deriveRisk, weightsFromConfig, RISK_BANDS } = require('../srv/lib/risk')
 
 describe('risk prioritisation engine', () => {
   test('high consequence + poor condition -> Very High', () => {
@@ -48,5 +48,32 @@ describe('risk prioritisation engine', () => {
   test('bands are contiguous and ordered high-to-low', () => {
     expect(RISK_BANDS[0].name).toBe('Very High')
     expect(RISK_BANDS[RISK_BANDS.length - 1].min).toBe(0)
+  })
+
+  test('default weights reproduce the un-weighted result (no regression)', () => {
+    const b = { importanceLevel: 3, highPriorityAsset: true, conditionRating: 5, structuralAdequacyRating: 7 }
+    expect(deriveRisk(b)).toEqual(deriveRisk(b, {}))
+  })
+
+  test('config weights change the consequence (config-driven scoring)', () => {
+    const b = { importanceLevel: 2, conditionRating: 5, structuralAdequacyRating: 5 }
+    const base = deriveRisk(b)
+    const weighted = deriveRisk(b, { consequence_importance: 2 }) // 2*2=4 vs 2
+    expect(weighted.consequence).toBeGreaterThan(base.consequence)
+  })
+
+  test('heavy traffic raises consequence when weighted', () => {
+    const light = deriveRisk({ importanceLevel: 3, averageDailyTraffic: 500 })
+    const heavy = deriveRisk({ importanceLevel: 3, averageDailyTraffic: 50000 })
+    expect(heavy.consequence).toBeGreaterThanOrEqual(light.consequence)
+  })
+
+  test('weightsFromConfig ignores inactive rows', () => {
+    const w = weightsFromConfig([
+      { factor: 'consequence_importance', weight: 2, active: true },
+      { factor: 'consequence_priority', weight: 9, active: false }
+    ])
+    expect(w.consequence_importance).toBe(2)
+    expect(w.consequence_priority).toBeUndefined()
   })
 })

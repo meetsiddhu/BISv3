@@ -21,6 +21,18 @@ const demoHandler = require('./demo-handler')
 
 const { SELECT, INSERT, UPDATE, DELETE } = cds.ql
 
+// ── Process-level safety net (P2-001) ────────────────────────────────────────
+// A single malformed request (e.g. a bad OData `/$count` path segment) must never
+// take down the whole srv instance. Log via cds.log for observability and keep the
+// process alive; CF would otherwise restart the app and drop in-flight requests.
+const _bootLog = cds.log('server')
+process.on('uncaughtException', (err) => {
+  _bootLog.error('uncaughtException (kept alive):', err && err.stack ? err.stack : err)
+})
+process.on('unhandledRejection', (reason) => {
+  _bootLog.error('unhandledRejection:', reason && reason.stack ? reason.stack : reason)
+})
+
 const MASS_EDIT_COLUMNS = [
   'ID',
   'bridgeId',

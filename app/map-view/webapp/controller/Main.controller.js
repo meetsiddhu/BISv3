@@ -1317,15 +1317,19 @@ sap.ui.define([
         markerLayer.addLayer(marker);
       }.bind(this));
 
+      // Render stored GeoJSON geometry (Point / LineString / Polygon / Polyline / Multi*)
+      const geomBounds = this._renderGeometry(bridges);
+
       const legend = this.byId("legendBox");
       if (legend) {
         legend.setVisible(Boolean(layers.showLegend));
       }
 
       if (fitToBounds !== false && bridges.length) {
-        const bounds = window.L.latLngBounds(bridges.map(function (bridge) {
+        let bounds = window.L.latLngBounds(bridges.map(function (bridge) {
           return [bridge.latitude, bridge.longitude];
         }));
+        if (geomBounds && geomBounds.isValid()) { bounds.extend(geomBounds); }
         this._leafletMap.fitBounds(bounds.pad(0.18));
       } else if (fitToBounds !== false) {
         this._leafletMap.fitBounds(AUSTRALIA_BOUNDS);
@@ -1336,6 +1340,64 @@ sap.ui.define([
       this._updateStats();
       if (this._vm().getProperty("/heatmapActive")) { this._renderHeatmap(); }
       if (this._vm().getProperty("/conditionAlertsActive")) { this._renderConditionAlerts(); }
+    },
+
+    // Render any stored GeoJSON geometry per bridge. Supports Point, MultiPoint,
+    // LineString (polyline), MultiLineString, Polygon, MultiPolygon and
+    // GeometryCollection. Returns the combined LatLngBounds (or null).
+    _renderGeometry: function (bridges) {
+      if (!this._leafletMap || !window.L) return null;
+      if (!this._geometryLayer) {
+        this._geometryLayer = window.L.layerGroup().addTo(this._leafletMap);
+      }
+      this._geometryLayer.clearLayers();
+
+      const layers = this._vm().getProperty("/layers");
+      if (layers && layers.bridges && layers.bridges.visible === false) return null;
+
+      let combined = null;
+      (bridges || []).forEach(function (bridge) {
+        if (!bridge.geoJson) return;
+        let geo;
+        try {
+          geo = typeof bridge.geoJson === "string" ? JSON.parse(bridge.geoJson) : bridge.geoJson;
+        } catch (e) {
+          return; // skip invalid GeoJSON, never break the map
+        }
+        if (!geo || (!geo.type)) return;
+        try {
+          const gj = window.L.geoJSON(geo, {
+            style: function (feature) { return this._geometryStyle(bridge, feature); }.bind(this),
+            pointToLayer: function (feature, latlng) {
+              return window.L.circleMarker(latlng, this._geometryStyle(bridge, feature));
+            }.bind(this),
+            onEachFeature: function (feature, lyr) {
+              const t = (feature && feature.geometry && feature.geometry.type) || geo.type;
+              lyr.bindPopup("<div class='leafletPopup'><strong>" + (bridge.bridgeName || bridge.bridgeId || "Bridge") +
+                "</strong><br>Geometry: " + t + "</div>", { maxWidth: 260 });
+              lyr.on("click", function () { this._focusBridge(bridge); }.bind(this));
+            }.bind(this)
+          });
+          gj.addTo(this._geometryLayer);
+          const b = gj.getBounds();
+          if (b && b.isValid()) { combined = combined ? combined.extend(b) : window.L.latLngBounds(b.getSouthWest(), b.getNorthEast()); }
+        } catch (e) { /* ignore a single bad geometry */ }
+      }.bind(this));
+      return combined;
+    },
+
+    _geometryStyle: function (bridge, feature) {
+      const type = (feature && feature.geometry && feature.geometry.type) || "";
+      const base = this._borderColor(bridge.postingStatus);
+      const fill = this._conditionColor(bridge.conditionRating);
+      if (/Polygon/.test(type)) {
+        return { color: base, weight: 2, opacity: 0.9, fillColor: fill, fillOpacity: 0.25 };
+      }
+      if (/LineString/.test(type)) {
+        return { color: base, weight: 4, opacity: 0.9, dashArray: bridge.postingStatus === "Closed" ? "6,6" : null };
+      }
+      // Point / MultiPoint
+      return { radius: 6, weight: 2, color: base, fillColor: fill, fillOpacity: 0.9 };
     },
 
     _markerStyle: function (bridge, selected) {

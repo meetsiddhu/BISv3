@@ -131,23 +131,37 @@
         var copyBtn = document.getElementById("gisCopyBtn");
         if (copyBtn && !copyBtn._bmsWired) { copyBtn._bmsWired = true; copyBtn.addEventListener("click", window._gisCopy); }
         if (!getBridgeKeyPredicate()) { setCoord("No bridge ID in URL"); return; }
-        readBridge("latitude,longitude,bridgeName,bridgeId,state,postingStatus")
+        readBridge("latitude,longitude,bridgeName,bridgeId,state,postingStatus,geoJson")
             .then(draw)
             .catch(function (error) { setCoord("Error: " + error.message); });
     };
 
+    // Parse a stored GeoJSON string safely; return null on any problem.
+    function parseGeo(raw) {
+        if (!raw) return null;
+        try { var g = typeof raw === "string" ? JSON.parse(raw) : raw; return (g && g.type) ? g : null; }
+        catch (e) { return null; }
+    }
+
     // ── Map drawing ─────────────────────────────────────────────────────────
     function draw(bridgeLocation) {
         var lat = parseFloat(bridgeLocation.latitude), lng = parseFloat(bridgeLocation.longitude);
+        var geo = parseGeo(bridgeLocation.geoJson);
+        var hasPoint = !isNaN(lat) && !isNaN(lng);
         var noEl = document.getElementById("gisNoCoords");
         var canv = document.getElementById("gisMapCanvas");
-        if (isNaN(lat) || isNaN(lng)) {
+        if (!hasPoint && !geo) {
             setCoord("No coordinates for this record");
             if (noEl) noEl.style.display = "flex";
             if (canv) canv.style.display = "none";
             return;
         }
-        setCoord("<strong>Lat:</strong> " + lat.toFixed(6) + " &nbsp; <strong>Lng:</strong> " + lng.toFixed(6));
+        if (hasPoint) {
+            setCoord("<strong>Lat:</strong> " + lat.toFixed(6) + " &nbsp; <strong>Lng:</strong> " + lng.toFixed(6) +
+                     (geo ? " &nbsp; <strong>Geometry:</strong> " + geo.type : ""));
+        } else {
+            setCoord("<strong>Geometry:</strong> " + geo.type);
+        }
         if (noEl) noEl.style.display = "none";
         if (canv) canv.style.display = "block";
         loadLeaflet(function () {
@@ -156,12 +170,35 @@
             window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
             var colour = STATUS_COLOR[bridgeLocation.postingStatus] || "#0a6ed1";
-            window.L.circleMarker([lat, lng],
-                { radius: 10, color: "#fff", weight: 2, fillColor: colour, fillOpacity: 0.9 })
-                .bindPopup("<b>" + (bridgeLocation.bridgeName || "") + "</b><br><small>" +
-                           (bridgeLocation.bridgeId || "") + " · " + (bridgeLocation.state || "") + "</small>")
-                .addTo(map);
-            map.setView([lat, lng], 14);
+            var fitBounds = null;
+            // Stored GeoJSON geometry: Point / LineString (polyline) / Polygon / Multi*.
+            if (geo) {
+                try {
+                    var gj = window.L.geoJSON(geo, {
+                        style: function (f) {
+                            var t = (f && f.geometry && f.geometry.type) || geo.type;
+                            if (/Polygon/.test(t)) return { color: colour, weight: 2, fillColor: colour, fillOpacity: 0.22 };
+                            if (/LineString/.test(t)) return { color: colour, weight: 4, opacity: 0.9 };
+                            return { color: colour, weight: 2 };
+                        },
+                        pointToLayer: function (f, ll) {
+                            return window.L.circleMarker(ll, { radius: 7, color: "#fff", weight: 2, fillColor: colour, fillOpacity: 0.9 });
+                        }
+                    }).addTo(map);
+                    var gb = gj.getBounds();
+                    if (gb && gb.isValid()) fitBounds = gb;
+                } catch (e) { /* fall back to point */ }
+            }
+            if (hasPoint) {
+                window.L.circleMarker([lat, lng],
+                    { radius: 10, color: "#fff", weight: 2, fillColor: colour, fillOpacity: 0.9 })
+                    .bindPopup("<b>" + (bridgeLocation.bridgeName || "") + "</b><br><small>" +
+                               (bridgeLocation.bridgeId || "") + " · " + (bridgeLocation.state || "") + "</small>")
+                    .addTo(map);
+                fitBounds = fitBounds ? fitBounds.extend([lat, lng]) : null;
+            }
+            if (fitBounds && fitBounds.isValid()) { map.fitBounds(fitBounds.pad(0.25)); }
+            else if (hasPoint) { map.setView([lat, lng], 14); }
             _map = map;
         });
     }

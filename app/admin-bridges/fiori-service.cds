@@ -148,6 +148,7 @@ annotate AdminService.Bridges with @(
         {Value: latitude},
         {Value: longitude},
         {Value: location},
+        {Value: geoJson, Label: 'Geometry (GeoJSON: Point / LineString / Polygon)'},
       ]
     },
     FieldGroup#Ownership: {
@@ -360,6 +361,7 @@ annotate AdminService.Bridges with {
   riskConsequence    @title: 'Consequence (1-5)';
   riskLikelihood     @title: 'Likelihood (1-5)';
   riskOverrideReason @UI.MultiLineText @title: 'Override Justification';
+  geoJson            @UI.MultiLineText @title: 'Geometry (GeoJSON)';
   assetClassStrategy @(
     Common.Text: assetClassStrategy.name, Common.TextArrangement: #TextOnly,
     Common.ValueList: { CollectionPath: 'AssetClassStrategy', Parameters: [

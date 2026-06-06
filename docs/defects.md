@@ -33,3 +33,27 @@
   Defects ComboBox, select, confirm Save succeeds and no stale message remains.
 - **C-3 native spatial migration** — HANA `ST_POINT(7844)` + spatial index (gated).
 - **C-8 full WCAG audit** — run axe on map-view and dashboard custom controls.
+
+## Multi-modal / risk program — P1/P2/P3 punch-list status (v3.5.0)
+
+| Ref | Item | Status | Evidence |
+|-----|------|--------|----------|
+| P1.1 | ALP chart bars don't render | ✅ Fixed | Static SUM measure `restrUnit` (`@Analytics.Measure @Aggregation.default:#SUM`) replaces unresolved DynamicMeasure. v3.4.3 |
+| P1.2 | Sparse multi-modal data | ✅ Seeded | Rail/LightRail/Pedestrian bridges + networks via draft flow (UAT) |
+| P1.3 | Engineer risk override | ✅ Done | "Risk & Strategy" object-page facet (override + consequence/likelihood + justification); SAVE hook honours it. v3.4.3 |
+| P2.4 | `/$count` could crash srv | ✅ Mitigated | `process.on('uncaughtException'/'unhandledRejection')` safety net in `srv/server.js` keeps the instance alive + logs |
+| P2.5 | Bulk draft-activate 404 | ✅ Cosmetic-confirmed | Records persist; the FE/UI create path returns 204. API bulk path logs a harmless 404 on the unbound activate. No data impact |
+| P2.6 | "Dead" bms-admin AttributeConfig | ✅ Retained by design | Not dead — it is the graceful fallback (`Shell.controller.js:48`) when `CrossApplicationNavigation` is unavailable. Removing it would break that fallback |
+| P2.7 | Lookup seeding | ✅ Documented | All code-lists seed from `db/data/*.csv` on deploy (HDI). NB: CSV is comma-delimited — lookup descriptions must not contain commas |
+| P3.8 | Live S/4 EAM integration runtime | ⏸ Blocked (external) | Needs a reachable S/4 + BTP destination + user credentials. App stays standalone/S/4-compatible; `EAMCodeMapping` + reference fields in place. Runtime untestable without S/4 |
+| P3.9 | Native HANA spatial | ➡ Superseded | Portable **GeoJSON `LargeString`** approach delivers Point/Line/Polygon/Polyline in both SQLite dev and HANA without breaking the dev/test path |
+| P3.10 | Config-driven risk weights | ✅ Done | `RiskConfig` weights loaded into `deriveRisk(b, weights)`; `recalcRisk` reloads weights. 4 new unit tests |
+| P3.11 | WCAG | ⚙️ Heuristic pass | Map canvas/buttons carry `role`/`aria-label`; full axe run remains in backlog |
+
+### GIS geometry (new requirement, v3.5.0)
+Bridges store geometry as GeoJSON (`geoJson : LargeString`). Both maps now render
+**Point, MultiPoint, LineString (polyline), MultiLineString, Polygon, MultiPolygon
+and GeometryCollection** via `L.geoJSON` with type-based styling and popups:
+- `app/map-view/.../Main.controller.js` → `_renderGeometry()` / `_geometryStyle()`
+- `app/admin-bridges/.../gisMapInit.js` → object-page mini-map renders the bridge's geometry
+- Geometry is viewable/editable on the Bridge object page (GeoJSON text field).
