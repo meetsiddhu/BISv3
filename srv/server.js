@@ -1996,7 +1996,9 @@ cds.on('bootstrap', (app) => {
       if (from) query = query.where('changedAt >=', new Date(from).toISOString())
       if (to)   query = query.where('changedAt <=', new Date(to + 'T23:59:59Z').toISOString())
 
-      const rows = await db.run(query)
+      // source='attribute' surfaces ONLY custom-attribute changes (skip ChangeLog).
+      const attributesOnly = source === 'attribute'
+      const rows = attributesOnly ? [] : await db.run(query)
 
       // Merge configurable-attribute value changes (AttributeValueHistory) so custom
       // attributes appear in the change-log report alongside standard field changes.
@@ -2004,7 +2006,7 @@ cds.on('bootstrap', (app) => {
       // numeric objectId as ChangeLog, so rows group under the same object.
       const ATTR_TYPE = { Bridge: 'bridge', Restriction: 'restriction' }
       const attrObjectType = objectType ? ATTR_TYPE[objectType] : null
-      const wantAttr = !batchId && (!source || ['manual', 'import', 'api'].indexOf(source) !== -1) && (!objectType || !!attrObjectType)
+      const wantAttr = !batchId && (attributesOnly || !source || ['manual', 'import', 'api'].indexOf(source) !== -1) && (!objectType || !!attrObjectType)
       let attrRows = []
       if (wantAttr) {
         let aq = SELECT.from('bridge.management.AttributeValueHistory').orderBy('changedAt desc').limit(maxRows)

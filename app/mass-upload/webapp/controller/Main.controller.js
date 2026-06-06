@@ -79,6 +79,12 @@ sap.ui.define([
             insertedRows: 0,
             updatedRows: 0
           }
+        },
+        attr: {
+          objectType: "bridge",
+          hasFile: false,
+          resultVisible: false,
+          result: { created: 0, updated: 0, skipped: 0, errors: 0, rows: [] }
         }
       });
       this.getView().setModel(model, "view");
@@ -159,6 +165,59 @@ sap.ui.define([
       }
       const url = `/mass-upload/api/template.csv?dataset=${encodeURIComponent(dataset)}`;
       window.open(url, "_blank");
+    },
+
+    // ── Custom Attributes bulk values (mass create / maintain) ──────────────
+    onAttrTemplateDownload: function () {
+      const ot = this._getViewModel().getProperty("/attr/objectType") || "bridge";
+      window.open("/attributes/api/template?objectType=" + encodeURIComponent(ot) + "&format=xlsx", "_blank");
+    },
+
+    onAttrFileChange: function (oEvent) {
+      const files = oEvent.getParameter("files") || [];
+      this._attrFile = files[0] || null;
+      const model = this._getViewModel();
+      model.setProperty("/attr/hasFile", !!this._attrFile);
+      model.setProperty("/attr/resultVisible", false);
+    },
+
+    onAttrImport: async function () {
+      if (!this._attrFile) {
+        MessageBox.warning("Choose a filled template file first.");
+        return;
+      }
+      const model = this._getViewModel();
+      const ot = model.getProperty("/attr/objectType") || "bridge";
+      model.setProperty("/busy", true);
+      try {
+        const [contentBase64, csrfToken] = await Promise.all([
+          this._readFileAsBase64(this._attrFile),
+          this._fetchCsrfToken()
+        ]);
+        const response = await fetch("/attributes/api/import?objectType=" + encodeURIComponent(ot), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken || "bms-import" },
+          body: JSON.stringify({ fileName: this._attrFile.name, contentBase64, mode: "skip" })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error?.message || payload.message || "Import failed");
+        }
+        const s = payload.summary || payload;
+        model.setProperty("/attr/result", {
+          created: s.created || 0,
+          updated: s.updated || 0,
+          skipped: s.skipped || 0,
+          errors: s.errors || 0,
+          rows: payload.rows || []
+        });
+        model.setProperty("/attr/resultVisible", true);
+        MessageToast.show("Import complete: " + (s.created || 0) + " created, " + (s.updated || 0) + " updated.");
+      } catch (error) {
+        MessageBox.error(error.message || "Import failed");
+      } finally {
+        model.setProperty("/busy", false);
+      }
     },
 
     onHistoryFilterChange: function () {

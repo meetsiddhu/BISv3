@@ -321,6 +321,59 @@
                   </Table>
                 </VBox>
               </IconTabFilter>
+
+              <IconTabFilter id="tabAttributes" key="attributes" text="Custom Attributes" icon="sap-icon://customize">
+                <VBox class="sapUiSmallMargin">
+                  <MessageStrip
+                    text="Bulk create or update custom attribute values. Pick the object type, download the template, fill in a value per record, then upload. Matching is by Bridge ID / Restriction Ref."
+                    type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
+                  <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginBottom">
+                    <Label text="Object Type" width="8rem" />
+                    <SegmentedButton selectedKey="{view>/attr/objectType}">
+                      <items>
+                        <SegmentedButtonItem key="bridge" text="Bridge" />
+                        <SegmentedButtonItem key="restriction" text="Restriction" />
+                      </items>
+                    </SegmentedButton>
+                    <ToolbarSpacer />
+                    <Button text="Download Template" icon="sap-icon://download" press=".onAttrTemplateDownload" type="Transparent" />
+                  </HBox>
+                  <Panel headerText="Upload filled template" class="sapUiSmallMarginBottom">
+                    <VBox>
+                      <unified:FileUploader name="attrUpload" fileType="xlsx,csv" placeholder="Choose .xlsx or .csv file…"
+                        change=".onAttrFileChange" buttonText="Browse" width="100%" />
+                      <Button text="Import Values" icon="sap-icon://upload" type="Emphasized"
+                        press=".onAttrImport" enabled="{view>/attr/hasFile}" class="sapUiSmallMarginTop" />
+                    </VBox>
+                  </Panel>
+                  <Panel headerText="Result" visible="{view>/attr/resultVisible}">
+                    <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+                      <ObjectStatus title="Created" text="{view>/attr/result/created}" state="Success" class="sapUiMediumMarginEnd" />
+                      <ObjectStatus title="Updated" text="{view>/attr/result/updated}" state="Warning" class="sapUiMediumMarginEnd" />
+                      <ObjectStatus title="Skipped" text="{view>/attr/result/skipped}" state="None" class="sapUiMediumMarginEnd" />
+                      <ObjectStatus title="Errors" text="{view>/attr/result/errors}" state="Error" />
+                    </HBox>
+                    <Table items="{view>/attr/result/rows}" mode="None" noDataText="No row details" growing="true" growingThreshold="50">
+                      <columns>
+                        <Column width="5rem"><Text text="Row" /></Column>
+                        <Column><Text text="Reference" /></Column>
+                        <Column width="8rem"><Text text="Status" /></Column>
+                        <Column><Text text="Message" /></Column>
+                      </columns>
+                      <items>
+                        <ColumnListItem>
+                          <cells>
+                            <Text text="{view>row}" />
+                            <Text text="{view>ref}" />
+                            <ObjectStatus text="{view>status}" state="{= ${view>status} === 'OK' ? 'Success' : 'Error'}" />
+                            <Text text="{view>message}" />
+                          </cells>
+                        </ColumnListItem>
+                      </items>
+                    </Table>
+                  </Panel>
+                </VBox>
+              </IconTabFilter>
             </items>
           </IconTabBar>
         </VBox>

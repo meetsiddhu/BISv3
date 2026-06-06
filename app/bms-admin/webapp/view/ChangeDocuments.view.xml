@@ -50,6 +50,7 @@
                     <core:Item key="OData" text="OData (Fiori UI)" />
                     <core:Item key="MassEdit" text="Mass Edit" />
                     <core:Item key="MassUpload" text="Mass Upload" />
+                    <core:Item key="attribute" text="Custom Attributes only" />
                   </items>
                 </Select>
 
