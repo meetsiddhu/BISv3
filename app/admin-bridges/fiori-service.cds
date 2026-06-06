@@ -997,7 +997,9 @@ annotate AdminService.BridgeCapacities with {
 
 annotate AdminService.BridgeInspections with {
   ID        @UI.Hidden;
-  bridge_ID @Core.Computed  @UI.Hidden;
+  // The Integer FK `bridge_ID` is intentionally not annotated here — it is a
+  // generated foreign key, not a projection element. Its stale parse error is
+  // handled at runtime by FkMessageGuard.js (event-driven), not via annotations.
   bridge @(
     Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,
@@ -1088,8 +1090,9 @@ annotate AdminService.BridgeInspections with @(
 
 annotate AdminService.BridgeDefects with {
   ID            @UI.Hidden;
-  bridge_ID     @Core.Computed  @UI.Hidden;
-  inspection_ID @Core.Computed  @UI.Hidden;
+  // Integer FKs `bridge_ID` / `inspection_ID` are generated foreign keys, not
+  // projection elements — their stale parse error is handled at runtime by
+  // FkMessageGuard.js (event-driven), not via annotations.
   bridge @(
     Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,

@@ -1438,6 +1438,24 @@ const _jwtDecodeScopes = (authHeader) => {
 }
 
 cds.on('bootstrap', (app) => {
+  // ── Correlation ID (observability) ───────────────────────────────────────
+  // Assign a correlation ID to every request so logs from a single user action
+  // can be traced end-to-end across custom Express routes, OData handlers and
+  // SAP Cloud Logging. Honour an inbound id (from an upstream gateway/approuter)
+  // if present, otherwise mint one. Echoed back in the response header so the
+  // client and downstream systems share the same id.
+  const { randomUUID } = require('crypto')
+  app.use((req, res, next) => {
+    const incoming =
+      req.headers['x-correlation-id'] ||
+      req.headers['x-request-id'] ||
+      req.headers['x-vcap-request-id']
+    const correlationId = incoming || randomUUID()
+    req.correlationId = correlationId
+    res.setHeader('x-correlation-id', correlationId)
+    next()
+  })
+
   // ── Mock SAP UI5 Flexibility LREP endpoints (local dev only) ─────────────
   // Prevents 404 console errors from FE4's LREP connector on startup.
   // Returns empty-but-valid responses so FE4 continues loading without error.

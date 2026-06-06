@@ -3,11 +3,12 @@ using {bridge.management as my} from '../db/schema';
 @requires: ['view', 'manage', 'admin']
 service AdminService {
 
-  // ── Bridges ── viewer: read | manager: create/update/actions | admin: delete
+  // ── Bridges ── viewer: read | manager: create/update/soft-delete actions
+  // Soft-delete only (locked architectural rule): no hard DELETE is granted to any
+  // role. Removal is performed via the `deactivate` action, preserving the audit trail.
   @restrict: [
     { grant: 'READ',                                         to: 'view'   },
-    { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' },
-    { grant: 'DELETE',                                       to: 'admin'  }
+    { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' }
   ]
   entity Bridges as projection on my.Bridges {
     *,
@@ -17,22 +18,22 @@ service AdminService {
     action reactivate() returns Bridges;
   };
 
-  // ── Restrictions ── viewer: read | manager: create/update/actions | admin: delete
+  // ── Restrictions ── viewer: read | manager: create/update/soft-delete actions
+  // Soft-delete only: no hard DELETE granted. Use the `deactivate` action.
   @restrict: [
     { grant: 'READ',                                         to: 'view'   },
-    { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' },
-    { grant: 'DELETE',                                       to: 'admin'  }
+    { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' }
   ]
   entity Restrictions as projection on my.Restrictions actions {
     action deactivate() returns Restrictions;
     action reactivate() returns Restrictions;
   };
 
-  // ── Bridge Restrictions ── viewer: read | manager: create/update/actions | admin: delete
+  // ── Bridge Restrictions ── viewer: read | manager: create/update/soft-delete actions
+  // Soft-delete only: no hard DELETE granted. Use the `deactivate` action.
   @restrict: [
     { grant: 'READ',                                         to: 'view'   },
-    { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' },
-    { grant: 'DELETE',                                       to: 'admin'  }
+    { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' }
   ]
   entity BridgeRestrictions as projection on my.BridgeRestrictions actions {
     action deactivate() returns BridgeRestrictions;

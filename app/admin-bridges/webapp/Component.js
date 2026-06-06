@@ -8,6 +8,7 @@ sap.ui.define([
     var NUMERIC_GUARD_SCRIPT = "/admin-bridges/webapp/ext/controller/NumericInputGuard.js";
     var RESTRICTIONS_VALIDATION_SCRIPT = "/admin-bridges/webapp/ext/controller/RestrictionsValidation.js";
     var CUSTOM_ATTRS_SCRIPT = "/admin-bridges/webapp/ext/controller/CustomAttributesInit.js";
+    var FK_MESSAGE_GUARD_SCRIPT = "/admin-bridges/webapp/ext/controller/FkMessageGuard.js";
 
     function loadScript(id, src) {
         if (document.getElementById(id)) return;
@@ -39,6 +40,13 @@ sap.ui.define([
 
     function startCustomAttributes() {
         loadScript("_bms_custom_attrs_script", CUSTOM_ATTRS_SCRIPT);
+    }
+
+    // Event-driven guard that suppresses the stale Integer-FK parse error on the
+    // Defects/Inspections forms (see FkMessageGuard.js). Replaces the previous
+    // 500 ms polling workaround.
+    function startFkMessageGuard() {
+        loadScript("_bms_fk_message_guard_script", FK_MESSAGE_GUARD_SCRIPT);
     }
 
     function titleForHash() {
@@ -77,23 +85,9 @@ sap.ui.define([
             startNumericInputGuard();
             startRestrictionsValidation();
             startCustomAttributes();
+            startFkMessageGuard();
             updateShellTitle();
             window.addEventListener("hashchange", updateShellTitle);
-
-            // Clear stale Integer-FK parse errors (bridge_ID, inspection_ID) that
-            // Fiori Elements V4 registers when a user types in an association ComboBox.
-            // The OData model value is correct once a bridge is selected, but the
-            // ComboBox text triggers the Integer validator — clearing these is safe.
-            setInterval(function () {
-                var core = sap.ui.getCore ? sap.ui.getCore() : null;
-                var mgr = core && core.getMessageManager && core.getMessageManager();
-                if (!mgr) return;
-                var msgs = mgr.getMessageModel().getData();
-                var stale = msgs.filter(function (m) {
-                    return m.target && (m.target.indexOf("bridge_ID") !== -1 || m.target.indexOf("inspection_ID") !== -1);
-                });
-                if (stale.length) mgr.removeMessages(stale);
-            }, 500);
         }
     });
 });
