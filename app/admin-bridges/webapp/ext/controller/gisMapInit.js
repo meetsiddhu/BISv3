@@ -36,11 +36,15 @@
 
         var openBtn = document.createElement("button");
         openBtn.id = "gisOpenBtn";
+        openBtn.type = "button";
+        openBtn.setAttribute("aria-label", "Open map in full view");
         openBtn.style.cssText = "padding:6px 14px;background:#0a6ed1;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;margin-right:6px";
         openBtn.textContent = "🗺 Open Map";
 
         var copyBtn = document.createElement("button");
         copyBtn.id = "gisCopyBtn";
+        copyBtn.type = "button";
+        copyBtn.setAttribute("aria-label", "Copy coordinates to clipboard");
         copyBtn.style.cssText = "padding:6px 10px;background:transparent;color:#0a6ed1;border:1px solid #0a6ed1;border-radius:4px;font-size:13px;cursor:pointer";
         copyBtn.textContent = "📋 Copy";
 
@@ -58,6 +62,8 @@
         // Map canvas (Leaflet target)
         var canvas = document.createElement("div");
         canvas.id = "gisMapCanvas";
+        canvas.setAttribute("role", "application");
+        canvas.setAttribute("aria-label", "Interactive bridge location map");
         canvas.style.cssText = "width:100%;height:360px";
 
         // No-coordinates placeholder

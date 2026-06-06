@@ -29,4 +29,12 @@ function getConfigBool(key, fallback = false) {
 
 function invalidateCache(key) { _cache.delete(key) }
 
-module.exports = { getConfig, getConfigInt, getConfigBool, invalidateCache }
+// GIS coordinate reference system (EPSG code), config-driven.
+// Default 7844 = GDA2020, the correct datum for Australian assets. Override via
+// the SystemConfig key GIS_CRS_EPSG. See docs/eam-mapping/GIS-CRS-POLICY.md.
+const DEFAULT_CRS_EPSG = 7844
+function getCrsEpsg() {
+  return getConfigInt('GIS_CRS_EPSG', DEFAULT_CRS_EPSG)
+}
+
+module.exports = { getConfig, getConfigInt, getConfigBool, invalidateCache, getCrsEpsg, DEFAULT_CRS_EPSG }

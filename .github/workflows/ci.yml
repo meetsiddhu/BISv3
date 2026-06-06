@@ -1,0 +1,42 @@
+name: CI
+
+# Continuous integration for the Bridge Information System (BIS / BridgeManagement).
+# Runs on every push and pull request: install → lint → CDS compile → build → test.
+# This is the repeatable, auditable build gate that replaces "it built on my machine".
+#
+# Deployment is intentionally NOT automated here (see deploy.yml / RUNBOOK.md). CI proves
+# the artifact is sound; promotion to a Cloud Foundry space is a separate, gated step.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20 (pinned via .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (CDS + JS)
+        run: npx eslint . || (echo "::warning::lint reported issues" && exit 1)
+
+      - name: CDS compile check
+        run: npx cds compile srv --to sql > /dev/null
+
+      - name: Build (MTA-equivalent cds build)
+        run: npx cds build --production
+
+      - name: Test (jest)
+        run: npm test

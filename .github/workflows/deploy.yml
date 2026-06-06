@@ -1,0 +1,64 @@
+name: Deploy (manual, gated)
+
+# Manual, environment-gated deployment to SAP BTP Cloud Foundry.
+# This NEVER runs automatically — it must be triggered by hand and (for non-dev
+# spaces) approved via the GitHub Environment protection rule. It builds the MTA
+# archive and deploys it to the chosen space. PROD promotion stays a deliberate act.
+#
+# Required GitHub repository secrets (configure under Settings → Secrets):
+#   CF_API      e.g. https://api.cf.us10-001.hana.ondemand.com
+#   CF_ORG      e.g. 592f5a7btrial
+#   CF_USERNAME service / technical user
+#   CF_PASSWORD service / technical user password
+#
+# Branch → space mapping is enforced by the `environment` chosen at dispatch time.
+
+on:
+  workflow_dispatch:
+    inputs:
+      space:
+        description: "Target Cloud Foundry space"
+        required: true
+        type: choice
+        options: ["dev", "test", "prod"]
+        default: "dev"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # GitHub Environment gate: configure required reviewers on `test` and `prod`
+    # so a human must approve before those deployments proceed.
+    environment: ${{ inputs.space }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test before deploy
+        run: npm test
+
+      - name: Install MTA build tool + CF CLI
+        run: |
+          npm i -g mbt
+          wget -q -O cf.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=8&source=github"
+          sudo tar -xzf cf.tgz -C /usr/local/bin cf8 && sudo ln -sf /usr/local/bin/cf8 /usr/local/bin/cf
+
+      - name: Build MTA archive
+        run: mbt build
+
+      - name: CF login
+        run: cf login -a "${{ secrets.CF_API }}" -o "${{ secrets.CF_ORG }}" -s "${{ inputs.space }}" -u "${{ secrets.CF_USERNAME }}" -p "${{ secrets.CF_PASSWORD }}"
+
+      - name: Deploy
+        run: cf deploy mta_archives/*.mtar -f
+
+      - name: Smoke check
+        run: cf apps
