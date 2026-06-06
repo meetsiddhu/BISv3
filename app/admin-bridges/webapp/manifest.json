@@ -323,13 +323,8 @@
           "target": "BridgeRiskReportList"
         },
         {
-          "name": "NetworkRestrictionReportList",
-          "pattern": "NetworkRestrictionReport:?query:",
-          "target": "NetworkRestrictionReportList"
-        },
-        {
           "name": "RestrictionsDashboard",
-          "pattern": "RestrictionsDashboard:?query:",
+          "pattern": "NetworkRestrictionReport:?query:",
           "target": "NetworkRestrictionReportALP"
         },
         {
@@ -725,25 +720,6 @@
           "options": {
             "settings": {
               "entitySet": "BridgeRiskReport",
-              "liveMode": false,
-              "initialLoad": "Enabled",
-              "controlConfiguration": {
-                "@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "enablePaste": false
-                  }
-                }
-              }
-            }
-          }
-        },
-        "NetworkRestrictionReportList": {
-          "type": "Component",
-          "id": "NetworkRestrictionReportList",
-          "name": "sap.fe.templates.ListReport",
-          "options": {
-            "settings": {
-              "entitySet": "NetworkRestrictionReport",
               "liveMode": false,
               "initialLoad": "Enabled",
               "controlConfiguration": {
