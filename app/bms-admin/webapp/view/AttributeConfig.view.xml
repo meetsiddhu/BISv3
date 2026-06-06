@@ -3,126 +3,167 @@
   xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
   xmlns:f="sap.f"
+  xmlns:grid="sap.ui.layout.cssgrid"
   xmlns:layout="sap.ui.layout"
   xmlns:form="sap.ui.layout.form"
+  xmlns:core="sap.ui.core"
   xmlns:data="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
   displayBlock="true">
 
-  <f:DynamicPage id="mainPage" headerExpanded="true" toggleHeaderOnTitleClick="false">
+  <f:DynamicPage id="mainPage" headerExpanded="true" toggleHeaderOnTitleClick="false" showFooter="false">
     <f:title>
       <f:DynamicPageTitle>
         <f:heading><Title text="Attribute Configuration" level="H2"/></f:heading>
+        <f:snappedHeading><Title text="Attribute Configuration" level="H2"/></f:snappedHeading>
         <f:actions>
-          <Button text="Export Template (Bridge)" icon="sap-icon://download" press=".onExportTemplate" data:objectType="bridge" class="sapUiSmallMarginEnd"/>
-          <Button text="Export Template (Restriction)" icon="sap-icon://download" press=".onExportTemplate" data:objectType="restriction" class="sapUiSmallMarginEnd"/>
-          <Button icon="sap-icon://information" tooltip="How to use Attribute Configuration" press=".onShowHelp" type="Transparent"/>
+          <SegmentedButton id="objectTypeSelector" selectionChange=".onObjectTypeChange"/>
+          <Button text="Template" icon="sap-icon://download" press=".onExportTemplate" type="Transparent" tooltip="Download an Excel upload template for the selected object type"/>
+          <Button icon="sap-icon://sys-help" tooltip="How to use Attribute Configuration" press=".onShowHelp" type="Transparent"/>
         </f:actions>
       </f:DynamicPageTitle>
     </f:title>
 
     <f:content>
-      <layout:HorizontalLayout allowWrapping="false" class="sapUiSizeCompact" width="100%">
+      <!-- Responsive 3-column layout: 3 columns on L/XL, stacked on M/S -->
+      <layout:Grid defaultSpan="XL4 L4 M12 S12" hSpacing="1" vSpacing="1" width="100%">
 
-        <!-- LEFT: Object Type selector + Group list -->
-        <Panel width="320px" headerText="Attribute Groups" class="sapUiSmallMarginEnd">
-          <SegmentedButton id="objectTypeSelector" selectedKey="bridge" selectionChange=".onObjectTypeChange" width="100%" class="sapUiTinyMarginBegin sapUiTinyMarginEnd sapUiTinyMarginTop">
-            <items>
-              <SegmentedButtonItem key="bridge" text="Bridge"/>
-              <SegmentedButtonItem key="restriction" text="Restriction"/>
-            </items>
-          </SegmentedButton>
-          <Toolbar>
-            <ToolbarSpacer/>
-            <Button icon="sap-icon://add" text="Add Group" press=".onAddGroup"/>
-          </Toolbar>
-          <List id="groupList" items="{/}" mode="SingleSelectMaster" selectionChange=".onGroupSelect" noDataText="No groups defined">
-            <StandardListItem title="{name}" description="{internalKey}" info="{status}" infoState="{= ${status} === 'Active' ? 'Success' : 'None'}"/>
-          </List>
+        <!-- ════ Column 1: Attribute Groups (the "class") ════ -->
+        <Panel headerText="Attribute Groups" class="sapUiResponsiveMargin" width="auto">
+          <headerToolbar>
+            <OverflowToolbar>
+              <Title text="Attribute Groups"/>
+              <ToolbarSpacer/>
+              <Button icon="sap-icon://add" text="New" type="Emphasized" press=".onAddGroup" tooltip="Add a new attribute group"/>
+            </OverflowToolbar>
+          </headerToolbar>
+          <VBox>
+            <SearchField id="groupSearch" placeholder="Search groups…" liveChange=".onGroupSearch" class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop"/>
+            <List id="groupList" items="{/}" mode="SingleSelectMaster" selectionChange=".onGroupSelect"
+                  growing="true" growingThreshold="50">
+              <StandardListItem
+                icon="sap-icon://folder-full"
+                title="{name}"
+                description="{internalKey}"
+                info="{status}"
+                infoState="{path:'status', formatter:'.fmt.statusState'}"
+                type="Active"/>
+            </List>
+            <VBox id="groupEmpty" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin" visible="false">
+              <core:Icon src="sap-icon://customize" size="2.5rem" color="#9ba4ab"/>
+              <Text text="No groups for this object type yet." textAlign="Center" class="sapUiSmallMarginTop"/>
+              <Button text="Create your first group" type="Emphasized" icon="sap-icon://add" press=".onAddGroup" class="sapUiSmallMarginTop"/>
+            </VBox>
+          </VBox>
         </Panel>
 
-        <!-- MIDDLE: Attribute definitions in selected group -->
-        <Panel id="defsPanel" width="380px" headerText="Attribute Definitions" visible="false" class="sapUiSmallMarginEnd">
-          <Toolbar>
-            <Button icon="sap-icon://edit" text="Edit Group" press=".onEditGroup"/>
-            <Button icon="sap-icon://delete" text="" press=".onDeleteGroup" type="Reject"/>
-            <ToolbarSpacer/>
-            <Button icon="sap-icon://add" text="Add Attribute" press=".onAddAttribute"/>
-          </Toolbar>
-          <List id="attrList" items="{/}" mode="SingleSelectMaster" selectionChange=".onAttrSelect" noDataText="No attributes in this group">
-            <StandardListItem title="{name}" description="{= ${dataType} + (${unit} ? ' (' + ${unit} + ')' : '')}" info="{status}" infoState="{= ${status} === 'Active' ? 'Success' : 'None'}"/>
-          </List>
+        <!-- ════ Column 2: Attribute Definitions (the "characteristics") ════ -->
+        <Panel id="defsPanel" headerText="Attributes" class="sapUiResponsiveMargin" width="auto" visible="false">
+          <headerToolbar>
+            <OverflowToolbar>
+              <Title id="defsTitle" text="Attributes"/>
+              <ToolbarSpacer/>
+              <Button icon="sap-icon://edit" tooltip="Edit group" press=".onEditGroup"/>
+              <Button icon="sap-icon://delete" type="Transparent" tooltip="Delete group" press=".onDeleteGroup"/>
+              <Button icon="sap-icon://add" text="New" type="Emphasized" tooltip="Add attribute" press=".onAddAttribute"/>
+            </OverflowToolbar>
+          </headerToolbar>
+          <VBox>
+            <SearchField id="attrSearch" placeholder="Search attributes…" liveChange=".onAttrSearch" class="sapUiSmallMarginBeginEnd sapUiSmallMarginTop"/>
+            <List id="attrList" items="{/}" mode="SingleSelectMaster" selectionChange=".onAttrSelect" noDataText="No attributes in this group yet">
+              <StandardListItem
+                icon="{path:'dataType', formatter:'.fmt.dataTypeIcon'}"
+                title="{name}"
+                description="{parts:['dataType','unit'], formatter:'.fmt.attrSubtitle'}"
+                info="{status}"
+                infoState="{path:'status', formatter:'.fmt.statusState'}"
+                type="Active"/>
+            </List>
+          </VBox>
         </Panel>
 
-        <!-- RIGHT: Attribute detail + allowed values + object type config -->
-        <Panel id="attrDetailPanel" width="460px" headerText="Attribute Detail" visible="false">
-          <Toolbar>
-            <Button icon="sap-icon://edit" text="Edit" press=".onEditAttribute"/>
-            <Button icon="sap-icon://delete" text="" press=".onDeleteAttribute" type="Reject"/>
-            <ToolbarSpacer/>
-          </Toolbar>
-          <form:SimpleForm editable="false" layout="ResponsiveGridLayout" columnsL="2" columnsM="1" id="attrDetailForm">
-            <form:content>
-              <Label text="Name"/><Text id="detailName" text=""/>
-              <Label text="Internal Key"/><Text id="detailKey" text=""/>
-              <Label text="Data Type"/><Text id="detailType" text=""/>
-              <Label text="Unit"/><Text id="detailUnit" text=""/>
-              <Label text="Help Text"/><Text id="detailHelp" text=""/>
-              <Label text="Min Value"/><Text id="detailMin" text=""/>
-              <Label text="Max Value"/><Text id="detailMax" text=""/>
-              <Label text="Status"/><Text id="detailStatus" text=""/>
-            </form:content>
-          </form:SimpleForm>
+        <!-- ════ Column 3: Attribute Detail ════ -->
+        <Panel id="attrDetailPanel" headerText="Attribute Detail" class="sapUiResponsiveMargin" width="auto" visible="false">
+          <headerToolbar>
+            <OverflowToolbar>
+              <Title id="detailHeading" text="Attribute Detail"/>
+              <ToolbarSpacer/>
+              <Button icon="sap-icon://edit" text="Edit" press=".onEditAttribute"/>
+              <Button icon="sap-icon://delete" type="Transparent" tooltip="Delete attribute" press=".onDeleteAttribute"/>
+            </OverflowToolbar>
+          </headerToolbar>
 
-          <Title text="Object Type Configuration" level="H5" class="sapUiSmallMarginBegin sapUiTinyMarginTop"/>
-          <Table id="configTable" items="{/}" noDataText="No object type configs">
-            <columns>
-              <Column><Text text="Object Type"/></Column>
-              <Column><Text text="Enabled"/></Column>
-              <Column><Text text="Required"/></Column>
-              <Column><Text text="Order Override"/></Column>
-              <Column><Text text=""/></Column>
-            </columns>
-            <items>
-              <ColumnListItem>
-                <cells>
-                  <Text text="{objectType}"/>
-                  <Switch state="{enabled}" change=".onConfigChange"/>
-                  <Switch state="{required}" change=".onConfigChange"/>
-                  <Input value="{displayOrder}" width="80px" change=".onConfigChange"/>
-                  <Button icon="sap-icon://add" text="Add" visible="{= !${ID}}" press=".onAddConfig"/>
-                </cells>
-              </ColumnListItem>
-            </items>
-          </Table>
+          <VBox class="sapUiSmallMargin">
+            <ObjectStatus id="detailStatus" class="sapUiTinyMarginBottom"/>
+            <form:SimpleForm editable="false" layout="ResponsiveGridLayout" columnsL="1" columnsM="1" labelSpanL="5" labelSpanM="5">
+              <form:content>
+                <Label text="Name"/><Text id="detailName"/>
+                <Label text="Internal Key"/><Text id="detailKey"/>
+                <Label text="Data Type"/><Text id="detailType"/>
+                <Label text="Unit"/><Text id="detailUnit"/>
+                <Label text="Help Text"/><Text id="detailHelp"/>
+                <Label text="Min / Max"/><Text id="detailRange"/>
+              </form:content>
+            </form:SimpleForm>
 
-          <Title text="Allowed Values" level="H5" class="sapUiSmallMarginBegin sapUiTinyMarginTop"/>
-          <Toolbar>
-            <ToolbarSpacer/>
-            <Button icon="sap-icon://add" text="Add Value" press=".onAddAllowedValue"/>
-          </Toolbar>
-          <Table id="allowedValuesTable" items="{/}" noDataText="Not applicable for this data type">
-            <columns>
-              <Column><Text text="Value"/></Column>
-              <Column><Text text="Label"/></Column>
-              <Column><Text text="Order"/></Column>
-              <Column><Text text="Status"/></Column>
-              <Column><Text text=""/></Column>
-            </columns>
-            <items>
-              <ColumnListItem>
-                <cells>
-                  <Text text="{value}"/>
-                  <Text text="{label}"/>
-                  <Text text="{displayOrder}"/>
-                  <Text text="{status}"/>
-                  <Button icon="sap-icon://delete" type="Reject" press=".onDeleteAllowedValue"/>
-                </cells>
-              </ColumnListItem>
-            </items>
-          </Table>
+            <!-- Object-type assignment -->
+            <Title text="Assigned Object Types" level="H5" class="sapUiTinyMarginTop"/>
+            <Text text="Enable this attribute for an object type and choose whether it is mandatory." class="sapUiTinyMarginBottom"/>
+            <Table id="configTable" items="{/}" noDataText="No object types">
+              <columns>
+                <Column><Text text="Object Type"/></Column>
+                <Column hAlign="Center"><Text text="Enabled"/></Column>
+                <Column hAlign="Center"><Text text="Required"/></Column>
+                <Column hAlign="Center" width="6rem"><Text text="Order"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <cells>
+                    <Text text="{path:'objectType', formatter:'.fmt.objectTypeLabel'}"/>
+                    <Switch state="{enabled}" change=".onConfigRowChange"/>
+                    <Switch state="{required}" change=".onConfigRowChange"/>
+                    <Input value="{displayOrder}" type="Number" width="5rem" change=".onConfigRowChange"/>
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+
+            <!-- Allowed values (select types only) -->
+            <Title id="allowedValuesTitle" text="Allowed Values" level="H5" class="sapUiSmallMarginTop"/>
+            <MessageStrip id="allowedValuesHint" type="Information" showIcon="true"
+                          text="Allowed values apply only to Single-Select and Multi-Select attributes."
+                          class="sapUiTinyMarginBottom" visible="false"/>
+            <OverflowToolbar id="allowedValuesToolbar">
+              <ToolbarSpacer/>
+              <Button icon="sap-icon://add" text="Add Value" press=".onAddAllowedValue" type="Emphasized"/>
+            </OverflowToolbar>
+            <Table id="allowedValuesTable" items="{/}" noDataText="No values yet">
+              <columns>
+                <Column><Text text="Value"/></Column>
+                <Column><Text text="Label"/></Column>
+                <Column hAlign="Center" width="9rem"><Text text="Reorder"/></Column>
+                <Column hAlign="End" width="6rem"><Text text="Actions"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <cells>
+                    <Text text="{value}"/>
+                    <Text text="{label}"/>
+                    <HBox justifyContent="Center">
+                      <Button icon="sap-icon://slim-arrow-up" type="Transparent" tooltip="Move up" press=".onMoveAllowedValueUp"/>
+                      <Button icon="sap-icon://slim-arrow-down" type="Transparent" tooltip="Move down" press=".onMoveAllowedValueDown"/>
+                    </HBox>
+                    <HBox justifyContent="End">
+                      <Button icon="sap-icon://edit" type="Transparent" tooltip="Edit value" press=".onEditAllowedValue"/>
+                      <Button icon="sap-icon://delete" type="Transparent" tooltip="Delete value" press=".onDeleteAllowedValue"/>
+                    </HBox>
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </VBox>
         </Panel>
 
-      </layout:HorizontalLayout>
+      </layout:Grid>
     </f:content>
   </f:DynamicPage>
 </mvc:View>

@@ -1,6 +1,8 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/model/json/JSONModel",
+  "sap/ui/model/Filter",
+  "sap/ui/model/FilterOperator",
   "sap/m/MessageBox",
   "sap/m/MessageToast",
   "sap/m/Dialog",
@@ -9,375 +11,424 @@ sap.ui.define([
   "sap/m/Button",
   "sap/m/VBox",
   "sap/m/Label",
+  "sap/m/Text",
   "sap/m/FormattedText",
-  "sap/ui/core/Item"
-], function (Controller, JSONModel, MessageBox, MessageToast, Dialog, Input, Select, Button, VBox, Label,  FormattedText, Item) {
+  "sap/m/SegmentedButtonItem",
+  "sap/ui/core/Item",
+  "../service/AttributeService",
+  "../model/formatter"
+], function (Controller, JSONModel, Filter, FilterOperator, MessageBox, MessageToast, Dialog,
+             Input, Select, Button, VBox, Label, Text, FormattedText, SegmentedButtonItem, Item,
+             AttributeService, formatter) {
   "use strict";
 
   return Controller.extend("BridgeManagement.bmsadmin.controller.AttributeConfig", {
 
+    // Exposed so the view's formatter bindings (.fmt.xxx) resolve.
+    fmt: formatter,
+
     onInit: function () {
       var oComp = this.getOwnerComponent();
-      this._adminBase   = oComp.getManifestEntry("/sap.app/dataSources/AdminService/uri").replace(/\/$/, "");
-      this._attrBase    = oComp.getManifestEntry("/sap.app/dataSources/AttributesService/uri").replace(/\/$/, "");
-      var oAppCfg       = oComp.getModel("appConfig");
-      this._dataTypes   = oAppCfg.getProperty("/attributeDataTypes");
-      this._objectTypes = oAppCfg.getProperty("/attributeObjectTypes");
-      this._statusOpts  = oAppCfg.getProperty("/attributeStatuses");
-      this._objectType = "bridge";
+      var adminBase = oComp.getManifestEntry("/sap.app/dataSources/AdminService/uri");
+      var attrBase  = oComp.getManifestEntry("/sap.app/dataSources/AttributesService/uri");
+      this._svc = AttributeService(adminBase, attrBase);
+
+      var oAppCfg = oComp.getModel("appConfig");
+      this._dataTypes   = oAppCfg.getProperty("/attributeDataTypes")   || ["Text", "Integer", "Decimal", "Date", "Boolean", "SingleSelect", "MultiSelect"];
+      this._objectTypes = oAppCfg.getProperty("/attributeObjectTypes") || ["bridge"];
+      this._statusOpts  = oAppCfg.getProperty("/attributeStatuses")    || ["Active", "Inactive"];
+
+      // Data-driven object-type selector (extensible: add a type in appConfig → appears here).
+      var oSel = this.byId("objectTypeSelector");
+      this._objectTypes.forEach(function (ot) {
+        oSel.addItem(new SegmentedButtonItem({ key: ot, text: formatter.objectTypeLabel(ot) }));
+      });
+      oSel.setSelectedKey(this._objectTypes[0]);
+      this._objectType = this._objectTypes[0];
+
       this._selectedGroup = null;
       this._selectedAttr = null;
       this._loadGroups();
     },
 
+    _busy: function (b) { this.byId("mainPage").setBusy(b); },
+
+    // ── Groups ───────────────────────────────────────────────────────────
     _loadGroups: function () {
       var self = this;
-      fetch(self._adminBase + "/AttributeGroups?$filter=objectType eq '" + self._objectType + "'&$orderby=displayOrder")
-        .then(function (groupResponse) { return groupResponse.json(); })
-        .then(function (groupData) {
-          if (groupData.error) throw new Error(groupData.error.message);
-          self.byId("groupList").setModel(new JSONModel(groupData.value || []));
-          self._selectedGroup = null;
-          self.byId("defsPanel").setVisible(false);
-          self.byId("attrDetailPanel").setVisible(false);
-        })
-        .catch(function (error) { MessageBox.error("Failed to load groups: " + error.message); });
+      self._busy(true);
+      self._svc.listGroups(self._objectType).then(function (groups) {
+        self.byId("groupList").setModel(new JSONModel(groups));
+        self.byId("groupEmpty").setVisible(groups.length === 0);
+        self.byId("groupList").setVisible(groups.length > 0);
+        self.byId("groupSearch").setValue("");
+        self._selectedGroup = null;
+        self.byId("defsPanel").setVisible(false);
+        self.byId("attrDetailPanel").setVisible(false);
+      }).catch(function (e) {
+        MessageBox.error("Failed to load groups: " + e.message);
+      }).finally(function () { self._busy(false); });
     },
 
+    onGroupSearch: function (oEvent) {
+      var q = oEvent.getParameter("newValue");
+      var oBinding = this.byId("groupList").getBinding("items");
+      oBinding.filter(q ? [new Filter([
+        new Filter("name", FilterOperator.Contains, q),
+        new Filter("internalKey", FilterOperator.Contains, q)
+      ], false)] : []);
+    },
+
+    onGroupSelect: function (oEvent) {
+      this._selectedGroup = oEvent.getParameter("listItem").getBindingContext().getObject();
+      this.byId("defsTitle").setText(this._selectedGroup.name);
+      this.byId("defsPanel").setVisible(true);
+      this.byId("attrDetailPanel").setVisible(false);
+      this._loadAttributes(this._selectedGroup.ID);
+    },
+
+    // ── Attributes ───────────────────────────────────────────────────────
     _loadAttributes: function (groupId) {
       var self = this;
-      fetch(self._adminBase + "/AttributeDefinitions?$filter=group_ID eq '" + groupId + "'&$orderby=displayOrder")
-        .then(function (attributeResponse) { return attributeResponse.json(); })
-        .then(function (attributeData) {
-          if (attributeData.error) throw new Error(attributeData.error.message);
-          self.byId("attrList").setModel(new JSONModel(attributeData.value || []));
-          self._selectedAttr = null;
-          self.byId("attrDetailPanel").setVisible(false);
-        })
-        .catch(function (error) { MessageBox.error("Failed to load attributes: " + error.message); });
+      self._busy(true);
+      self._svc.listAttributes(groupId).then(function (attrs) {
+        self.byId("attrList").setModel(new JSONModel(attrs));
+        self.byId("attrSearch").setValue("");
+        self._selectedAttr = null;
+        self.byId("attrDetailPanel").setVisible(false);
+      }).catch(function (e) {
+        MessageBox.error("Failed to load attributes: " + e.message);
+      }).finally(function () { self._busy(false); });
+    },
+
+    onAttrSearch: function (oEvent) {
+      var q = oEvent.getParameter("newValue");
+      this.byId("attrList").getBinding("items").filter(q ? [new Filter("name", FilterOperator.Contains, q)] : []);
+    },
+
+    onAttrSelect: function (oEvent) {
+      this._selectedAttr = oEvent.getParameter("listItem").getBindingContext().getObject();
+      this._loadAttrDetail(this._selectedAttr.ID);
     },
 
     _loadAttrDetail: function (attrId) {
       var self = this;
+      self._busy(true);
       Promise.all([
-        fetch(self._adminBase + "/AttributeDefinitions('" + attrId + "')").then(function (attributeResponse) { return attributeResponse.json(); }),
-        fetch(self._adminBase + "/AttributeAllowedValues?$filter=attribute_ID eq '" + attrId + "'&$orderby=displayOrder").then(function (allowedValuesResponse) { return allowedValuesResponse.json(); }),
-        fetch(self._adminBase + "/AttributeObjectTypeConfig?$filter=attribute_ID eq '" + attrId + "'").then(function (objectTypeConfigResponse) { return objectTypeConfigResponse.json(); })
-      ]).then(function (results) {
-        var attr = results[0];
-        var allowedValues = results[1].value || [];
-        var objectTypeConfigs = results[2].value || [];
+        self._svc.getAttribute(attrId),
+        self._svc.listAllowedValues(attrId),
+        self._svc.listConfigs(attrId)
+      ]).then(function (res) {
+        var attr = res[0], allowed = res[1], configs = res[2];
 
-        self.byId("detailName").setText(attr.name || "");
-        self.byId("detailKey").setText(attr.internalKey || "");
-        self.byId("detailType").setText(attr.dataType || "");
-        self.byId("detailUnit").setText(attr.unit || "");
-        self.byId("detailHelp").setText(attr.helpText || "");
-        self.byId("detailMin").setText(attr.minValue != null ? String(attr.minValue) : "");
-        self.byId("detailMax").setText(attr.maxValue != null ? String(attr.maxValue) : "");
-        self.byId("detailStatus").setText(attr.status || "");
+        self.byId("detailHeading").setText(attr.name || "Attribute Detail");
+        self.byId("detailStatus").setText(attr.status === "Active" ? "Active" : "Inactive");
+        self.byId("detailStatus").setState(formatter.statusState(attr.status));
+        self.byId("detailStatus").setIcon(formatter.dataTypeIcon(attr.dataType));
+        self.byId("detailName").setText(attr.name || "–");
+        self.byId("detailKey").setText(attr.internalKey || "–");
+        self.byId("detailType").setText(attr.dataType || "–");
+        self.byId("detailUnit").setText(attr.unit || "–");
+        self.byId("detailHelp").setText(attr.helpText || "–");
+        self.byId("detailRange").setText(
+          (attr.minValue != null ? attr.minValue : "–") + "  /  " + (attr.maxValue != null ? attr.maxValue : "–")
+        );
 
-        self.byId("allowedValuesTable").setModel(new JSONModel(allowedValues));
-
-        var existingByType = {};
-        objectTypeConfigs.forEach(function (objectTypeConfig) { existingByType[objectTypeConfig.objectType] = objectTypeConfig; });
-        var configRows = self._objectTypes.map(function (objectType) {
-          return existingByType[objectType] || { objectType: objectType, enabled: false, required: false, displayOrder: null, ID: null, attribute_ID: attrId };
+        // Object-type config: existing rows merged with synthetic rows for unconfigured types.
+        var byType = {};
+        configs.forEach(function (c) { byType[c.objectType] = c; });
+        var rows = self._objectTypes.map(function (ot) {
+          return byType[ot] || { objectType: ot, enabled: false, required: false, displayOrder: null, ID: null, attribute_ID: attrId };
         });
-        self.byId("configTable").setModel(new JSONModel(configRows));
+        self.byId("configTable").setModel(new JSONModel(rows));
+
+        // Allowed values — only meaningful for select types.
+        var isSelect = formatter.isSelectType(attr.dataType);
+        self.byId("allowedValuesTable").setModel(new JSONModel(allowed));
+        self.byId("allowedValuesHint").setVisible(!isSelect);
+        self.byId("allowedValuesToolbar").setVisible(isSelect);
+        self.byId("allowedValuesTable").setVisible(isSelect);
 
         self.byId("attrDetailPanel").setVisible(true);
-      });
+      }).catch(function (e) {
+        MessageBox.error("Failed to load attribute detail: " + e.message);
+      }).finally(function () { self._busy(false); });
     },
 
+    // ── Object type & toolbar ──────────────────────────────────────────────
     onObjectTypeChange: function (oEvent) {
       this._objectType = oEvent.getParameter("item").getKey();
       this._loadGroups();
     },
 
-    onGroupSelect: function (oEvent) {
-      var ctx = oEvent.getParameter("listItem").getBindingContext();
-      this._selectedGroup = ctx.getObject();
-      this.byId("defsPanel").setVisible(true);
-      this._loadAttributes(this._selectedGroup.ID);
+    onExportTemplate: function () {
+      window.open(this._svc.templateUrl(this._objectType), "_blank");
     },
 
-    onAttrSelect: function (oEvent) {
-      var ctx = oEvent.getParameter("listItem").getBindingContext();
-      this._selectedAttr = ctx.getObject();
-      this._loadAttrDetail(this._selectedAttr.ID);
-    },
-
+    // ── Group CRUD ─────────────────────────────────────────────────────────
     onAddGroup: function () {
       var self = this;
       self._showFormDialog("Add Attribute Group", [
-        { label: "Group Name", id: "dlg-name", required: true },
-        { label: "Internal Key", id: "dlg-key", required: true },
-        { label: "Display Order", id: "dlg-order", type: "number" }
-      ], function (vals) {
-        fetch(self._adminBase + "/AttributeGroups", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: vals["dlg-name"], internalKey: vals["dlg-key"], objectType: self._objectType, displayOrder: parseInt(vals["dlg-order"] || "0", 10), status: "Active" })
-        }).then(function (createGroupResponse) { if (!createGroupResponse.ok) throw new Error(createGroupResponse.statusText); return createGroupResponse.json(); })
-          .then(function () { self._loadGroups(); MessageToast.show("Group created."); })
-          .catch(function (error) { MessageBox.error("Failed to create group: " + error.message); });
+        { label: "Group Name", id: "name", required: true },
+        { label: "Internal Key", id: "key", required: true, help: "Lowercase, underscores. Cannot change once values exist." },
+        { label: "Display Order", id: "order", type: "number" }
+      ], function (v) {
+        self._busy(true);
+        self._svc.createGroup({ name: v.name, internalKey: v.key, objectType: self._objectType, displayOrder: parseInt(v.order || "0", 10), status: "Active" })
+          .then(function () { MessageToast.show("Group created."); self._loadGroups(); })
+          .catch(function (e) { self._busy(false); MessageBox.error("Failed to create group: " + e.message); });
       });
     },
 
     onEditGroup: function () {
-      if (!this._selectedGroup) return;
-      var self = this;
-      var selectedGroup = self._selectedGroup;
-      self._showFormDialog("Edit Group: " + selectedGroup.name, [
-        { label: "Group Name", id: "dlg-name", value: selectedGroup.name, required: true },
-        { label: "Display Order", id: "dlg-order", value: String(selectedGroup.displayOrder || 0), type: "number" },
-        { label: "Status", id: "dlg-status", type: "select", options: self._statusOpts, value: selectedGroup.status }
-      ], function (vals) {
-        fetch(self._adminBase + "/AttributeGroups('" + selectedGroup.ID + "')", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: vals["dlg-name"], displayOrder: parseInt(vals["dlg-order"] || "0", 10), status: vals["dlg-status"] })
-        }).then(function (updateGroupResponse) { if (!updateGroupResponse.ok) throw new Error(updateGroupResponse.statusText); })
-          .then(function () { self._loadGroups(); MessageToast.show("Group updated."); })
-          .catch(function (error) { MessageBox.error("Failed to update group: " + error.message); });
+      if (!this._selectedGroup) { return; }
+      var self = this, g = this._selectedGroup;
+      self._showFormDialog("Edit Group: " + g.name, [
+        { label: "Group Name", id: "name", value: g.name, required: true },
+        { label: "Display Order", id: "order", value: String(g.displayOrder || 0), type: "number" },
+        { label: "Status", id: "status", type: "select", options: self._statusOpts, value: g.status }
+      ], function (v) {
+        self._busy(true);
+        self._svc.updateGroup(g.ID, { name: v.name, displayOrder: parseInt(v.order || "0", 10), status: v.status })
+          .then(function () { MessageToast.show("Group updated."); self._loadGroups(); })
+          .catch(function (e) { self._busy(false); MessageBox.error("Failed to update group: " + e.message); });
       });
     },
 
     onDeleteGroup: function () {
-      if (!this._selectedGroup) return;
-      var self = this;
-      MessageBox.confirm("Delete group \"" + self._selectedGroup.name + "\"? This will also delete its attribute definitions.", {
-        onClose: function (action) {
-          if (action !== "OK") return;
-          fetch(self._adminBase + "/AttributeGroups('" + self._selectedGroup.ID + "')", { method: "DELETE" })
-            .then(function (deleteGroupResponse) { if (!deleteGroupResponse.ok && deleteGroupResponse.status !== 204) throw new Error(deleteGroupResponse.statusText); })
-            .then(function () { self._loadGroups(); MessageToast.show("Group deleted."); })
-            .catch(function (error) { MessageBox.error("Failed to delete group: " + error.message); });
+      if (!this._selectedGroup) { return; }
+      var self = this, g = this._selectedGroup;
+      MessageBox.confirm("Delete group \"" + g.name + "\"? Its attribute definitions will also be removed.", {
+        title: "Delete Group",
+        onClose: function (a) {
+          if (a !== "OK") { return; }
+          self._busy(true);
+          self._svc.deleteGroup(g.ID)
+            .then(function () { MessageToast.show("Group deleted."); self._loadGroups(); })
+            .catch(function (e) { self._busy(false); MessageBox.error("Failed to delete group: " + e.message); });
         }
       });
     },
 
+    // ── Attribute CRUD ───────────────────────────────────────────────────
     onAddAttribute: function () {
-      if (!this._selectedGroup) return;
+      if (!this._selectedGroup) { return; }
       var self = this;
       self._showFormDialog("Add Attribute", [
-        { label: "Attribute Name", id: "dlg-name", required: true },
-        { label: "Internal Key", id: "dlg-key", required: true },
-        { label: "Data Type", id: "dlg-type", type: "select", options: self._dataTypes, required: true },
-        { label: "Unit", id: "dlg-unit" },
-        { label: "Help Text", id: "dlg-help" },
-        { label: "Display Order", id: "dlg-order", type: "number" },
-        { label: "Min Value (numeric types)", id: "dlg-min", type: "number" },
-        { label: "Max Value (numeric types)", id: "dlg-max", type: "number" }
-      ], function (vals) {
-        fetch(self._adminBase + "/AttributeDefinitions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            group_ID: self._selectedGroup.ID,
-            objectType: self._objectType,
-            name: vals["dlg-name"],
-            internalKey: vals["dlg-key"],
-            dataType: vals["dlg-type"],
-            unit: vals["dlg-unit"] || null,
-            helpText: vals["dlg-help"] || null,
-            displayOrder: parseInt(vals["dlg-order"] || "0", 10),
-            minValue: vals["dlg-min"] ? parseFloat(vals["dlg-min"]) : null,
-            maxValue: vals["dlg-max"] ? parseFloat(vals["dlg-max"]) : null,
-            status: "Active"
-          })
-        }).then(function (createAttributeResponse) { if (!createAttributeResponse.ok) throw new Error(createAttributeResponse.statusText); return createAttributeResponse.json(); })
-          .then(function () { self._loadAttributes(self._selectedGroup.ID); MessageToast.show("Attribute created."); })
-          .catch(function (error) { MessageBox.error("Failed: " + error.message); });
+        { label: "Attribute Name", id: "name", required: true },
+        { label: "Internal Key", id: "key", required: true, help: "Lowercase, underscores. Cannot change once values exist." },
+        { label: "Data Type", id: "type", type: "select", options: self._dataTypes, required: true },
+        { label: "Unit", id: "unit", help: "e.g. mm, t, year" },
+        { label: "Help Text", id: "help" },
+        { label: "Display Order", id: "order", type: "number" },
+        { label: "Min Value (numeric)", id: "min", type: "number" },
+        { label: "Max Value (numeric)", id: "max", type: "number" }
+      ], function (v) {
+        self._busy(true);
+        self._svc.createAttribute({
+          group_ID: self._selectedGroup.ID, objectType: self._objectType,
+          name: v.name, internalKey: v.key, dataType: v.type,
+          unit: v.unit || null, helpText: v.help || null,
+          displayOrder: parseInt(v.order || "0", 10),
+          minValue: v.min ? parseFloat(v.min) : null,
+          maxValue: v.max ? parseFloat(v.max) : null,
+          status: "Active"
+        }).then(function () { MessageToast.show("Attribute created."); self._loadAttributes(self._selectedGroup.ID); })
+          .catch(function (e) { self._busy(false); MessageBox.error("Failed: " + e.message); });
       });
     },
 
     onEditAttribute: function () {
-      if (!this._selectedAttr) return;
-      var self = this;
-      var selectedAttribute = self._selectedAttr;
-      self._showFormDialog("Edit Attribute: " + selectedAttribute.name, [
-        { label: "Attribute Name", id: "dlg-name", value: selectedAttribute.name, required: true },
-        { label: "Unit", id: "dlg-unit", value: selectedAttribute.unit || "" },
-        { label: "Help Text", id: "dlg-help", value: selectedAttribute.helpText || "" },
-        { label: "Display Order", id: "dlg-order", value: String(selectedAttribute.displayOrder || 0), type: "number" },
-        { label: "Status", id: "dlg-status", type: "select", options: self._statusOpts, value: selectedAttribute.status }
-      ], function (vals) {
-        fetch(self._adminBase + "/AttributeDefinitions('" + selectedAttribute.ID + "')", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: vals["dlg-name"], unit: vals["dlg-unit"] || null, helpText: vals["dlg-help"] || null, displayOrder: parseInt(vals["dlg-order"] || "0", 10), status: vals["dlg-status"] })
-        }).then(function (updateAttributeResponse) { if (!updateAttributeResponse.ok) throw new Error(updateAttributeResponse.statusText); })
-          .then(function () { self._loadAttributes(self._selectedGroup.ID); self._loadAttrDetail(selectedAttribute.ID); MessageToast.show("Attribute updated."); })
-          .catch(function (error) { MessageBox.error("Failed: " + error.message); });
+      if (!this._selectedAttr) { return; }
+      var self = this, a = this._selectedAttr;
+      self._showFormDialog("Edit Attribute: " + a.name, [
+        { label: "Attribute Name", id: "name", value: a.name, required: true },
+        { label: "Unit", id: "unit", value: a.unit || "" },
+        { label: "Help Text", id: "help", value: a.helpText || "" },
+        { label: "Display Order", id: "order", value: String(a.displayOrder || 0), type: "number" },
+        { label: "Min Value", id: "min", value: a.minValue != null ? String(a.minValue) : "", type: "number" },
+        { label: "Max Value", id: "max", value: a.maxValue != null ? String(a.maxValue) : "", type: "number" },
+        { label: "Status", id: "status", type: "select", options: self._statusOpts, value: a.status }
+      ], function (v) {
+        self._busy(true);
+        self._svc.updateAttribute(a.ID, {
+          name: v.name, unit: v.unit || null, helpText: v.help || null,
+          displayOrder: parseInt(v.order || "0", 10),
+          minValue: v.min ? parseFloat(v.min) : null,
+          maxValue: v.max ? parseFloat(v.max) : null,
+          status: v.status
+        }).then(function () { MessageToast.show("Attribute updated."); self._loadAttributes(self._selectedGroup.ID); self._loadAttrDetail(a.ID); })
+          .catch(function (e) { self._busy(false); MessageBox.error("Failed: " + e.message); });
       });
     },
 
     onDeleteAttribute: function () {
-      if (!this._selectedAttr) return;
-      var self = this;
-      MessageBox.confirm("Delete attribute \"" + self._selectedAttr.name + "\"?", {
-        onClose: function (action) {
-          if (action !== "OK") return;
-          fetch(self._adminBase + "/AttributeDefinitions('" + self._selectedAttr.ID + "')", { method: "DELETE" })
-            .then(function (deleteAttributeResponse) {
-              if (!deleteAttributeResponse.ok && deleteAttributeResponse.status !== 204) {
-                return deleteAttributeResponse.json().then(function (errorBody) { throw new Error(errorBody.error?.message || deleteAttributeResponse.statusText); });
-              }
-            })
-            .then(function () { self._loadAttributes(self._selectedGroup.ID); self.byId("attrDetailPanel").setVisible(false); MessageToast.show("Attribute deleted."); })
-            .catch(function (error) { MessageBox.error(error.message); });
+      if (!this._selectedAttr) { return; }
+      var self = this, a = this._selectedAttr;
+      MessageBox.confirm("Delete attribute \"" + a.name + "\"?", {
+        title: "Delete Attribute",
+        onClose: function (act) {
+          if (act !== "OK") { return; }
+          self._busy(true);
+          self._svc.deleteAttribute(a.ID)
+            .then(function () { MessageToast.show("Attribute deleted."); self.byId("attrDetailPanel").setVisible(false); self._loadAttributes(self._selectedGroup.ID); })
+            .catch(function (e) { self._busy(false); MessageBox.error(e.message); });
         }
       });
     },
 
-    onAddAllowedValue: function () {
-      if (!this._selectedAttr) return;
+    // ── Object-type config (create-or-update the changed row only) ──────────
+    onConfigRowChange: function (oEvent) {
       var self = this;
+      var row = oEvent.getSource().getBindingContext().getObject();
+      var payload = { enabled: row.enabled, required: row.required, displayOrder: (row.displayOrder === "" || row.displayOrder == null) ? null : parseInt(row.displayOrder, 10) };
+      var p = row.ID
+        ? self._svc.updateConfig(row.ID, payload)
+        : self._svc.createConfig({ attribute_ID: row.attribute_ID, objectType: row.objectType, enabled: row.enabled, required: row.required, displayOrder: payload.displayOrder });
+      p.then(function () {
+        MessageToast.show("Assignment for " + formatter.objectTypeLabel(row.objectType) + " saved.");
+        if (!row.ID) { self._loadAttrDetail(self._selectedAttr.ID); } // refresh so the new row picks up its ID
+      }).catch(function (e) { MessageBox.error("Failed to save assignment: " + e.message); });
+    },
+
+    // ── Allowed values CRUD + reorder ──────────────────────────────────────
+    onAddAllowedValue: function () {
+      if (!this._selectedAttr) { return; }
+      var self = this;
+      var existing = self.byId("allowedValuesTable").getModel().getData() || [];
+      var nextOrder = existing.reduce(function (m, r) { return Math.max(m, r.displayOrder || 0); }, 0) + 1;
       self._showFormDialog("Add Allowed Value", [
-        { label: "Value (stored)", id: "dlg-val", required: true },
-        { label: "Display Label", id: "dlg-label" },
-        { label: "Display Order", id: "dlg-order", type: "number" }
-      ], function (vals) {
-        fetch(self._adminBase + "/AttributeAllowedValues", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attribute_ID: self._selectedAttr.ID, value: vals["dlg-val"], label: vals["dlg-label"] || null, displayOrder: parseInt(vals["dlg-order"] || "0", 10), status: "Active" })
-        }).then(function (createAllowedValueResponse) { if (!createAllowedValueResponse.ok) throw new Error(createAllowedValueResponse.statusText); })
-          .then(function () { self._loadAttrDetail(self._selectedAttr.ID); MessageToast.show("Value added."); })
-          .catch(function (error) { MessageBox.error("Failed: " + error.message); });
+        { label: "Value (stored)", id: "val", required: true, help: "Code persisted in the database." },
+        { label: "Display Label", id: "label", help: "Shown to users (defaults to the value)." },
+        { label: "Display Order", id: "order", type: "number", value: String(nextOrder) }
+      ], function (v) {
+        self._busy(true);
+        self._svc.createAllowedValue({ attribute_ID: self._selectedAttr.ID, value: v.val, label: v.label || v.val, displayOrder: parseInt(v.order || "0", 10), status: "Active" })
+          .then(function () { MessageToast.show("Value added."); self._loadAttrDetail(self._selectedAttr.ID); })
+          .catch(function (e) { self._busy(false); MessageBox.error("Failed: " + e.message); });
+      });
+    },
+
+    onEditAllowedValue: function (oEvent) {
+      var self = this;
+      var av = oEvent.getSource().getBindingContext().getObject();
+      self._showFormDialog("Edit Value: " + av.value, [
+        { label: "Display Label", id: "label", value: av.label || "" },
+        { label: "Display Order", id: "order", value: String(av.displayOrder || 0), type: "number" },
+        { label: "Status", id: "status", type: "select", options: self._statusOpts, value: av.status }
+      ], function (v) {
+        self._busy(true);
+        self._svc.updateAllowedValue(av.ID, { label: v.label || av.value, displayOrder: parseInt(v.order || "0", 10), status: v.status })
+          .then(function () { MessageToast.show("Value updated."); self._loadAttrDetail(self._selectedAttr.ID); })
+          .catch(function (e) { self._busy(false); MessageBox.error("Failed: " + e.message); });
       });
     },
 
     onDeleteAllowedValue: function (oEvent) {
-      var allowedValueContext = oEvent.getSource().getBindingContext();
-      var allowedValue = allowedValueContext.getObject();
       var self = this;
-      MessageBox.confirm("Delete allowed value \"" + allowedValue.value + "\"?", {
-        onClose: function (action) {
-          if (action !== "OK") return;
-          fetch(self._adminBase + "/AttributeAllowedValues('" + allowedValue.ID + "')", { method: "DELETE" })
-            .then(function (deleteAllowedValueResponse) {
-              if (!deleteAllowedValueResponse.ok && deleteAllowedValueResponse.status !== 204) {
-                return deleteAllowedValueResponse.json().then(function (errorBody) { throw new Error(errorBody.error?.message || deleteAllowedValueResponse.statusText); });
-              }
-            })
-            .then(function () { self._loadAttrDetail(self._selectedAttr.ID); MessageToast.show("Value deleted."); })
-            .catch(function (error) { MessageBox.error(error.message); });
+      var av = oEvent.getSource().getBindingContext().getObject();
+      MessageBox.confirm("Delete allowed value \"" + av.value + "\"?", {
+        title: "Delete Value",
+        onClose: function (a) {
+          if (a !== "OK") { return; }
+          self._busy(true);
+          self._svc.deleteAllowedValue(av.ID)
+            .then(function () { MessageToast.show("Value deleted."); self._loadAttrDetail(self._selectedAttr.ID); })
+            .catch(function (e) { self._busy(false); MessageBox.error(e.message); });
         }
       });
     },
 
-    onConfigChange: function () {
+    onMoveAllowedValueUp: function (oEvent)   { this._moveAllowedValue(oEvent, -1); },
+    onMoveAllowedValueDown: function (oEvent) { this._moveAllowedValue(oEvent, +1); },
+
+    _moveAllowedValue: function (oEvent, dir) {
       var self = this;
-      var model = self.byId("configTable").getModel();
-      var rows = model.getData();
-      rows.forEach(function (row) {
-        if (!row.ID) return;
-        fetch(self._adminBase + "/AttributeObjectTypeConfig('" + row.ID + "')", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ enabled: row.enabled, required: row.required, displayOrder: row.displayOrder || null })
-        }).catch(function () {});
-      });
+      var table = self.byId("allowedValuesTable");
+      var rows = table.getModel().getData();
+      var current = oEvent.getSource().getBindingContext().getObject();
+      var idx = rows.findIndex(function (r) { return r.ID === current.ID; });
+      var swapIdx = idx + dir;
+      if (swapIdx < 0 || swapIdx >= rows.length) { return; } // already at the edge
+      var a = rows[idx], b = rows[swapIdx];
+      var aOrder = a.displayOrder || 0, bOrder = b.displayOrder || 0;
+      if (aOrder === bOrder) { bOrder = aOrder + dir; } // ensure distinct ordering
+      self._busy(true);
+      Promise.all([
+        self._svc.updateAllowedValue(a.ID, { displayOrder: bOrder }),
+        self._svc.updateAllowedValue(b.ID, { displayOrder: aOrder })
+      ]).then(function () { self._loadAttrDetail(self._selectedAttr.ID); })
+        .catch(function (e) { self._busy(false); MessageBox.error("Failed to reorder: " + e.message); });
     },
 
-    onAddConfig: function (oEvent) {
-      var ctx = oEvent.getSource().getBindingContext();
-      var row = ctx.getObject();
-      var self = this;
-      fetch(self._adminBase + "/AttributeObjectTypeConfig", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attribute_ID: row.attribute_ID, objectType: row.objectType, enabled: true, required: false })
-      }).then(function (createConfigResponse) { if (!createConfigResponse.ok) throw new Error(createConfigResponse.statusText); })
-        .then(function () { self._loadAttrDetail(self._selectedAttr.ID); MessageToast.show("Config added."); })
-        .catch(function (error) { MessageBox.error("Failed: " + error.message); });
-    },
-
-    onExportTemplate: function (oEvent) {
-      var ot = oEvent.getSource().data("objectType");
-      window.open(this._attrBase + "/template?objectType=" + ot + "&format=xlsx", "_blank");
-    },
-
+    // ── Help ───────────────────────────────────────────────────────────────
     onShowHelp: function () {
-      var sHtml = [
-        "<h4>Overview</h4>",
-        "<p>Configurable Attributes let administrators define custom data fields for <strong>Bridge</strong> and <strong>Restriction</strong> objects. Attributes are grouped, typed, and version-tracked automatically.</p>",
-        "<h4>Step 1: Create an Attribute Group</h4>",
-        "<ol>",
-        "<li>Select <strong>Bridge</strong> or <strong>Restriction</strong> using the toggle in the left panel.</li>",
-        "<li>Click <strong>+ Add Group</strong>, enter a <em>Group Name</em>, unique <em>Internal Key</em> (lowercase, underscores), and <em>Display Order</em>.</li>",
-        "<li>Click <strong>Confirm</strong>.</li>",
-        "</ol>",
-        "<h4>Step 2: Add Attributes</h4>",
-        "<ol>",
-        "<li>Select the group in the left panel, then click <strong>+ Add Attribute</strong>.</li>",
-        "<li>Fill in: <em>Name</em>, <em>Internal Key</em>, <em>Data Type</em> (Text, Integer, Decimal, Date, Boolean, SingleSelect, MultiSelect), optional <em>Unit</em>, and <em>Display Order</em>.</li>",
-        "<li>For numeric types set <em>Min / Max Value</em> for range validation.</li>",
-        "</ol>",
-        "<h4>Step 3: Add Allowed Values</h4>",
-        "<p>For SingleSelect / MultiSelect types, open the attribute detail panel, scroll to <strong>Allowed Values</strong> and click <strong>+ Add Value</strong>.</p>",
-        "<h4>Step 4: Enable for Object Types</h4>",
-        "<p>In the attribute detail panel, toggle <strong>Enabled</strong> for each object type where the attribute should appear. Optionally toggle <strong>Required</strong> to enforce entry on save.</p>",
-        "<h4>Editing and Disabling</h4>",
-        "<ul>",
-        "<li>Set <em>Status = Inactive</em> to hide an attribute: existing stored values are preserved.</li>",
-        "<li><em>Internal Key</em> and <em>Data Type</em> cannot be changed once values exist.</li>",
-        "</ul>",
-        "<h4>Bulk Import / Export</h4>",
-        "<p>Use <strong>Export Template</strong> to download an Excel template pre-filled with active attribute headers, then upload via Mass Upload.</p>"
+      var types = this._objectTypes.map(formatter.objectTypeLabel).join(" / ");
+      var html = [
+        "<h4>What this does</h4>",
+        "<p>Define custom data fields (\"characteristics\") for " + types + " objects, grouped into reusable classes — similar to SAP EAM Classes &amp; Characteristics.</p>",
+        "<h4>1 · Create a group (class)</h4>",
+        "<p>Pick the object type, then <strong>New</strong> in the Groups column. Give it a name and a unique internal key.</p>",
+        "<h4>2 · Add attributes (characteristics)</h4>",
+        "<p>Select a group, then <strong>New</strong> in the Attributes column. Choose a data type; for numeric types set Min/Max; for Single/Multi-Select add allowed values in the detail panel.</p>",
+        "<h4>3 · Assign to object types</h4>",
+        "<p>In the detail panel, toggle <strong>Enabled</strong> (and optionally <strong>Required</strong>) per object type. The attribute then appears on every record of that type.</p>",
+        "<h4>Notes</h4>",
+        "<ul><li>Set <em>Status = Inactive</em> to hide an attribute while preserving stored values.</li>",
+        "<li>Internal key &amp; data type are locked once values exist.</li>",
+        "<li>Use <strong>Template</strong> to export an Excel upload sheet for bulk value entry.</li></ul>"
       ].join("");
-
-      var oDialog = new Dialog({
-        title: "Attribute Configuration: Help",
-        contentWidth: "480px",
-        content: [new FormattedText({ htmlText: sHtml })],
-        endButton: new Button({
-          text: "Close",
-          press: function () { oDialog.close(); }
-        }),
-        afterClose: function () { oDialog.destroy(); }
+      var dlg = new Dialog({
+        title: "Attribute Configuration — Help",
+        contentWidth: "520px",
+        content: [new FormattedText({ htmlText: html })],
+        endButton: new Button({ text: "Close", press: function () { dlg.close(); } }),
+        afterClose: function () { dlg.destroy(); }
       });
-      oDialog.addStyleClass("sapUiContentPadding");
-      oDialog.open();
+      dlg.addStyleClass("sapUiContentPadding");
+      dlg.open();
     },
 
+    // ── Reusable form dialog with inline validation ─────────────────────────
     _showFormDialog: function (title, fields, onConfirm) {
       var content = new VBox({ width: "100%" });
-      var inputMap = {};
-
-      fields.forEach(function (dialogField) {
-        var lbl = new Label({ text: dialogField.label, required: !!dialogField.required, labelFor: dialogField.id });
+      var inputs = {};
+      fields.forEach(function (f) {
+        var lbl = new Label({ text: f.label, required: !!f.required });
         var ctrl;
-        if (dialogField.type === "select") {
-          ctrl = new Select({ id: dialogField.id, width: "100%" });
-          (dialogField.options || []).forEach(function (optionValue) { ctrl.addItem(new Item({ key: optionValue, text: optionValue })); });
-          if (dialogField.value) ctrl.setSelectedKey(dialogField.value);
+        if (f.type === "select") {
+          ctrl = new Select({ width: "100%", forceSelection: false });
+          (f.options || []).forEach(function (o) { ctrl.addItem(new Item({ key: o, text: o })); });
+          if (f.value) { ctrl.setSelectedKey(f.value); }
         } else {
-          ctrl = new Input({ id: dialogField.id, value: dialogField.value || "", type: dialogField.type === "number" ? "Number" : "Text" });
+          ctrl = new Input({ value: f.value || "", type: f.type === "number" ? "Number" : "Text" });
         }
-        inputMap[dialogField.id] = ctrl;
-        content.addItem(new VBox({ items: [lbl, ctrl], class: "sapUiTinyMarginBottom" }));
+        ctrl.setWidth("100%");
+        inputs[f.id] = ctrl;
+        var items = [lbl, ctrl];
+        if (f.help) { items.push(new Text({ text: f.help }).addStyleClass("sapUiTinyMarginBottom")); }
+        content.addItem(new VBox({ items: items }).addStyleClass("sapUiTinyMarginBottom"));
       });
-
       var dlg = new Dialog({
         title: title,
+        contentWidth: "26rem",
         content: [content],
         beginButton: new Button({
-          text: "Confirm",
-          type: "Emphasized",
+          text: "Confirm", type: "Emphasized",
           press: function () {
-            var vals = {};
-            fields.forEach(function (dialogField) {
-              var ctrl = inputMap[dialogField.id];
-              vals[dialogField.id] = ctrl.getSelectedKey ? ctrl.getSelectedKey() : ctrl.getValue();
-              if (dialogField.required && !vals[dialogField.id]) {
-                MessageToast.show(dialogField.label + " is required");
-                return;
+            var vals = {}, missing = [];
+            fields.forEach(function (f) {
+              var c = inputs[f.id];
+              var val = c.getSelectedKey ? c.getSelectedKey() : c.getValue();
+              vals[f.id] = val;
+              if (f.required && !val) {
+                missing.push(f.label);
+                if (c.setValueState) { c.setValueState("Error"); c.setValueStateText(f.label + " is required"); }
+              } else if (c.setValueState) {
+                c.setValueState("None");
               }
             });
+            if (missing.length) { MessageToast.show("Please fill: " + missing.join(", ")); return; }
             dlg.close();
             onConfirm(vals);
           }
@@ -385,6 +436,7 @@ sap.ui.define([
         endButton: new Button({ text: "Cancel", press: function () { dlg.close(); } }),
         afterClose: function () { dlg.destroy(); }
       });
+      dlg.addStyleClass("sapUiContentPadding");
       dlg.open();
     }
   });
