@@ -1,5 +1,5 @@
 code,name,descr,sortOrder,isActive
-Road,Road,Road bridges (highways, arterials, local roads),1,true
+Road,Road,Road bridges - highways arterials and local roads,1,true
 Rail,Rail,Heavy rail bridges,2,true
 LightRail,Light Rail,Light rail / tram bridges,3,true
 Pedestrian,Pedestrian,Pedestrian footbridges,4,true
