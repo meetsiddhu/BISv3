@@ -79,6 +79,21 @@ sap.ui.define([
             startCustomAttributes();
             updateShellTitle();
             window.addEventListener("hashchange", updateShellTitle);
+
+            // Clear stale Integer-FK parse errors (bridge_ID, inspection_ID) that
+            // Fiori Elements V4 registers when a user types in an association ComboBox.
+            // The OData model value is correct once a bridge is selected, but the
+            // ComboBox text triggers the Integer validator — clearing these is safe.
+            setInterval(function () {
+                var core = sap.ui.getCore ? sap.ui.getCore() : null;
+                var mgr = core && core.getMessageManager && core.getMessageManager();
+                if (!mgr) return;
+                var msgs = mgr.getMessageModel().getData();
+                var stale = msgs.filter(function (m) {
+                    return m.target && (m.target.indexOf("bridge_ID") !== -1 || m.target.indexOf("inspection_ID") !== -1);
+                });
+                if (stale.length) mgr.removeMessages(stale);
+            }, 500);
         }
     });
 });

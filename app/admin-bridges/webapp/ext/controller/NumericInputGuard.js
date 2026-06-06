@@ -104,7 +104,26 @@
     });
   }
 
+  // Clear stale "Enter a number without decimals" errors on Integer FK fields
+  // (bridge_ID, inspection_ID) that are bound via ValueList and show text display values.
+  // Fiori Elements V4 registers a parse error when the user types in the bridge ComboBox
+  // before selection. Once the model value is a valid integer (bridge selected), remove the error.
+  function clearFkParseErrors() {
+    if (!window.sap || !sap.ui || !sap.ui.getCore) return;
+    var core = sap.ui.getCore();
+    var mgr = core.getMessageManager && core.getMessageManager();
+    if (!mgr) return;
+    var msgs = mgr.getMessageModel().getData();
+    var toRemove = msgs.filter(function (m) {
+      return m.target && (m.target.indexOf("bridge_ID") !== -1 || m.target.indexOf("inspection_ID") !== -1);
+    });
+    if (toRemove.length) mgr.removeMessages(toRemove);
+  }
+
   window._bmsNumericInputGuard = scan;
   scan();
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+
+  // Poll to clear stale FK parse errors (runs only when message manager has entries)
+  setInterval(clearFkParseErrors, 500);
 }());

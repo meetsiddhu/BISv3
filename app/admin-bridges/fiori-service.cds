@@ -996,7 +996,8 @@ annotate AdminService.BridgeCapacities with {
 ////////////////////////////////////////////////////////////////////////////
 
 annotate AdminService.BridgeInspections with {
-  ID            @UI.Hidden;
+  ID        @UI.Hidden;
+  bridge_ID @Core.Computed  @UI.Hidden;
   bridge @(
     Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,
@@ -1011,7 +1012,7 @@ annotate AdminService.BridgeInspections with {
   inspectionType     @Common.FieldControl: #Mandatory  @title: 'Inspection Type';
   inspectionDate     @Common.FieldControl: #Mandatory  @title: 'Inspection Date';
   inspector          @Common.FieldControl: #Mandatory  @title: 'Inspector';
-  accreditationLevel @Common.QuickInfo: 'Level 1–4 (3+ required for Principal/Detailed)'  @title: 'Accreditation Level';
+  accreditationLevel @Common.QuickInfo: 'Level 1–4 (3+ required for Principal/Detailed)'  @title: 'Accreditation Level (1–4)';
   conditionRating    @Common.QuickInfo: 'Scale 1–10 (10 = new/excellent, 1 = failed)'      @title: 'Condition Rating';
   structuralRating   @Common.QuickInfo: 'Scale 1–10'  @title: 'Structural Rating';
   overallGrade       @title: 'Overall Grade';
@@ -1087,6 +1088,8 @@ annotate AdminService.BridgeInspections with @(
 
 annotate AdminService.BridgeDefects with {
   ID            @UI.Hidden;
+  bridge_ID     @Core.Computed  @UI.Hidden;
+  inspection_ID @Core.Computed  @UI.Hidden;
   bridge @(
     Common.FieldControl: #Mandatory,
     Common.Text: bridge.bridgeName,
@@ -1108,8 +1111,8 @@ annotate AdminService.BridgeDefects with {
   ) @title: 'Inspection';
   defectId          @Core.Computed @Common.FieldControl: #ReadOnly  @title: 'Defect ID';
   defectType        @Common.FieldControl: #Mandatory  @title: 'Defect Type';
-  severity          @Common.FieldControl: #Mandatory  @Common.QuickInfo: '1=Low, 2=Medium, 3=High, 4=Critical'  @title: 'Severity';
-  urgency           @Common.FieldControl: #Mandatory  @Common.QuickInfo: '1=Low, 2=Medium, 3=High, 4=Immediate' @title: 'Urgency';
+  severity @Common.FieldControl: #Mandatory  @Common.QuickInfo: '1=Low, 2=Medium, 3=High, 4=Critical'  @title: 'Severity (1–4)';
+  urgency  @Common.FieldControl: #Mandatory  @Common.QuickInfo: '1=Low, 2=Medium, 3=High, 4=Immediate' @title: 'Urgency (1–4)';
   defectDescription @UI.MultiLineText  @title: 'Defect Description';
   location          @title: 'Location';
   elementAffected   @title: 'Element Affected';

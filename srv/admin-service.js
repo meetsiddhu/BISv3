@@ -4,7 +4,7 @@ const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-lo
 
 module.exports = class AdminService extends cds.ApplicationService { init() {
 
-  const { Bridges, Restrictions, BridgeRestrictions, BridgeCapacities, BridgeStatusValues, ConditionStates } = this.entities
+  const { Bridges, Restrictions, BridgeRestrictions, BridgeCapacities, BridgeStatusValues, ConditionStates, SeverityValues, UrgencyValues, AccreditationLevelValues } = this.entities
   const BridgeInspections = 'BridgeInspections'
   const BridgeDefects = 'BridgeDefects'
   const LOOKUP_ENTITY_NAMES = [
@@ -496,6 +496,27 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   this.on('READ', BridgeStatusValues, () => [
     { code: 'Active',   name: 'Active' },
     { code: 'Inactive', name: 'Inactive' }
+  ])
+
+  this.on('READ', SeverityValues, () => [
+    { code: 1, name: '1 – Low' },
+    { code: 2, name: '2 – Medium' },
+    { code: 3, name: '3 – High' },
+    { code: 4, name: '4 – Critical' }
+  ])
+
+  this.on('READ', UrgencyValues, () => [
+    { code: 1, name: '1 – Low' },
+    { code: 2, name: '2 – Medium' },
+    { code: 3, name: '3 – High' },
+    { code: 4, name: '4 – Immediate' }
+  ])
+
+  this.on('READ', AccreditationLevelValues, () => [
+    { code: 1, name: 'Level 1' },
+    { code: 2, name: 'Level 2' },
+    { code: 3, name: 'Level 3' },
+    { code: 4, name: 'Level 4' }
   ])
 
   // Default to Active-only on collection reads.

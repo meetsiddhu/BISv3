@@ -240,6 +240,24 @@ service AdminService {
     key code : String(20);
         name : String(30);
   }
+
+  // Synthetic value lists for integer-rated fields (severity, urgency, accreditation level).
+  // Rendered as dropdowns to prevent stale UI5 integer-parse validation messages.
+  @readonly @cds.persistence.skip
+  entity SeverityValues {
+    key code : Integer;
+        name : String(30);
+  }
+  @readonly @cds.persistence.skip
+  entity UrgencyValues {
+    key code : Integer;
+        name : String(30);
+  }
+  @readonly @cds.persistence.skip
+  entity AccreditationLevelValues {
+    key code : Integer;
+        name : String(30);
+  }
 }
 
 annotate AdminService.Bridges     with { modifiedAt @odata.etag }
