@@ -33,10 +33,17 @@ sap.ui.define([
       var attrBase  = oComp.getManifestEntry("/sap.app/dataSources/AttributesService/uri");
       this._svc = AttributeService(adminBase, attrBase);
 
+      // The appConfig JSONModel wraps its payload under a "data" key (manifest
+      // settings.data), so values live at /data/<key>. Fall back to the unwrapped
+      // path and then to sensible defaults to be robust to either structure.
       var oAppCfg = oComp.getModel("appConfig");
-      this._dataTypes   = oAppCfg.getProperty("/attributeDataTypes")   || ["Text", "Integer", "Decimal", "Date", "Boolean", "SingleSelect", "MultiSelect"];
-      this._objectTypes = oAppCfg.getProperty("/attributeObjectTypes") || ["bridge"];
-      this._statusOpts  = oAppCfg.getProperty("/attributeStatuses")    || ["Active", "Inactive"];
+      var cfg = function (key, fallback) {
+        var v = oAppCfg && (oAppCfg.getProperty("/data/" + key) || oAppCfg.getProperty("/" + key));
+        return (Array.isArray(v) && v.length) ? v : fallback;
+      };
+      this._dataTypes   = cfg("attributeDataTypes",   ["Text", "Integer", "Decimal", "Date", "Boolean", "SingleSelect", "MultiSelect"]);
+      this._objectTypes = cfg("attributeObjectTypes", ["bridge", "restriction"]);
+      this._statusOpts  = cfg("attributeStatuses",    ["Active", "Inactive"]);
 
       // Data-driven object-type selector (extensible: add a type in appConfig → appears here).
       var oSel = this.byId("objectTypeSelector");
