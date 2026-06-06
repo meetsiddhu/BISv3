@@ -3,6 +3,7 @@
     "LaunchPage": {
       "adapter": {
         "config": {
+          "catalogs": [],
           "groups": [
             {
               "id": "bms.group.operations",
@@ -94,7 +95,7 @@
             },
             {
               "id": "bms.group.admin",
-              "title": "BMS BUSINESS ADMIN",
+              "title": "BMS ADMIN",
               "isPreset": true,
               "isVisible": true,
               "isGroupLocked": false,
@@ -104,19 +105,9 @@
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
                     "title": "Mass Upload",
-                    "subtitle": "CSV Drag & Drop",
+                    "subtitle": "CSV & Excel Import",
                     "icon": "sap-icon://upload-to-cloud",
                     "targetURL": "#MassUpload-display"
-                  }
-                },
-                {
-                  "id": "BmsAdmin",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "BMS Administration",
-                    "subtitle": "Audit, Config & User Access",
-                    "icon": "sap-icon://action-settings",
-                    "targetURL": "#BmsAdmin-manage"
                   }
                 },
                 {
@@ -127,6 +118,16 @@
                     "subtitle": "In-App Grid Editor",
                     "icon": "sap-icon://edit",
                     "targetURL": "#MassEdit-manage"
+                  }
+                },
+                {
+                  "id": "BmsAdmin",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "BMS Administration",
+                    "subtitle": "Audit, Config & User Access",
+                    "icon": "sap-icon://action-settings",
+                    "targetURL": "#BmsAdmin-manage"
                   }
                 }
               ]
@@ -155,7 +156,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.dashboard",
-                "url": "/dashboard/webapp"
+                "url": "/BridgeManagementdashboard"
               }
             },
             "Bridges-manage": {
@@ -169,7 +170,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/admin-bridges/webapp"
+                "url": "/BridgeManagementadminbridges"
               }
             },
             "BridgeInspections-manage": {
@@ -183,7 +184,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/admin-bridges/webapp"
+                "url": "/BridgeManagementadminbridges"
               }
             },
             "BridgeDefects-manage": {
@@ -197,7 +198,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/admin-bridges/webapp"
+                "url": "/BridgeManagementadminbridges"
               }
             },
             "BridgeCapacities-manage": {
@@ -211,7 +212,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/admin-bridges/webapp"
+                "url": "/BridgeManagementadminbridges"
               }
             },
             "Restrictions-manage": {
@@ -225,7 +226,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.restrictions",
-                "url": "/restrictions/webapp"
+                "url": "/BridgeManagementrestrictions"
               }
             },
             "Map-display": {
@@ -239,21 +240,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.mapview",
-                "url": "/map-view/webapp"
-              }
-            },
-            "MapView-display": {
-              "semanticObject": "MapView",
-              "action": "display",
-              "title": "Map View",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.mapview",
-                "url": "/map-view/webapp"
+                "url": "/BridgeManagementmapview"
               }
             },
             "MassUpload-display": {
@@ -267,21 +254,7 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.massupload",
-                "url": "/mass-upload/webapp"
-              }
-            },
-            "BmsAdmin-manage": {
-              "semanticObject": "BmsAdmin",
-              "action": "manage",
-              "title": "BMS Administration",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.bmsadmin",
-                "url": "/bms-admin/webapp"
+                "url": "/BridgeManagementmassupload"
               }
             },
             "MassEdit-manage": {
@@ -295,7 +268,21 @@
               "resolutionResult": {
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.massedit",
-                "url": "/mass-edit/webapp"
+                "url": "/BridgeManagementmassedit"
+              }
+            },
+            "BmsAdmin-manage": {
+              "semanticObject": "BmsAdmin",
+              "action": "manage",
+              "title": "BMS Administration",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.bmsadmin",
+                "url": "/BridgeManagementbmsadmin"
               }
             }
           }
