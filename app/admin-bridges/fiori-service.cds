@@ -1475,11 +1475,16 @@ annotate AdminService.NetworkRestrictionReport with @(
     { Value: state,               Label: 'State' },
     { Value: issuingAuthority,    Label: 'Authority' }
   ],
+  // NOTE: This entity backs BOTH the ALV list report (NetworkRestrictions-manage)
+  // and the ALP (RestrictionsDashboard-display). Marking a stored field as
+  // @Analytics.Measure flips the ALV list into analytical mode and breaks flat-row
+  // display, so the chart uses a *dynamic* AggregatedProperty (countdistinct) which
+  // keeps the shared list report rendering plain rows. The backend $apply still
+  // serves aggregation (groupby/sum) for any analytical client.
   UI.Chart: {
     ChartType: #Column,
     Dimensions: [ transportMode ],
-    Measures: [ restrUnit ],
-    MeasureAttributes: [ { $Type: 'UI.ChartMeasureAttributeType', Measure: restrUnit, Role: #Axis1 } ],
+    DynamicMeasures: [ '@Analytics.AggregatedProperty#restrCount' ],
     Title: 'Restrictions by Mode'
   },
   UI.PresentationVariant: {
@@ -1492,12 +1497,12 @@ annotate AdminService.NetworkRestrictionReport with @(
   Aggregation.ApplySupported: {
     Transformations: [ 'aggregate', 'groupby', 'filter' ],
     GroupableProperties: [ transportMode, network, restrictionType, restrictionSeverity, restrictionStatus, riskPriority, state ],
-    AggregatableProperties: [ { Property: restrUnit } ]
+    AggregatableProperties: [ { Property: ID } ]
+  },
+  Analytics.AggregatedProperty #restrCount: {
+    Name: 'restrCount', AggregationMethod: 'countdistinct', AggregatableProperty: ID, ![@Common.Label]: 'Restrictions'
   }
 );
-annotate AdminService.NetworkRestrictionReport with {
-  restrUnit @Analytics.Measure @Aggregation.default: #SUM @title: 'Restrictions' @UI.Hidden;
-};
 annotate AdminService.NetworkRestrictionReport with {
   ID @UI.Hidden;
   bridgeName @title:'Bridge'; bridgeId @title:'Bridge ID'; transportMode @title:'Mode'; network @title:'Network';
