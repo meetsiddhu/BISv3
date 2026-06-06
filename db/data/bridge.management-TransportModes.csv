@@ -1,0 +1,8 @@
+code,name,descr,sortOrder,isActive
+Road,Road,Road bridges (highways, arterials, local roads),1,true
+Rail,Rail,Heavy rail bridges,2,true
+LightRail,Light Rail,Light rail / tram bridges,3,true
+Pedestrian,Pedestrian,Pedestrian footbridges,4,true
+Active,Active Transport,Cycleway / shared active-transport bridges,5,true
+Marine,Marine,Marine / navigable-waterway crossings,6,true
+Multi,Multi-Modal,Shared structures carrying multiple modes,7,true

@@ -25,6 +25,12 @@ entity Bridges : managed {
       region       : String(80);
       lga          : String(111);
       routeNumber  : String(40);
+      // ── Multi-modal register (Phase 1) — additive ──
+      transportMode   : String(40) default 'Road';  // Road|Rail|LightRail|Pedestrian|Active|Marine|Multi (-> TransportModes)
+      secondaryModes  : String(120);                 // comma list for shared structures (e.g. Road,Rail)
+      network         : String(80);                  // owning network (-> Networks lookup)
+      networkOperator : String(111);                 // network operator / authority
+      corridor        : String(111);                 // freight / passenger corridor grouping
       latitude     : Decimal(15,6) @assert.range: [-90, 90];
       longitude    : Decimal(15,6) @assert.range: [-180, 180];
       location     : String(255);
@@ -165,6 +171,14 @@ entity BridgeRestrictions : cuid, managed {
   issuingAuthority    : String(111);
   legalReference      : String(111);
   remarks             : LargeString;
+  // ── Holistic / multi-modal restriction view (Phase 1) — additive ──
+  transportMode       : String(40);   // mode the restriction applies to (-> TransportModes; defaults from bridge)
+  network             : String(80);   // network context (-> Networks)
+  laneAvailability    : String(40);   // fixed code list (-> LaneAvailabilityTypes)
+  lanesOpen           : Integer;       // numeric lane availability for aggregation
+  lanesTotal          : Integer;
+  laneWidthLimit      : Decimal(9,2);  // posted lane width (m)
+  restrictionSeverity : String(20);   // Critical | Major | Minor (manual; -> RestrictionSeverities)
 }
 
 entity BridgeCapacities : cuid, managed {
@@ -286,6 +300,37 @@ entity BridgeDocuments : cuid, managed {
 entity AssetClasses : sap.common.CodeList {
   key code : String(40);
   isActive : Boolean default true;
+}
+
+// ── Multi-modal lookups (Phase 1) — plain code/name lists (CSV-seeded) ──
+entity TransportModes {
+  key code  : String(40);
+  name      : String(111);
+  descr     : String(255);
+  sortOrder : Integer default 0;
+  isActive  : Boolean default true;
+}
+entity Networks {
+  key code  : String(80);
+  name      : String(111);
+  descr     : String(255);
+  operator  : String(111);   // network operator / owning authority
+  mode      : String(40);    // primary transport mode of this network
+  isActive  : Boolean default true;
+}
+entity LaneAvailabilityTypes {
+  key code  : String(40);
+  name      : String(111);
+  descr     : String(255);
+  sortOrder : Integer default 0;
+  isActive  : Boolean default true;
+}
+entity RestrictionSeverities {
+  key code  : String(20);
+  name      : String(111);
+  descr     : String(255);
+  sortOrder : Integer default 0;
+  isActive  : Boolean default true;
 }
 
 entity States : sap.common.CodeList {

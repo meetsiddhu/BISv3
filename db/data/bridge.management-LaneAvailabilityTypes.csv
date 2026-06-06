@@ -1,0 +1,9 @@
+code,name,descr,sortOrder,isActive
+FULL,All lanes open,No lane restriction,1,true
+ONE_OF_TWO,1 of 2 lanes,One of two lanes available,2,true
+ONE_OF_THREE,1 of 3 lanes,One of three lanes available,3,true
+TWO_OF_THREE,2 of 3 lanes,Two of three lanes available,4,true
+SINGLE,Single lane,Single-lane operation,5,true
+CONTRAFLOW,Contraflow,Contraflow operation,6,true
+SHOULDER,Shoulder only,Shoulder running only,7,true
+CLOSED,Full closure,Structure closed to traffic,8,true

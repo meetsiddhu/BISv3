@@ -13,13 +13,15 @@ annotate AdminService.Bridges with @(
     Description   : { $Type: 'UI.DataField', Value: bridgeId }
   },
   UI.SelectionFields: [
-    bridgeId, bridgeName, state, region,
+    bridgeId, bridgeName, transportMode, network, state, region,
     condition, postingStatus, status,
     highPriorityAsset, assetClass
   ],
   UI.LineItem: [
     { Value: bridgeId,           Label: 'Bridge ID' },
     { Value: bridgeName,         Label: 'Bridge Name' },
+    { Value: transportMode,      Label: 'Mode' },
+    { Value: network,            Label: 'Network' },
     { Value: state,              Label: 'State' },
     { Value: region,             Label: 'Region' },
     { Value: condition,          Label: 'Condition' },
@@ -64,6 +66,7 @@ annotate AdminService.Bridges with @(
         ID    : 'IdentityLocation',
         Facets: [
           {$Type: 'UI.ReferenceFacet', Label: 'Asset Identity',     Target: '@UI.FieldGroup#AssetIdentity'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Mode & Network',     Target: '@UI.FieldGroup#ModeNetwork'},
           {$Type: 'UI.ReferenceFacet', Label: 'Geographic Location', Target: '@UI.FieldGroup#GeoLocation'},
           {$Type: 'UI.ReferenceFacet', Label: 'Ownership',           Target: '@UI.FieldGroup#Ownership'},
         ]
@@ -112,6 +115,15 @@ annotate AdminService.Bridges with @(
         {Value: status},          // @Common.FieldControl #ReadOnly — lifecycle managed by actions
         {Value: postingStatus},   // moved here from Condition & Inspection tab
         {Value: highPriorityAsset},
+      ]
+    },
+    FieldGroup#ModeNetwork: {
+      Data: [
+        {Value: transportMode},
+        {Value: secondaryModes},
+        {Value: network},
+        {Value: networkOperator},
+        {Value: corridor},
       ]
     },
     FieldGroup#GeoLocation: {
@@ -312,6 +324,23 @@ annotate AdminService.Bridges with {
       { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
     ]}
   ) @title: 'Asset Class';
+  transportMode @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'TransportModes', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: transportMode, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Transport Mode';
+  network @(
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'Networks', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: network, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'operator' }
+    ]}
+  ) @title: 'Network';
+  secondaryModes  @title: 'Secondary Modes';
+  networkOperator @title: 'Network Operator';
+  corridor        @title: 'Corridor';
   region @(
     Common.ValueListWithFixedValues,
     Common.ValueList: { SearchSupported: true, CollectionPath: 'Regions', Parameters: [
@@ -443,6 +472,37 @@ annotate AdminService.BridgeRestrictions with {
     ]}
   ) @title: 'Bridge';
   createdAt @UI.Hidden;  createdBy @UI.Hidden;  modifiedAt @UI.Hidden;  modifiedBy @UI.Hidden;
+  // ── Holistic / multi-modal restriction fields (Phase 1) ──
+  transportMode @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'TransportModes', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: transportMode, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Transport Mode';
+  network @(
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'Networks', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: network, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Network';
+  laneAvailability @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'LaneAvailabilityTypes', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: laneAvailability, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Lane Availability';
+  restrictionSeverity @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'RestrictionSeverities', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: restrictionSeverity, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Severity';
+  lanesOpen      @title: 'Lanes Open';
+  lanesTotal     @title: 'Lanes Total';
+  laneWidthLimit @title: 'Lane Width Limit (m)';
   // Auto-generated (BR-NNNN); never user-entered
   restrictionRef        @Core.Computed  @Common.FieldControl: #ReadOnly  @title: 'Reference (auto-generated)';
   // Mandatory classification fields
@@ -555,15 +615,19 @@ annotate AdminService.BridgeRestrictions with @(
         ] } }
       }
     ],
-    SelectionFields: [bridge_ID, restrictionType, restrictionStatus, active, effectiveFrom],
+    SelectionFields: [bridge_ID, transportMode, network, restrictionType, restrictionSeverity, restrictionStatus, active, effectiveFrom],
     LineItem: [
       {Value: bridge.bridgeName,     Label: 'Bridge'},
       {Value: bridge.bridgeId,       Label: 'Bridge ID'},
+      {Value: transportMode,         Label: 'Mode'},
+      {Value: network,               Label: 'Network'},
       {Value: restrictionRef,        Label: 'Reference'},
       {Value: restrictionCategory,   Label: 'Category'},
       {Value: restrictionType,       Label: 'Type'},
       {Value: restrictionValue,      Label: 'Value'},
       {Value: restrictionUnit,       Label: 'Unit'},
+      {Value: laneAvailability,      Label: 'Lane Availability'},
+      {Value: restrictionSeverity,   Label: 'Severity'},
       {Value: restrictionStatus,     Label: 'Status'},
       {Value: appliesToVehicleClass, Label: 'Vehicle Class'},
       {Value: permitRequired,        Label: 'Permit Req.'},
@@ -631,10 +695,17 @@ annotate AdminService.BridgeRestrictions with @(
         {Value: bridge_ID, Label: 'Bridge'},
         {Value: bridge.bridgeId},
         {Value: restrictionRef},    // auto-generated BR-NNNN
+        {Value: transportMode},
+        {Value: network},
         {Value: restrictionCategory},
         {Value: restrictionType},
         {Value: restrictionValue},
         {Value: restrictionUnit},
+        {Value: restrictionSeverity},
+        {Value: laneAvailability},
+        {Value: lanesOpen},
+        {Value: lanesTotal},
+        {Value: laneWidthLimit},
         {Value: restrictionStatus},
         {Value: active},            // read-only — use Retire / Reactivate buttons
       ]

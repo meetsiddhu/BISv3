@@ -1,0 +1,4 @@
+code,name,descr,sortOrder,isActive
+Critical,Critical,Closure or safety-critical restriction,1,true
+Major,Major,Significant capacity / access impact,2,true
+Minor,Minor,Minor or advisory restriction,3,true

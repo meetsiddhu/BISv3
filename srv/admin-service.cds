@@ -78,6 +78,19 @@ service AdminService {
   ]
   entity AssetClasses as projection on my.AssetClasses;
 
+  // ── Multi-modal lookups (Phase 1) ──
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity TransportModes as projection on my.TransportModes;
+
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity Networks as projection on my.Networks;
+
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity LaneAvailabilityTypes as projection on my.LaneAvailabilityTypes;
+
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity RestrictionSeverities as projection on my.RestrictionSeverities;
+
   @restrict: [
     { grant: 'READ',                       to: 'view'  },
     { grant: ['CREATE','UPDATE','DELETE'],  to: 'admin' }

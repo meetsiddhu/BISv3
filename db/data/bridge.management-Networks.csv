@@ -1,0 +1,7 @@
+code,name,descr,operator,mode,isActive
+STATE_ROAD,State Road Network,State-managed highways and arterials,Transport for NSW,Road,true
+LOCAL_ROAD,Local Road Network,Council / LGA managed roads,Local Government,Road,true
+FREIGHT_RAIL,Freight Rail Network,Heavy-haul freight rail corridors,ARTC,Rail,true
+METRO_RAIL,Metropolitan Rail Network,Suburban passenger heavy rail,Sydney Trains,Rail,true
+LIGHT_RAIL,Light Rail Network,Urban light rail / tram network,Transport for NSW,LightRail,true
+ACTIVE_TRANSPORT,Active Transport Network,Shared pedestrian / cycle paths,Transport for NSW,Active,true
