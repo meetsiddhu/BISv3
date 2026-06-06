@@ -197,14 +197,16 @@ sap.ui.define([
 
     _showImportResult: function (r) {
       r = r || {};
-      var created = r.created || 0, updated = r.updated || 0, skipped = r.skipped || 0;
-      var errors = r.errors || [];
+      // Response shape: { summary:{created,updated,skipped,errors}, rows:[{row,ref,status,message}] }
+      var s = r.summary || r;
+      var created = s.created || 0, updated = s.updated || 0, skipped = s.skipped || 0;
+      var issues = (r.rows || []).filter(function (row) { return row && row.status && row.status !== "OK"; });
       var msg = "Created: " + created + "\nUpdated: " + updated + "\nSkipped: " + skipped;
-      if (errors.length) {
-        msg += "\n\nIssues (" + errors.length + "):\n" + errors.slice(0, 10).map(function (e) {
-          return "• " + (e && e.row != null ? "Row " + e.row + ": " : "") + ((e && e.message) || e);
+      if (issues.length) {
+        msg += "\n\nIssues (" + issues.length + "):\n" + issues.slice(0, 10).map(function (e) {
+          return "• Row " + e.row + (e.ref ? " (" + e.ref + ")" : "") + ": " + (e.message || e.status);
         }).join("\n");
-        if (errors.length > 10) { msg += "\n… and " + (errors.length - 10) + " more."; }
+        if (issues.length > 10) { msg += "\n… and " + (issues.length - 10) + " more."; }
         MessageBox.warning(msg, { title: "Import completed with issues" });
       } else {
         MessageBox.success(msg, { title: "Import complete" });
