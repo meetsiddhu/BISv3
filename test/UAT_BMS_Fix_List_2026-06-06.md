@@ -16,6 +16,18 @@ Priority legend: **P1** blocks core flow / security / data loss · **P2** degrad
 
 ---
 
+### [P1-005] Injected scripts 404 in production — Map, Custom Attributes, FK guard & numeric guards all dead — ✅ FIXED & VERIFIED LIVE (v3.0.4)
+- **File**: `app/admin-bridges/webapp/Component.js` (loadScript paths); `app/admin-bridges/webapp/ext/controller/gisMapInit.js:3` (`APP_PATH`)
+- **Symptom**: On the deployed app the **Map** and **Custom Attributes** tabs were empty; numeric input masking, restrictions validation, and the FK message guard (TC-FUNC-001 fix) silently did nothing.
+- **Root cause**: `Component.js` injected `<script>` tags and `gisMapInit.js` loaded Leaflet using the hardcoded base `/admin-bridges/webapp/…`. That path only exists in local dev (cds serves the source `webapp/`). The deployed app is served from the **HTML5 application repository** at `/BridgeManagementadminbridges/…`, so every injected script and the Leaflet assets returned **404** in production.
+- **Verified (before fix)**: `fetch('/admin-bridges/webapp/ext/controller/gisMapInit.js')` → 404; `fetch('/BridgeManagementadminbridges/ext/controller/gisMapInit.js')` → 200.
+- **Fix**: resolve all paths component-relative via `sap.ui.require.toUrl('BridgeManagement/adminbridges/…')`, which yields the correct URL in **both** dev and prod. Applied to all 5 scripts + Leaflet `APP_PATH`.
+- **Verified (after fix, live v3.0.4)**: injected `<script>` srcs now point to `/BridgeManagementadminbridges/ext/controller/…`; **Map tab renders the Leaflet map with the bridge marker**; **Custom Attributes tab renders** (Edit + empty-state); FK guard now loads.
+- **NOT introduced in this release**: the hardcoded path pre-dated v3.x; it only ever worked in local dev. (My earlier "FkMessageGuard served 200" check was misled by a 200 *HTML* fallback — corrected here.)
+- **Persona**: PO/SME (features invisible in prod), Dev.
+
+---
+
 ### [P2-004] Sub-entity tiles (Defects / Inspections / Bridge Capacity) open the Bridges list in the sandbox shell
 - **File**: `app/router/fiori-apps.html` (FLP **sandbox** shell); `app/admin-bridges/webapp/manifest.json` (routes/inbounds ARE correctly defined)
 - **Symptom**: Clicking the Defects (or Inspections / Bridge Capacity) tile sets the title to "Defects" but shows the **Bridges** list-report; top-level Create makes a Bridge, and drilling into a bridge shows no Defects section.
