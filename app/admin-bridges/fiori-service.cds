@@ -1216,3 +1216,104 @@ annotate AdminService.BridgeRestrictions with actions {
   deactivate @Common.SideEffects: { TargetProperties: ['restrictionStatus', 'active'] };
   reactivate @Common.SideEffects: { TargetProperties: ['restrictionStatus', 'active'] };
 };
+
+////////////////////////////////////////////////////////////////////////////
+//  Change Document Report — Fiori Elements List Report (ALV, read-only)
+//  Unified field changes (ChangeLog) + custom-attribute changes.
+////////////////////////////////////////////////////////////////////////////
+
+annotate AdminService.ChangeDocumentReport with @(
+  Capabilities.InsertRestrictions: { Insertable: false },
+  Capabilities.UpdateRestrictions: { Updatable: false },
+  Capabilities.DeleteRestrictions: { Deletable: false },
+  UI.HeaderInfo: {
+    TypeName      : 'Change Document',
+    TypeNamePlural: 'Change Documents',
+    Title         : { $Type: 'UI.DataField', Value: objectName },
+    Description   : { $Type: 'UI.DataField', Value: fieldName }
+  },
+  UI.SelectionFields: [ objectType, changeKind, changeSource, changedBy, changedAt ],
+  UI.LineItem: [
+    { $Type: 'UI.DataField', Value: changedAt,    Label: 'Changed At' },
+    { $Type: 'UI.DataField', Value: changedBy,    Label: 'Changed By' },
+    { $Type: 'UI.DataField', Value: objectType,   Label: 'Object Type' },
+    { $Type: 'UI.DataField', Value: objectName,   Label: 'Object' },
+    { $Type: 'UI.DataField', Value: changeKind,   Label: 'Kind' },
+    { $Type: 'UI.DataField', Value: fieldName,    Label: 'Field / Attribute' },
+    { $Type: 'UI.DataField', Value: oldValue,     Label: 'Old Value' },
+    { $Type: 'UI.DataField', Value: newValue,     Label: 'New Value' },
+    { $Type: 'UI.DataField', Value: changeSource, Label: 'Source' }
+  ]
+);
+annotate AdminService.ChangeDocumentReport with {
+  ID           @UI.Hidden;
+  objectId     @UI.Hidden;
+  batchId      @UI.Hidden;
+  changedAt    @title: 'Changed At';
+  changedBy    @title: 'Changed By';
+  objectType   @title: 'Object Type';
+  objectName   @title: 'Object';
+  changeKind   @title: 'Kind';
+  fieldName    @title: 'Field / Attribute';
+  oldValue     @title: 'Old Value';
+  newValue     @title: 'New Value';
+  changeSource @title: 'Source';
+};
+
+////////////////////////////////////////////////////////////////////////////
+//  EAM Code Mapping — Fiori Elements List Report + Object Page (draft CRUD)
+////////////////////////////////////////////////////////////////////////////
+
+annotate bridge.management.EAMCodeMapping with @fiori.draft.enabled;
+annotate AdminService.EAMCodeMapping with @odata.draft.enabled;
+
+annotate AdminService.EAMCodeMapping with @(
+  UI.HeaderInfo: {
+    TypeName      : 'EAM Mapping',
+    TypeNamePlural: 'EAM Mappings',
+    Title         : { $Type: 'UI.DataField', Value: bisValue },
+    Description   : { $Type: 'UI.DataField', Value: eamValue }
+  },
+  UI.SelectionFields: [ bisEntity, bisField, active ],
+  UI.LineItem: [
+    { $Type: 'UI.DataField', Value: bisEntity,    Label: 'BIS Entity' },
+    { $Type: 'UI.DataField', Value: bisField,     Label: 'BIS Field' },
+    { $Type: 'UI.DataField', Value: bisValue,     Label: 'BIS Value' },
+    { $Type: 'UI.DataField', Value: eamTableName, Label: 'EAM Table' },
+    { $Type: 'UI.DataField', Value: eamValue,     Label: 'EAM Value' },
+    { $Type: 'UI.DataField', Value: active,       Label: 'Active' }
+  ],
+  UI.Facets: [
+    { $Type: 'UI.ReferenceFacet', ID: 'EamMain', Label: 'Mapping', Target: '@UI.FieldGroup#EamMain' }
+  ],
+  UI.FieldGroup #EamMain: { Data: [
+    { $Type: 'UI.DataField', Value: bisEntity },
+    { $Type: 'UI.DataField', Value: bisField },
+    { $Type: 'UI.DataField', Value: bisValue },
+    { $Type: 'UI.DataField', Value: eamTableName },
+    { $Type: 'UI.DataField', Value: eamValue },
+    { $Type: 'UI.DataField', Value: description },
+    { $Type: 'UI.DataField', Value: active }
+  ]}
+);
+annotate AdminService.EAMCodeMapping with {
+  ID           @UI.Hidden;
+  bisEntity    @Common.FieldControl: #Mandatory @title: 'BIS Entity';
+  bisField     @Common.FieldControl: #Mandatory @title: 'BIS Field';
+  bisValue     @Common.FieldControl: #Mandatory @title: 'BIS Value';
+  eamTableName @title: 'EAM Table (e.g. ILART, QMART)';
+  eamValue     @title: 'EAM Value';
+  description  @title: 'Description' @UI.MultiLineText;
+  active       @title: 'Active';
+};
+////////////////////////////////////////////////////////////////////////////
+//  Attribute Class & Characteristics — draft enablement only.
+//  UI annotations (LineItem / Facets / FieldGroups) are defined globally in
+//  app/attributes-admin/fiori-service.cds and reused by the FE pages added to
+//  the admin-bridges manifest. Draft-enable the class root so the whole
+//  composition tree (definitions -> allowedValues + objectTypeConfigs) is
+//  editable as one draft document in the Fiori Elements object page.
+////////////////////////////////////////////////////////////////////////////
+
+annotate bridge.management.AttributeGroups with @fiori.draft.enabled;
+annotate AdminService.AttributeGroups with @odata.draft.enabled;

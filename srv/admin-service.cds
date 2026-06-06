@@ -209,6 +209,9 @@ service AdminService {
   entity AttributeObjectTypeConfig as projection on my.AttributeObjectTypeConfig;
 
   @restrict: [{ grant: '*', to: 'admin' }]
+  entity EAMCodeMapping as projection on my.EAMCodeMapping;
+
+  @restrict: [{ grant: '*', to: 'admin' }]
   entity BnacEnvironment as projection on my.BnacEnvironment;
 
   @restrict: [{ grant: '*', to: 'admin' }]
@@ -218,6 +221,58 @@ service AdminService {
   @readonly
   @restrict: [{ grant: 'READ', to: 'manage' }]
   entity ChangeLog as projection on my.ChangeLog;
+
+  // ── Unified Change-Document report (ALV / Fiori Elements) ──
+  // Standard field changes (ChangeLog) + custom-attribute value changes
+  // (AttributeValueHistory) in one read-only entity for the FE List Report.
+  @readonly
+  @restrict: [{ grant: 'READ', to: 'manage' }]
+  entity ChangeDocumentReport as
+    select from my.ChangeLog {
+      key ID,
+          changedAt,
+          changedBy,
+          objectType,
+          objectId,
+          objectName,
+          fieldName,
+          oldValue,
+          newValue,
+          changeSource,
+          batchId,
+          'Field' as changeKind : String(20)
+    }
+    union all
+    select from my.AttributeValueHistory {
+      key historyId as ID,
+          changedAt,
+          changedBy,
+          ( case objectType
+              when 'bridge'      then 'Bridge'
+              when 'restriction' then 'Restriction'
+              else objectType
+            end ) as objectType : String(40),
+          objectId,
+          objectId      as objectName : String(255),
+          attributeKey  as fieldName  : String(111),
+          coalesce(
+            oldValueText,
+            cast(oldValueInteger as String),
+            cast(oldValueDecimal as String),
+            cast(oldValueDate as String),
+            case when oldValueBoolean = true then 'true' when oldValueBoolean = false then 'false' else null end
+          ) as oldValue : LargeString,
+          coalesce(
+            newValueText,
+            cast(newValueInteger as String),
+            cast(newValueDecimal as String),
+            cast(newValueDate as String),
+            case when newValueBoolean = true then 'true' when newValueBoolean = false then 'false' else null end
+          ) as newValue : LargeString,
+          changeSource,
+          null          as batchId : String(111),
+          'Attribute' as changeKind : String(20)
+    };
 
   @readonly
   @restrict: [{ grant: 'READ', to: 'admin' }]

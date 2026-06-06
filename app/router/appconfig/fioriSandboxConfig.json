@@ -129,6 +129,36 @@
                     "icon": "sap-icon://action-settings",
                     "targetURL": "#BmsAdmin-manage"
                   }
+                },
+                {
+                  "id": "ChangeDocuments",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Change Documents",
+                    "subtitle": "Audit & Attribute History",
+                    "icon": "sap-icon://history",
+                    "targetURL": "#ChangeDocuments-display&/ChangeDocumentReport"
+                  }
+                },
+                {
+                  "id": "AttributeClasses",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Attribute Classes",
+                    "subtitle": "Classes & Characteristics",
+                    "icon": "sap-icon://customize",
+                    "targetURL": "#AttributeClasses-manage&/AttributeGroups"
+                  }
+                },
+                {
+                  "id": "EAMMapping",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "EAM Code Mapping",
+                    "subtitle": "SAP EAM Value Mapping",
+                    "icon": "sap-icon://chain-link",
+                    "targetURL": "#EAMMapping-manage&/EAMCodeMapping"
+                  }
                 }
               ]
             }
@@ -283,6 +313,48 @@
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.bmsadmin",
                 "url": "/BridgeManagementbmsadmin"
+              }
+            },
+            "ChangeDocuments-display": {
+              "semanticObject": "ChangeDocuments",
+              "action": "display",
+              "title": "Change Documents",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "AttributeClasses-manage": {
+              "semanticObject": "AttributeClasses",
+              "action": "manage",
+              "title": "Attribute Classes",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "EAMMapping-manage": {
+              "semanticObject": "EAMMapping",
+              "action": "manage",
+              "title": "EAM Code Mapping",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
               }
             }
           }

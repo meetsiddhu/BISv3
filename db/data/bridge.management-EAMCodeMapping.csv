@@ -1,0 +1,7 @@
+ID,bisEntity,bisField,bisValue,eamTableName,eamValue,description,active
+b1a10001-0000-4000-8000-000000000001,BridgeInspections,inspectionType,Routine,ILART,PM01,Routine inspection mapped to EAM activity type PM01,true
+b1a10001-0000-4000-8000-000000000002,BridgeInspections,inspectionType,Principal,ILART,PM02,Principal inspection mapped to EAM activity type PM02,true
+b1a10001-0000-4000-8000-000000000003,BridgeInspections,inspectionType,Detailed,ILART,PM03,Detailed inspection mapped to EAM activity type PM03,true
+b1a10001-0000-4000-8000-000000000004,BridgeDefects,defectType,Cracking,QMART,M2,Structural cracking mapped to EAM notification type M2,true
+b1a10001-0000-4000-8000-000000000005,BridgeDefects,defectType,Corrosion,QMART,M2,Corrosion defect mapped to EAM notification type M2,true
+b1a10001-0000-4000-8000-000000000006,Bridges,postingStatus,Closed,TPLNR,INACT,Closed bridge mapped to EAM functional location status INACT,true

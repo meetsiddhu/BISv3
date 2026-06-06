@@ -143,6 +143,36 @@
                     "icon": "sap-icon://action-settings",
                     "targetURL": "#BmsAdmin-manage"
                   }
+                },
+                {
+                  "id": "ChangeDocuments",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Change Documents",
+                    "subtitle": "Audit & Attribute History",
+                    "icon": "sap-icon://history",
+                    "targetURL": "#ChangeDocuments-display&/ChangeDocumentReport"
+                  }
+                },
+                {
+                  "id": "AttributeClasses",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Attribute Classes",
+                    "subtitle": "Classes & Characteristics",
+                    "icon": "sap-icon://customize",
+                    "targetURL": "#AttributeClasses-manage&/AttributeGroups"
+                  }
+                },
+                {
+                  "id": "EAMMapping",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "EAM Code Mapping",
+                    "subtitle": "SAP EAM Value Mapping",
+                    "icon": "sap-icon://chain-link",
+                    "targetURL": "#EAMMapping-manage&/EAMCodeMapping"
+                  }
                 }
               ]
             }
@@ -298,6 +328,48 @@
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.bmsadmin",
                 "url": "/BridgeManagementbmsadmin"
               }
+            },
+            "ChangeDocuments-display": {
+              "semanticObject": "ChangeDocuments",
+              "action": "display",
+              "title": "Change Documents",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "AttributeClasses-manage": {
+              "semanticObject": "AttributeClasses",
+              "action": "manage",
+              "title": "Attribute Classes",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "EAMMapping-manage": {
+              "semanticObject": "EAMMapping",
+              "action": "manage",
+              "title": "EAM Code Mapping",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
             }
           }
         }
@@ -347,19 +419,20 @@
         if (hash.indexOf('/BridgeInspections') !== -1 || hash.indexOf('BridgeInspections-manage') !== -1) return 'Inspections'
         if (hash.indexOf('/BridgeDefects') !== -1 || hash.indexOf('BridgeDefects-manage') !== -1) return 'Defects'
         if (hash.indexOf('/BridgeCapacities') !== -1 || hash.indexOf('BridgeCapacities-manage') !== -1) return 'Bridge Capacity'
+        if (hash.indexOf('ChangeDocuments') !== -1) return 'Change Documents'
+        if (hash.indexOf('AttributeClasses') !== -1 || hash.indexOf('/AttributeGroups') !== -1) return 'Attribute Classes'
+        if (hash.indexOf('EAMMapping') !== -1 || hash.indexOf('/EAMCodeMapping') !== -1) return 'EAM Code Mapping'
         return 'Bridge Asset Registry'
       }
 
       function updateTitle() {
         var title = titleForHash()
         document.title = title
-
         if (sap.ushell && sap.ushell.Container) {
           sap.ushell.Container.getServiceAsync('ShellUIService').then(function (service) {
             if (service && service.setTitle) service.setTitle(title)
           }).catch(function () {})
         }
-
         var appTitleButton = document.getElementById('shellAppTitle-button')
         if (appTitleButton && appTitleButton.innerText !== title) {
           appTitleButton.innerText = title

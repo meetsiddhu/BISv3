@@ -105,3 +105,18 @@ entity AttributeValueHistory {
   changedAt        : Timestamp;
   changeSource     : String(20)  default 'manual'; // manual | import | api
 }
+
+/**
+ * SAP EAM code mapping — translates BIS code values to SAP EAM (S/4HANA) code
+ * values for clean-core integration. Admin-maintained; no hardcoded mappings.
+ * e.g. BridgeInspections.inspectionType 'Principal' -> ILART 'PM02'.
+ */
+entity EAMCodeMapping : cuid, managed {
+  bisEntity    : String(60)  not null;  // e.g. BridgeInspections
+  bisField     : String(80)  not null;  // e.g. inspectionType
+  bisValue     : String(100) not null;  // BIS code value
+  eamTableName : String(30);            // e.g. ILART, QMART
+  eamValue     : String(30);            // SAP EAM code value
+  description  : String(255);
+  active       : Boolean default true;
+}

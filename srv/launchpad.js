@@ -61,6 +61,21 @@ function buildSandboxConfig (isAdmin) {
         id: 'BmsAdmin',
         tileType: 'sap.ushell.ui.tile.StaticTile',
         properties: { title: 'BMS Administration', subtitle: 'Audit, Config & User Access', icon: 'sap-icon://action-settings', targetURL: '#BmsAdmin-manage' }
+      },
+      {
+        id: 'ChangeDocuments',
+        tileType: 'sap.ushell.ui.tile.StaticTile',
+        properties: { title: 'Change Documents', subtitle: 'Audit & Attribute History', icon: 'sap-icon://history', targetURL: '#ChangeDocuments-display&/ChangeDocumentReport' }
+      },
+      {
+        id: 'AttributeClasses',
+        tileType: 'sap.ushell.ui.tile.StaticTile',
+        properties: { title: 'Attribute Classes', subtitle: 'Classes & Characteristics', icon: 'sap-icon://customize', targetURL: '#AttributeClasses-manage&/AttributeGroups' }
+      },
+      {
+        id: 'EAMMapping',
+        tileType: 'sap.ushell.ui.tile.StaticTile',
+        properties: { title: 'EAM Code Mapping', subtitle: 'SAP EAM Value Mapping', icon: 'sap-icon://chain-link', targetURL: '#EAMMapping-manage&/EAMCodeMapping' }
       }
     )
   }
@@ -118,6 +133,23 @@ function buildSandboxConfig (isAdmin) {
       semanticObject: 'BmsAdmin', action: 'manage', title: 'BMS Administration',
       signature: { parameters: {}, additionalParameters: 'allowed' },
       resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.bmsadmin', url: '/BridgeManagementbmsadmin' }
+    }
+    // Change Documents, Attribute Classes, EAM Mapping render in the admin-bridges
+    // Fiori Elements app (additional entitySets/routes added to its manifest).
+    inbounds['ChangeDocuments-display'] = {
+      semanticObject: 'ChangeDocuments', action: 'display', title: 'Change Documents',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    }
+    inbounds['AttributeClasses-manage'] = {
+      semanticObject: 'AttributeClasses', action: 'manage', title: 'Attribute Classes',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    }
+    inbounds['EAMMapping-manage'] = {
+      semanticObject: 'EAMMapping', action: 'manage', title: 'EAM Code Mapping',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
     }
   }
 

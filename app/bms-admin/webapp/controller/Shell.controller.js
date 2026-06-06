@@ -38,6 +38,17 @@ sap.ui.define([
 
     onNavSelect: function (oEvent) {
       const sKey = oEvent.getParameter("item").getKey();
+      if (sKey === "attributeConfig") {
+        // Class & characteristics definition now lives in the Fiori Elements
+        // 'Attribute Classes' app (draft CRUD). Redirect there instead of the
+        // legacy custom page (whose direct writes are incompatible with drafts).
+        sap.ushell.Container.getServiceAsync("CrossApplicationNavigation").then(function (oNav) {
+          oNav.toExternal({ target: { semanticObject: "AttributeClasses", action: "manage" } });
+        }).catch(function () {
+          this.getOwnerComponent().getRouter().navTo(sKey);
+        }.bind(this));
+        return;
+      }
       this.getOwnerComponent().getRouter().navTo(sKey);
     }
   });

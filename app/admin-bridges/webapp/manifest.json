@@ -5,7 +5,13 @@
     "type": "application",
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
-    "i18n": { "bundleUrl": "i18n/i18n.properties", "supportedLocales": [""], "fallbackLocale": "" },
+    "i18n": {
+      "bundleUrl": "i18n/i18n.properties",
+      "supportedLocales": [
+        ""
+      ],
+      "fallbackLocale": ""
+    },
     "applicationVersion": {
       "version": "1.0.0"
     },
@@ -17,7 +23,10 @@
           "odataVersion": "4.0"
         }
       },
-      "AdminBridgesService": { "uri": "/admin-bridges/api/", "type": "HTTP" }
+      "AdminBridgesService": {
+        "uri": "/admin-bridges/api/",
+        "type": "HTTP"
+      }
     },
     "crossNavigation": {
       "inbounds": {
@@ -65,6 +74,39 @@
           "title": "Bridge Capacity",
           "subTitle": "Load & Geometric Capacities",
           "icon": "sap-icon://simulate"
+        },
+        "ChangeDocuments-display": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "ChangeDocuments",
+          "action": "display",
+          "title": "Change Documents",
+          "subTitle": "Audit & attribute history",
+          "icon": "sap-icon://history"
+        },
+        "EAMMapping-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "EAMMapping",
+          "action": "manage",
+          "title": "EAM Code Mapping",
+          "subTitle": "SAP EAM value mapping",
+          "icon": "sap-icon://chain-link"
+        },
+        "AttributeClasses-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "AttributeClasses",
+          "action": "manage",
+          "title": "Attribute Classes",
+          "subTitle": "Custom classes & characteristics",
+          "icon": "sap-icon://customize"
         }
       }
     }
@@ -81,14 +123,34 @@
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "uri": "i18n/i18n.properties",
-        "settings": { "supportedLocales": [""], "fallbackLocale": "" }
+        "settings": {
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
+        }
       },
       "appConfig": {
         "type": "sap.ui.model.json.JSONModel",
         "settings": {
           "data": {
-            "layerCategories": ["Weather","Flood","Traffic","Geology","Infrastructure","Environment","Emergency","Administrative","Custom"],
-            "layerTypes": ["WMS","XYZ","ArcGISRest","GeoJSON"]
+            "layerCategories": [
+              "Weather",
+              "Flood",
+              "Traffic",
+              "Geology",
+              "Infrastructure",
+              "Environment",
+              "Emergency",
+              "Administrative",
+              "Custom"
+            ],
+            "layerTypes": [
+              "WMS",
+              "XYZ",
+              "ArcGISRest",
+              "GeoJSON"
+            ]
           }
         }
       },
@@ -158,6 +220,36 @@
           "pattern": "BridgeDefects({key}):?query:",
           "name": "BridgeDefectsPage",
           "target": "BridgeDefectsPage"
+        },
+        {
+          "name": "ChangeDocumentReportList",
+          "pattern": "ChangeDocumentReport:?query:",
+          "target": "ChangeDocumentReportList"
+        },
+        {
+          "name": "EAMCodeMappingList",
+          "pattern": "EAMCodeMapping:?query:",
+          "target": "EAMCodeMappingList"
+        },
+        {
+          "name": "EAMCodeMappingPage",
+          "pattern": "EAMCodeMapping({key}):?query:",
+          "target": "EAMCodeMappingPage"
+        },
+        {
+          "name": "AttributeGroupsList",
+          "pattern": "AttributeGroups:?query:",
+          "target": "AttributeGroupsList"
+        },
+        {
+          "name": "AttributeGroupsPage",
+          "pattern": "AttributeGroups({key}):?query:",
+          "target": "AttributeGroupsPage"
+        },
+        {
+          "name": "AttributeDefinitionsPage",
+          "pattern": "AttributeGroups({key})/definitions({key2}):?query:",
+          "target": "AttributeDefinitionsPage"
         }
       ],
       "targets": {
@@ -202,7 +294,9 @@
               "sharingEnabled": false,
               "controlConfiguration": {
                 "documents/@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": { "enablePaste": false }
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
                 }
               },
               "content": {
@@ -251,7 +345,11 @@
                 "IsActiveEntity": true
               },
               "navigation": {
-                "BridgeCapacities": { "detail": { "route": "BridgeCapacitiesPage" } }
+                "BridgeCapacities": {
+                  "detail": {
+                    "route": "BridgeCapacitiesPage"
+                  }
+                }
               },
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
@@ -286,7 +384,11 @@
             "settings": {
               "entitySet": "BridgeRestrictions",
               "navigation": {
-                "BridgeRestrictions": { "detail": { "route": "BridgeRestrictionsPage" } }
+                "BridgeRestrictions": {
+                  "detail": {
+                    "route": "BridgeRestrictionsPage"
+                  }
+                }
               }
             }
           }
@@ -316,7 +418,11 @@
                 "IsActiveEntity": true
               },
               "navigation": {
-                "BridgeInspections": { "detail": { "route": "BridgeInspectionsPage" } }
+                "BridgeInspections": {
+                  "detail": {
+                    "route": "BridgeInspectionsPage"
+                  }
+                }
               },
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
@@ -356,7 +462,11 @@
                 "IsActiveEntity": true
               },
               "navigation": {
-                "BridgeDefects": { "detail": { "route": "BridgeDefectsPage" } }
+                "BridgeDefects": {
+                  "detail": {
+                    "route": "BridgeDefectsPage"
+                  }
+                }
               },
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
@@ -378,6 +488,120 @@
           "options": {
             "settings": {
               "entitySet": "BridgeDefects",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "ChangeDocumentReportList": {
+          "type": "Component",
+          "id": "ChangeDocumentReportList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "ChangeDocumentReport",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "EAMCodeMappingList": {
+          "type": "Component",
+          "id": "EAMCodeMappingList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "EAMCodeMapping",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              },
+              "navigation": {
+                "EAMCodeMapping": {
+                  "detail": {
+                    "route": "EAMCodeMappingPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "EAMCodeMappingPage": {
+          "type": "Component",
+          "id": "EAMCodeMappingPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "EAMCodeMapping",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "AttributeGroupsList": {
+          "type": "Component",
+          "id": "AttributeGroupsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "AttributeGroups",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              },
+              "navigation": {
+                "AttributeGroups": {
+                  "detail": {
+                    "route": "AttributeGroupsPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "AttributeGroupsPage": {
+          "type": "Component",
+          "id": "AttributeGroupsPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "AttributeGroups",
+              "editableHeaderContent": false,
+              "sharingEnabled": false,
+              "navigation": {
+                "definitions": {
+                  "detail": {
+                    "route": "AttributeDefinitionsPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "AttributeDefinitionsPage": {
+          "type": "Component",
+          "id": "AttributeDefinitionsPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "AttributeDefinitions",
               "editableHeaderContent": false,
               "sharingEnabled": false
             }
