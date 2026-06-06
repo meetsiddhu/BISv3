@@ -1446,14 +1446,18 @@ annotate AdminService.NetworkRestrictionReport with @(
     { Value: state,               Label: 'State' },
     { Value: issuingAuthority,    Label: 'Authority' }
   ],
-  UI.Chart #restrChart: {
+  UI.Chart: {
     ChartType: #Column,
     Dimensions: [ transportMode ],
     DynamicMeasures: [ '@Analytics.AggregatedProperty#restrCount' ],
     Title: 'Restrictions by Mode'
   },
-  UI.PresentationVariant #restrPV: {
-    Visualizations: [ '@UI.Chart#restrChart', '@UI.LineItem' ]
+  UI.PresentationVariant: {
+    Visualizations: [ '@UI.Chart', '@UI.LineItem' ]
+  },
+  UI.SelectionPresentationVariant: {
+    SelectionVariant: { SelectOptions: [] },
+    PresentationVariant: { Visualizations: [ '@UI.Chart', '@UI.LineItem' ] }
   },
   Aggregation.ApplySupported: {
     Transformations: [ 'aggregate', 'groupby', 'filter' ],
