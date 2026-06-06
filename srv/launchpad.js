@@ -80,6 +80,16 @@ function buildSandboxConfig (isAdmin) {
     )
   }
 
+  // Risk & multi-modal tiles (Phases 2-4) — admin only.
+  const riskNetworkTiles = isAdmin ? [
+    { id: 'BridgeRisk',           tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Bridge Risk',            subtitle: 'Risk-Prioritised Worklist', icon: 'sap-icon://warning2',              targetURL: '#BridgeRisk-display&/BridgeRiskReport' } },
+    { id: 'NetworkRestrictions',  tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Network Restrictions',   subtitle: 'All Modes & Networks (ALV)', icon: 'sap-icon://table-view',            targetURL: '#NetworkRestrictions-manage&/NetworkRestrictionReport' } },
+    { id: 'RestrictionsDashboard',tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Restrictions Dashboard', subtitle: 'Multi-Mode Analytics (ALP)', icon: 'sap-icon://bar-chart',             targetURL: '#RestrictionsDashboard-display&/RestrictionsDashboard' } },
+    { id: 'AssetStrategy',        tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Asset Class Strategy',   subtitle: 'Inspection & Intervention',  icon: 'sap-icon://example',               targetURL: '#AssetStrategy-manage&/AssetClassStrategy' } },
+    { id: 'RiskBands',            tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Risk Bands',             subtitle: 'Score Band Thresholds',      icon: 'sap-icon://measurement-document',  targetURL: '#RiskBands-manage&/RiskBand' } },
+    { id: 'RiskFactors',          tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Risk Factors',           subtitle: 'Scoring Weightings',         icon: 'sap-icon://settings',              targetURL: '#RiskFactors-manage&/RiskConfig' } }
+  ] : []
+
   const inbounds = {
     'Dashboard-display': {
       semanticObject: 'Dashboard', action: 'display', title: 'Dashboard',
@@ -151,6 +161,14 @@ function buildSandboxConfig (isAdmin) {
       signature: { parameters: {}, additionalParameters: 'allowed' },
       resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
     }
+    // Risk & multi-modal (Phases 2-4) — all render in the admin-bridges FE app.
+    var adminBridgesRR = { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    inbounds['BridgeRisk-display']           = { semanticObject: 'BridgeRisk',           action: 'display', title: 'Bridge Risk',            signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    inbounds['NetworkRestrictions-manage']   = { semanticObject: 'NetworkRestrictions',   action: 'manage',  title: 'Network Restrictions',   signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    inbounds['RestrictionsDashboard-display']= { semanticObject: 'RestrictionsDashboard', action: 'display', title: 'Restrictions Dashboard', signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    inbounds['AssetStrategy-manage']         = { semanticObject: 'AssetStrategy',         action: 'manage',  title: 'Asset Class Strategy',   signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    inbounds['RiskBands-manage']             = { semanticObject: 'RiskBands',             action: 'manage',  title: 'Risk Bands',             signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    inbounds['RiskFactors-manage']           = { semanticObject: 'RiskFactors',           action: 'manage',  title: 'Risk Factors',           signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
   }
 
   return {
@@ -177,6 +195,12 @@ function buildSandboxConfig (isAdmin) {
                 title: 'BMS ADMIN',
                 isPreset: true, isVisible: true, isGroupLocked: false,
                 tiles: adminGroupTiles
+              },
+              {
+                id: 'bms.group.risk',
+                title: 'RISK & MULTI-MODAL',
+                isPreset: true, isVisible: riskNetworkTiles.length > 0, isGroupLocked: false,
+                tiles: riskNetworkTiles
               }
             ]
           }

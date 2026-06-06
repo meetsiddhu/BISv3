@@ -107,6 +107,72 @@
           "title": "Attribute Classes",
           "subTitle": "Custom classes & characteristics",
           "icon": "sap-icon://customize"
+        },
+        "BridgeRisk-display": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "BridgeRisk",
+          "action": "display",
+          "title": "Bridge Risk",
+          "subTitle": "Risk-prioritised worklist",
+          "icon": "sap-icon://warning2"
+        },
+        "NetworkRestrictions-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "NetworkRestrictions",
+          "action": "manage",
+          "title": "Network Restrictions",
+          "subTitle": "All modes & networks (ALV)",
+          "icon": "sap-icon://table-view"
+        },
+        "RestrictionsDashboard-display": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "RestrictionsDashboard",
+          "action": "display",
+          "title": "Restrictions Dashboard",
+          "subTitle": "Multi-mode analytics (ALP)",
+          "icon": "sap-icon://bar-chart"
+        },
+        "AssetStrategy-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "AssetStrategy",
+          "action": "manage",
+          "title": "Asset Class Strategy",
+          "subTitle": "Inspection & intervention strategy",
+          "icon": "sap-icon://example"
+        },
+        "RiskBands-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "RiskBands",
+          "action": "manage",
+          "title": "Risk Bands",
+          "subTitle": "Risk score band thresholds",
+          "icon": "sap-icon://measurement-document"
+        },
+        "RiskFactors-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "RiskFactors",
+          "action": "manage",
+          "title": "Risk Factors",
+          "subTitle": "Risk scoring weightings",
+          "icon": "sap-icon://settings"
         }
       }
     }
@@ -250,6 +316,51 @@
           "name": "AttributeDefinitionsPage",
           "pattern": "AttributeGroups({key})/definitions({key2}):?query:",
           "target": "AttributeDefinitionsPage"
+        },
+        {
+          "name": "BridgeRiskReportList",
+          "pattern": "BridgeRiskReport:?query:",
+          "target": "BridgeRiskReportList"
+        },
+        {
+          "name": "NetworkRestrictionReportList",
+          "pattern": "NetworkRestrictionReport:?query:",
+          "target": "NetworkRestrictionReportList"
+        },
+        {
+          "name": "RestrictionsDashboard",
+          "pattern": "RestrictionsDashboard:?query:",
+          "target": "NetworkRestrictionReportALP"
+        },
+        {
+          "name": "AssetClassStrategyList",
+          "pattern": "AssetClassStrategy:?query:",
+          "target": "AssetClassStrategyList"
+        },
+        {
+          "name": "AssetClassStrategyPage",
+          "pattern": "AssetClassStrategy({key}):?query:",
+          "target": "AssetClassStrategyPage"
+        },
+        {
+          "name": "RiskBandList",
+          "pattern": "RiskBand:?query:",
+          "target": "RiskBandList"
+        },
+        {
+          "name": "RiskBandPage",
+          "pattern": "RiskBand({key}):?query:",
+          "target": "RiskBandPage"
+        },
+        {
+          "name": "RiskConfigList",
+          "pattern": "RiskConfig:?query:",
+          "target": "RiskConfigList"
+        },
+        {
+          "name": "RiskConfigPage",
+          "pattern": "RiskConfig({key}):?query:",
+          "target": "RiskConfigPage"
         }
       ],
       "targets": {
@@ -604,6 +715,174 @@
               "entitySet": "AttributeDefinitions",
               "editableHeaderContent": false,
               "sharingEnabled": false
+            }
+          }
+        },
+        "BridgeRiskReportList": {
+          "type": "Component",
+          "id": "BridgeRiskReportList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeRiskReport",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "NetworkRestrictionReportList": {
+          "type": "Component",
+          "id": "NetworkRestrictionReportList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "NetworkRestrictionReport",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "NetworkRestrictionReportALP": {
+          "type": "Component",
+          "id": "NetworkRestrictionReportALP",
+          "name": "sap.fe.templates.AnalyticalListPage",
+          "options": {
+            "settings": {
+              "entitySet": "NetworkRestrictionReport",
+              "initialLoad": "Enabled",
+              "liveMode": false,
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.Chart": {
+                  "chartSettings": {
+                    "selectionMode": "Multiple"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "AssetClassStrategyList": {
+          "type": "Component",
+          "id": "AssetClassStrategyList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "AssetClassStrategy",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              },
+              "navigation": {
+                "AssetClassStrategy": {
+                  "detail": {
+                    "route": "AssetClassStrategyPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "AssetClassStrategyPage": {
+          "type": "Component",
+          "id": "AssetClassStrategyPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "AssetClassStrategy",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "RiskBandList": {
+          "type": "Component",
+          "id": "RiskBandList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "RiskBand",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              },
+              "navigation": {
+                "RiskBand": {
+                  "detail": {
+                    "route": "RiskBandPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "RiskBandPage": {
+          "type": "Component",
+          "id": "RiskBandPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "RiskBand",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "RiskConfigList": {
+          "type": "Component",
+          "id": "RiskConfigList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "RiskConfig",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              },
+              "navigation": {
+                "RiskConfig": {
+                  "detail": {
+                    "route": "RiskConfigPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "RiskConfigPage": {
+          "type": "Component",
+          "id": "RiskConfigPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "RiskConfig",
+              "editableHeaderContent": false
             }
           }
         }

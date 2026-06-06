@@ -224,6 +224,20 @@ service AdminService {
   @restrict: [{ grant: '*', to: 'admin' }]
   entity EAMCodeMapping as projection on my.EAMCodeMapping;
 
+  // ── Risk & Asset-Class Strategy governance (Phase 4) ──
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity AssetClassStrategy as projection on my.AssetClassStrategy;
+
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity RiskConfig as projection on my.RiskConfig;
+
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity RiskBand as projection on my.RiskBand;
+
+  // Recalculate risk scores for all active bridges (admin) — Phase 2 backfill/refresh.
+  @requires: 'admin'
+  action recalcRisk() returns String;
+
   @restrict: [{ grant: '*', to: 'admin' }]
   entity BnacEnvironment as projection on my.BnacEnvironment;
 
@@ -285,6 +299,72 @@ service AdminService {
           changeSource,
           null          as batchId : String(111),
           'Attribute' as changeKind : String(20)
+    };
+
+  // ── Multi-mode Network Restrictions report (ALV / ALP) — Phase 3 ──
+  // Joins restrictions with parent-bridge mode/network/risk for slice-and-dice.
+  @readonly
+  @cds.redirection.target: false
+  @restrict: [{ grant: 'READ', to: 'view' }]
+  entity NetworkRestrictionReport as
+    select from my.BridgeRestrictions {
+      key ID,
+          bridge.bridgeId                          as bridgeId   : String(40),
+          bridge.bridgeName                        as bridgeName : String(111),
+          coalesce(transportMode, bridge.transportMode) as transportMode : String(40),
+          coalesce(network, bridge.network)        as network    : String(80),
+          bridge.state                             as state      : String(40),
+          bridge.region                            as region     : String(80),
+          bridge.riskPriority                      as riskPriority : String(20),
+          restrictionRef,
+          restrictionCategory,
+          restrictionType,
+          restrictionValue,
+          restrictionUnit,
+          restrictionSeverity,
+          laneAvailability,
+          lanesOpen,
+          lanesTotal,
+          laneWidthLimit,
+          grossMassLimit,
+          heightLimit,
+          widthLimit,
+          restrictionStatus,
+          issuingAuthority,
+          effectiveFrom,
+          effectiveTo,
+          active
+    };
+
+  // ── Bridge Risk report (ALV) — Phase 2 ──
+  @readonly
+  @cds.redirection.target: false
+  @restrict: [{ grant: 'READ', to: 'view' }]
+  entity BridgeRiskReport as
+    select from my.Bridges {
+      key ID,
+          bridgeId,
+          bridgeName,
+          transportMode,
+          network,
+          state,
+          region,
+          assetClass,
+          condition,
+          conditionRating,
+          structuralAdequacyRating,
+          importanceLevel,
+          averageDailyTraffic,
+          highPriorityAsset,
+          riskConsequence,
+          riskLikelihood,
+          riskScore,
+          riskPriority,
+          riskOverride,
+          ( case riskPriority when 'Very High' then 1 when 'High' then 1 when 'Medium' then 2 when 'Low' then 3 else 0 end ) as riskCriticality : Integer,
+          postingStatus,
+          lastInspectionDate,
+          status
     };
 
   @readonly

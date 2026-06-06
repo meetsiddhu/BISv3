@@ -15,6 +15,29 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     'RestrictionUnits', 'RestrictionDirections'
   ]
 
+  // ── Risk prioritisation engine (Phase 2/4) ──
+  // Consequence (importance + priority) x Likelihood (condition/structural) -> 0-100 score -> band.
+  // Engineer override keeps manually-set consequence/likelihood; bands match RiskBand seed.
+  const RISK_BANDS = [
+    { name: 'Very High', min: 60 },
+    { name: 'High',      min: 36 },
+    { name: 'Medium',    min: 16 },
+    { name: 'Low',       min: 0 }
+  ]
+  const clampRisk = (n, lo, hi) => Math.max(lo, Math.min(hi, n))
+  const deriveRisk = (b) => {
+    const override = b.riskOverride === true
+    const consequence = (override && b.riskConsequence)
+      ? b.riskConsequence
+      : clampRisk((b.importanceLevel || 2) + (b.highPriorityAsset ? 1 : 0), 1, 5)
+    const condLk = b.conditionRating != null ? clampRisk(Math.ceil((11 - b.conditionRating) / 2), 1, 5) : 3
+    const strLk  = b.structuralAdequacyRating != null ? clampRisk(Math.ceil((11 - b.structuralAdequacyRating) / 2), 1, 5) : condLk
+    const likelihood = (override && b.riskLikelihood) ? b.riskLikelihood : Math.max(condLk, strLk)
+    const score = consequence * likelihood * 4 // 4..100
+    const band = RISK_BANDS.find(x => score >= x.min) || RISK_BANDS[RISK_BANDS.length - 1]
+    return { consequence, likelihood, score, priority: band.name }
+  }
+
   const bridgeIdFor = (ID, state) => {
     const stateMap = { NSW:'NSW', VIC:'VIC', QLD:'QLD', WA:'WA', SA:'SA', TAS:'TAS', ACT:'ACT', NT:'NT' }
     const stateCode = stateMap[state] || 'AUS'
@@ -346,6 +369,36 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   }
 
   this.before('SAVE', Bridges, req => validateEntityFields('Bridges', req))
+
+  // Compute risk score/priority on every bridge save (Phase 2).
+  this.before('SAVE', Bridges, (req) => {
+    const r = deriveRisk(req.data)
+    req.data.riskConsequence = r.consequence
+    req.data.riskLikelihood  = r.likelihood
+    req.data.riskScore       = r.score
+    req.data.riskPriority    = r.priority
+    req.data.riskAssessedAt  = new Date().toISOString()
+    req.data.riskAssessedBy  = req.user?.id || 'system'
+  })
+
+  // Backfill / refresh risk for all bridges (admin action).
+  this.on('recalcRisk', async (req) => {
+    const db = await cds.connect.to('db')
+    const bridges = await db.run(SELECT.from('bridge.management.Bridges')
+      .columns('ID', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
+               'structuralAdequacyRating', 'riskOverride', 'riskConsequence', 'riskLikelihood'))
+    let n = 0
+    for (const b of bridges) {
+      const r = deriveRisk(b)
+      await db.run(UPDATE('bridge.management.Bridges').set({
+        riskConsequence: r.consequence, riskLikelihood: r.likelihood,
+        riskScore: r.score, riskPriority: r.priority,
+        riskAssessedAt: new Date().toISOString(), riskAssessedBy: req.user?.id || 'system'
+      }).where({ ID: b.ID }))
+      n++
+    }
+    return `Recalculated risk for ${n} bridges.`
+  })
   const TYPE_UNIT_MAP = {
     'Speed Restriction': ['km/h'],
     'Mass Limit':        ['t'],

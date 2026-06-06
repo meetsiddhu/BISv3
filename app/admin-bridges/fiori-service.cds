@@ -1388,3 +1388,151 @@ annotate AdminService.EAMCodeMapping with {
 
 annotate bridge.management.AttributeGroups with @fiori.draft.enabled;
 annotate AdminService.AttributeGroups with @odata.draft.enabled;
+
+////////////////////////////////////////////////////////////////////////////
+//  Bridge Risk Report — Fiori Elements List Report (ALV, read-only) — Phase 2
+////////////////////////////////////////////////////////////////////////////
+annotate AdminService.BridgeRiskReport with @(
+  Capabilities.InsertRestrictions: { Insertable: false },
+  Capabilities.UpdateRestrictions: { Updatable: false },
+  Capabilities.DeleteRestrictions: { Deletable: false },
+  UI.HeaderInfo: { TypeName: 'Bridge Risk', TypeNamePlural: 'Bridge Risk', Title: { Value: bridgeName }, Description: { Value: riskPriority } },
+  UI.SelectionFields: [ transportMode, network, state, assetClass, riskPriority ],
+  UI.LineItem: [
+    { Value: bridgeId,                 Label: 'Bridge ID' },
+    { Value: bridgeName,               Label: 'Bridge' },
+    { Value: transportMode,            Label: 'Mode' },
+    { Value: network,                  Label: 'Network' },
+    { Value: assetClass,               Label: 'Asset Class' },
+    { Value: riskPriority,             Label: 'Risk Priority', Criticality: riskCriticality },
+    { Value: riskScore,                Label: 'Risk Score' },
+    { Value: riskConsequence,          Label: 'Consequence' },
+    { Value: riskLikelihood,           Label: 'Likelihood' },
+    { Value: conditionRating,          Label: 'Condition' },
+    { Value: structuralAdequacyRating, Label: 'Structural' },
+    { Value: importanceLevel,          Label: 'Importance' },
+    { Value: lastInspectionDate,       Label: 'Last Inspected' }
+  ]
+);
+annotate AdminService.BridgeRiskReport with {
+  ID @UI.Hidden;
+  bridgeId @title:'Bridge ID'; bridgeName @title:'Bridge'; transportMode @title:'Mode';
+  network @title:'Network'; assetClass @title:'Asset Class'; riskPriority @title:'Risk Priority';
+  riskScore @title:'Risk Score'; riskConsequence @title:'Consequence'; riskLikelihood @title:'Likelihood';
+  conditionRating @title:'Condition'; structuralAdequacyRating @title:'Structural'; importanceLevel @title:'Importance';
+};
+
+////////////////////////////////////////////////////////////////////////////
+//  Network Restrictions Report — ALV List Report + Analytical List Page — Phase 3
+////////////////////////////////////////////////////////////////////////////
+annotate AdminService.NetworkRestrictionReport with @(
+  Capabilities.InsertRestrictions: { Insertable: false },
+  Capabilities.UpdateRestrictions: { Updatable: false },
+  Capabilities.DeleteRestrictions: { Deletable: false },
+  UI.HeaderInfo: { TypeName: 'Network Restriction', TypeNamePlural: 'Network Restrictions', Title: { Value: bridgeName }, Description: { Value: restrictionType } },
+  UI.SelectionFields: [ transportMode, network, restrictionType, restrictionSeverity, restrictionStatus, riskPriority, state ],
+  UI.LineItem: [
+    { Value: bridgeName,          Label: 'Bridge' },
+    { Value: bridgeId,            Label: 'Bridge ID' },
+    { Value: transportMode,       Label: 'Mode' },
+    { Value: network,             Label: 'Network' },
+    { Value: restrictionType,     Label: 'Type' },
+    { Value: restrictionValue,    Label: 'Value' },
+    { Value: restrictionUnit,     Label: 'Unit' },
+    { Value: laneAvailability,    Label: 'Lane Availability' },
+    { Value: restrictionSeverity, Label: 'Severity' },
+    { Value: riskPriority,        Label: 'Bridge Risk' },
+    { Value: restrictionStatus,   Label: 'Status' },
+    { Value: state,               Label: 'State' },
+    { Value: issuingAuthority,    Label: 'Authority' }
+  ],
+  UI.Chart #restrChart: {
+    ChartType: #Column,
+    Dimensions: [ transportMode ],
+    DynamicMeasures: [ '@Analytics.AggregatedProperty#restrCount' ],
+    Title: 'Restrictions by Mode'
+  },
+  UI.PresentationVariant #restrPV: {
+    Visualizations: [ '@UI.Chart#restrChart', '@UI.LineItem' ]
+  },
+  Aggregation.ApplySupported: {
+    Transformations: [ 'aggregate', 'groupby', 'filter' ],
+    GroupableProperties: [ transportMode, network, restrictionType, restrictionSeverity, restrictionStatus, riskPriority, state ],
+    AggregatableProperties: [ { Property: ID } ]
+  },
+  Analytics.AggregatedProperty #restrCount: {
+    Name: 'restrCount', AggregationMethod: 'countdistinct', AggregatableProperty: ID, ![@Common.Label]: 'Restrictions'
+  }
+);
+annotate AdminService.NetworkRestrictionReport with {
+  ID @UI.Hidden;
+  bridgeName @title:'Bridge'; bridgeId @title:'Bridge ID'; transportMode @title:'Mode'; network @title:'Network';
+  restrictionType @title:'Type'; restrictionValue @title:'Value'; restrictionUnit @title:'Unit';
+  laneAvailability @title:'Lane Availability'; restrictionSeverity @title:'Severity'; riskPriority @title:'Bridge Risk';
+  restrictionStatus @title:'Status'; state @title:'State'; issuingAuthority @title:'Authority';
+};
+
+////////////////////////////////////////////////////////////////////////////
+//  Asset Class Strategy — Fiori Elements (draft CRUD) — Phase 4
+////////////////////////////////////////////////////////////////////////////
+annotate bridge.management.AssetClassStrategy with @fiori.draft.enabled;
+annotate AdminService.AssetClassStrategy with @odata.draft.enabled;
+annotate AdminService.AssetClassStrategy with @(
+  UI.HeaderInfo: { TypeName: 'Asset Class Strategy', TypeNamePlural: 'Asset Class Strategies', Title: { Value: name }, Description: { Value: assetClass } },
+  UI.SelectionFields: [ assetClass, transportMode, active ],
+  UI.LineItem: [
+    { Value: name,                     Label: 'Strategy' },
+    { Value: assetClass,               Label: 'Asset Class' },
+    { Value: transportMode,            Label: 'Mode' },
+    { Value: inspectionIntervalMonths, Label: 'Inspection (mo)' },
+    { Value: targetConditionRating,    Label: 'Target Condition' },
+    { Value: interventionThreshold,    Label: 'Intervention At' },
+    { Value: active,                   Label: 'Active' }
+  ],
+  UI.Facets: [ { $Type:'UI.ReferenceFacet', ID:'ACSMain', Label:'Strategy', Target:'@UI.FieldGroup#ACSMain' } ],
+  UI.FieldGroup #ACSMain: { Data: [
+    { Value: name }, { Value: assetClass }, { Value: transportMode },
+    { Value: inspectionIntervalMonths }, { Value: targetConditionRating },
+    { Value: interventionThreshold }, { Value: reviewCycleMonths },
+    { Value: description }, { Value: active }
+  ]}
+);
+annotate AdminService.AssetClassStrategy with {
+  ID @UI.Hidden;
+  name @Common.FieldControl:#Mandatory @title:'Strategy Name';
+  assetClass @title:'Asset Class';
+  transportMode @(Common.ValueListWithFixedValues, Common.ValueList:{ CollectionPath:'TransportModes', Parameters:[
+    {$Type:'Common.ValueListParameterOut', LocalDataProperty:transportMode, ValueListProperty:'code'},
+    {$Type:'Common.ValueListParameterDisplayOnly', ValueListProperty:'name'} ]}) @title:'Transport Mode';
+  inspectionIntervalMonths @title:'Inspection Interval (months)';
+  targetConditionRating @title:'Target Condition (1-10)';
+  interventionThreshold @title:'Intervention Threshold (1-10)';
+  reviewCycleMonths @title:'Review Cycle (months)';
+  description @UI.MultiLineText @title:'Description';
+  active @title:'Active';
+};
+
+////////////////////////////////////////////////////////////////////////////
+//  Risk Config & Risk Bands — Fiori Elements list (admin-tunable) — Phase 4
+////////////////////////////////////////////////////////////////////////////
+annotate AdminService.RiskConfig with @(
+  UI.HeaderInfo: { TypeName:'Risk Factor', TypeNamePlural:'Risk Factors', Title:{Value:name}, Description:{Value:factor} },
+  UI.LineItem: [
+    { Value: factor, Label:'Factor' }, { Value: name, Label:'Name' },
+    { Value: weight, Label:'Weight' }, { Value: active, Label:'Active' }
+  ],
+  UI.Facets: [ { $Type:'UI.ReferenceFacet', ID:'RCMain', Label:'Factor', Target:'@UI.FieldGroup#RCMain' } ],
+  UI.FieldGroup #RCMain: { Data: [ {Value:factor},{Value:name},{Value:weight},{Value:active} ] }
+);
+annotate AdminService.RiskConfig with { factor @title:'Factor'; name @title:'Name'; weight @title:'Weight'; active @title:'Active'; };
+
+annotate AdminService.RiskBand with @(
+  UI.HeaderInfo: { TypeName:'Risk Band', TypeNamePlural:'Risk Bands', Title:{Value:name}, Description:{Value:code} },
+  UI.LineItem: [
+    { Value: sortOrder, Label:'Order' }, { Value: name, Label:'Band' },
+    { Value: minScore, Label:'Min Score' }, { Value: maxScore, Label:'Max Score' }, { Value: colour, Label:'Colour' }
+  ],
+  UI.Facets: [ { $Type:'UI.ReferenceFacet', ID:'RBMain', Label:'Band', Target:'@UI.FieldGroup#RBMain' } ],
+  UI.FieldGroup #RBMain: { Data: [ {Value:code},{Value:name},{Value:minScore},{Value:maxScore},{Value:colour},{Value:sortOrder} ] }
+);
+annotate AdminService.RiskBand with { code @title:'Code'; name @title:'Band'; minScore @title:'Min Score'; maxScore @title:'Max Score'; colour @title:'Colour'; sortOrder @title:'Order'; };

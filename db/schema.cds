@@ -31,6 +31,16 @@ entity Bridges : managed {
       network         : String(80);                  // owning network (-> Networks lookup)
       networkOperator : String(111);                 // network operator / authority
       corridor        : String(111);                 // freight / passenger corridor grouping
+      // ── Risk prioritisation (Phase 2/4) — additive ──
+      riskConsequence    : Integer @assert.range: [1, 5];  // 1-5 (manual when overridden, else derived)
+      riskLikelihood     : Integer @assert.range: [1, 5];  // 1-5
+      riskScore          : Decimal(6,2);                   // 0-100
+      riskPriority       : String(20);                     // Very High | High | Medium | Low (-> RiskBand)
+      riskOverride       : Boolean default false;          // engineer override of derived score
+      riskOverrideReason : String(255);
+      riskAssessedAt     : Timestamp;
+      riskAssessedBy     : String(111);
+      assetClassStrategy : Association to AssetClassStrategy;  // governing strategy
       latitude     : Decimal(15,6) @assert.range: [-90, 90];
       longitude    : Decimal(15,6) @assert.range: [-180, 180];
       location     : String(255);
@@ -331,6 +341,35 @@ entity RestrictionSeverities {
   descr     : String(255);
   sortOrder : Integer default 0;
   isActive  : Boolean default true;
+}
+
+// ── Risk & Asset-Class Strategy governance (Phase 4) ──
+entity AssetClassStrategy : cuid, managed {
+  assetClass               : String(40);   // -> AssetClasses
+  transportMode            : String(40);   // strategy may differ per mode
+  name                     : String(111);
+  inspectionIntervalMonths : Integer;
+  targetConditionRating    : Integer @assert.range: [1, 10];
+  interventionThreshold    : Integer @assert.range: [1, 10];  // condition at/below which action triggers
+  reviewCycleMonths        : Integer;
+  description              : LargeString;
+  active                   : Boolean default true;
+}
+
+entity RiskConfig {
+  key factor : String(40);   // consequence | likelihood weighting factor key
+  name       : String(111);
+  weight     : Decimal(5,2) default 1;
+  active     : Boolean default true;
+}
+
+entity RiskBand {
+  key code  : String(20);    // VeryHigh | High | Medium | Low
+  name      : String(40);    // display band name
+  minScore  : Decimal(6,2);
+  maxScore  : Decimal(6,2);
+  colour    : String(20);    // semantic colour for charts
+  sortOrder : Integer default 0;
 }
 
 entity States : sap.common.CodeList {

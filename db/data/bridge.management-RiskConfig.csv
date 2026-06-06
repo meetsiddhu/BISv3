@@ -1,0 +1,6 @@
+factor,name,weight,active
+likelihood_condition,Condition rating drives likelihood,1,true
+likelihood_structural,Structural adequacy drives likelihood,1,true
+consequence_importance,Importance level drives consequence,1,true
+consequence_traffic,Traffic volume contributes to consequence,0.5,true
+consequence_priority,High-priority asset raises consequence,1,true

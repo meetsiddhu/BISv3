@@ -1,0 +1,5 @@
+code,name,minScore,maxScore,colour,sortOrder
+VeryHigh,Very High,60,100,#BB0000,1
+High,High,36,59.99,#E76500,2
+Medium,Medium,16,35.99,#E9730C,3
+Low,Low,0,15.99,#107E3E,4

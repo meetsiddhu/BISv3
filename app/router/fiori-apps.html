@@ -8,9 +8,7 @@
   <title>Bridge Management System (BMS)</title>
 
   <script>
-    // BMS sandbox config is INLINED (not fetched) so the launchpad never depends on a
-    // runtime XHR that can return the XSUAA login page and break JSON.parse (see
-    // test/UAT_BMS_Fix_List P1-000). Regenerated from srv/launchpad.js buildSandboxConfig(true).
+    // BMS sandbox config INLINED (regenerated from srv/launchpad.js buildSandboxConfig(true)).
     (function () {
       var tileConfig = {
   "services": {
@@ -172,6 +170,75 @@
                     "subtitle": "SAP EAM Value Mapping",
                     "icon": "sap-icon://chain-link",
                     "targetURL": "#EAMMapping-manage&/EAMCodeMapping"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "bms.group.risk",
+              "title": "RISK & MULTI-MODAL",
+              "isPreset": true,
+              "isVisible": true,
+              "isGroupLocked": false,
+              "tiles": [
+                {
+                  "id": "BridgeRisk",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Bridge Risk",
+                    "subtitle": "Risk-Prioritised Worklist",
+                    "icon": "sap-icon://warning2",
+                    "targetURL": "#BridgeRisk-display&/BridgeRiskReport"
+                  }
+                },
+                {
+                  "id": "NetworkRestrictions",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Network Restrictions",
+                    "subtitle": "All Modes & Networks (ALV)",
+                    "icon": "sap-icon://table-view",
+                    "targetURL": "#NetworkRestrictions-manage&/NetworkRestrictionReport"
+                  }
+                },
+                {
+                  "id": "RestrictionsDashboard",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Restrictions Dashboard",
+                    "subtitle": "Multi-Mode Analytics (ALP)",
+                    "icon": "sap-icon://bar-chart",
+                    "targetURL": "#RestrictionsDashboard-display&/RestrictionsDashboard"
+                  }
+                },
+                {
+                  "id": "AssetStrategy",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Asset Class Strategy",
+                    "subtitle": "Inspection & Intervention",
+                    "icon": "sap-icon://example",
+                    "targetURL": "#AssetStrategy-manage&/AssetClassStrategy"
+                  }
+                },
+                {
+                  "id": "RiskBands",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Risk Bands",
+                    "subtitle": "Score Band Thresholds",
+                    "icon": "sap-icon://measurement-document",
+                    "targetURL": "#RiskBands-manage&/RiskBand"
+                  }
+                },
+                {
+                  "id": "RiskFactors",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Risk Factors",
+                    "subtitle": "Scoring Weightings",
+                    "icon": "sap-icon://settings",
+                    "targetURL": "#RiskFactors-manage&/RiskConfig"
                   }
                 }
               ]
@@ -370,6 +437,90 @@
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
                 "url": "/BridgeManagementadminbridges"
               }
+            },
+            "BridgeRisk-display": {
+              "semanticObject": "BridgeRisk",
+              "action": "display",
+              "title": "Bridge Risk",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "NetworkRestrictions-manage": {
+              "semanticObject": "NetworkRestrictions",
+              "action": "manage",
+              "title": "Network Restrictions",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "RestrictionsDashboard-display": {
+              "semanticObject": "RestrictionsDashboard",
+              "action": "display",
+              "title": "Restrictions Dashboard",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "AssetStrategy-manage": {
+              "semanticObject": "AssetStrategy",
+              "action": "manage",
+              "title": "Asset Class Strategy",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "RiskBands-manage": {
+              "semanticObject": "RiskBands",
+              "action": "manage",
+              "title": "Risk Bands",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "RiskFactors-manage": {
+              "semanticObject": "RiskFactors",
+              "action": "manage",
+              "title": "Risk Factors",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
             }
           }
         }
@@ -378,75 +529,48 @@
   }
 };
       window['sap-ushell-config'] = Object.assign(
-        {
-          defaultRenderer: 'fiori2',
-          bootstrapConfig: { mergeApplications: false, mergeCatalogs: false },
-          renderers: {
-            fiori2: {
-              componentData: {
-                config: { enableSearch: false }
-              }
-            }
-          }
-        },
+        { defaultRenderer: 'fiori2', bootstrapConfig: { mergeApplications: false, mergeCatalogs: false },
+          renderers: { fiori2: { componentData: { config: { enableSearch: false } } } } },
         tileConfig
       )
     })()
   </script>
 
-  <script
-    id="sap-ushell-bootstrap"
-    src="https://ui5.sap.com/test-resources/sap/ushell/bootstrap/sandbox.js">
-  </script>
-
-  <script
-    id="sap-ui-bootstrap"
-    src="https://ui5.sap.com/resources/sap-ui-core.js"
+  <script id="sap-ushell-bootstrap" src="https://ui5.sap.com/test-resources/sap/ushell/bootstrap/sandbox.js"></script>
+  <script id="sap-ui-bootstrap" src="https://ui5.sap.com/resources/sap-ui-core.js"
     data-sap-ui-libs="sap.m,sap.ushell,sap.collaboration,sap.ui.layout"
-    data-sap-ui-compatVersion="edge"
-    data-sap-ui-theme="sap_horizon"
-    data-sap-ui-async="true">
-  </script>
+    data-sap-ui-compatVersion="edge" data-sap-ui-theme="sap_horizon" data-sap-ui-async="true"></script>
 
   <script>
     sap.ui.getCore().attachInit(function () {
-      sap.ushell.Container
-        .createRenderer('fiori2', true)
-        .then(function (renderer) { renderer.placeAt('content') })
-
+      sap.ushell.Container.createRenderer('fiori2', true).then(function (r) { r.placeAt('content') })
       function titleForHash() {
-        var hash = window.location.hash || ''
-        if (hash.indexOf('/BridgeInspections') !== -1 || hash.indexOf('BridgeInspections-manage') !== -1) return 'Inspections'
-        if (hash.indexOf('/BridgeDefects') !== -1 || hash.indexOf('BridgeDefects-manage') !== -1) return 'Defects'
-        if (hash.indexOf('/BridgeCapacities') !== -1 || hash.indexOf('BridgeCapacities-manage') !== -1) return 'Bridge Capacity'
-        if (hash.indexOf('ChangeDocuments') !== -1) return 'Change Documents'
-        if (hash.indexOf('AttributeClasses') !== -1 || hash.indexOf('/AttributeGroups') !== -1) return 'Attribute Classes'
-        if (hash.indexOf('EAMMapping') !== -1 || hash.indexOf('/EAMCodeMapping') !== -1) return 'EAM Code Mapping'
+        var h = window.location.hash || ''
+        if (h.indexOf('BridgeInspections') !== -1) return 'Inspections'
+        if (h.indexOf('BridgeDefects') !== -1) return 'Defects'
+        if (h.indexOf('BridgeCapacities') !== -1) return 'Bridge Capacity'
+        if (h.indexOf('ChangeDocuments') !== -1) return 'Change Documents'
+        if (h.indexOf('AttributeClasses') !== -1 || h.indexOf('/AttributeGroups') !== -1) return 'Attribute Classes'
+        if (h.indexOf('EAMMapping') !== -1) return 'EAM Code Mapping'
+        if (h.indexOf('BridgeRisk') !== -1) return 'Bridge Risk'
+        if (h.indexOf('RestrictionsDashboard') !== -1) return 'Restrictions Dashboard'
+        if (h.indexOf('NetworkRestrictions') !== -1) return 'Network Restrictions'
+        if (h.indexOf('AssetStrategy') !== -1) return 'Asset Class Strategy'
+        if (h.indexOf('RiskBands') !== -1) return 'Risk Bands'
+        if (h.indexOf('RiskFactors') !== -1) return 'Risk Factors'
         return 'Bridge Asset Registry'
       }
-
       function updateTitle() {
-        var title = titleForHash()
-        document.title = title
+        var t = titleForHash(); document.title = t
         if (sap.ushell && sap.ushell.Container) {
-          sap.ushell.Container.getServiceAsync('ShellUIService').then(function (service) {
-            if (service && service.setTitle) service.setTitle(title)
-          }).catch(function () {})
+          sap.ushell.Container.getServiceAsync('ShellUIService').then(function (s) { if (s && s.setTitle) s.setTitle(t) }).catch(function () {})
         }
-        var appTitleButton = document.getElementById('shellAppTitle-button')
-        if (appTitleButton && appTitleButton.innerText !== title) {
-          appTitleButton.innerText = title
-          appTitleButton.title = 'Navigation menu'
-          appTitleButton.setAttribute('aria-label', title)
-        }
+        var b = document.getElementById('shellAppTitle-button')
+        if (b && b.innerText !== t) { b.innerText = t; b.title = 'Navigation menu'; b.setAttribute('aria-label', t) }
       }
-
-      window.addEventListener('hashchange', updateTitle)
-      setInterval(updateTitle, 500)
+      window.addEventListener('hashchange', updateTitle); setInterval(updateTitle, 500)
     })
   </script>
 </head>
-
 <body class="sapUiBody" id="content"></body>
-
 </html>
