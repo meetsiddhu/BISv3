@@ -67,6 +67,7 @@ annotate AdminService.Bridges with @(
         Facets: [
           {$Type: 'UI.ReferenceFacet', Label: 'Asset Identity',     Target: '@UI.FieldGroup#AssetIdentity'},
           {$Type: 'UI.ReferenceFacet', Label: 'Mode & Network',     Target: '@UI.FieldGroup#ModeNetwork'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Risk & Strategy',    Target: '@UI.FieldGroup#RiskAssessment'},
           {$Type: 'UI.ReferenceFacet', Label: 'Geographic Location', Target: '@UI.FieldGroup#GeoLocation'},
           {$Type: 'UI.ReferenceFacet', Label: 'Ownership',           Target: '@UI.FieldGroup#Ownership'},
         ]
@@ -124,6 +125,17 @@ annotate AdminService.Bridges with @(
         {Value: network},
         {Value: networkOperator},
         {Value: corridor},
+      ]
+    },
+    FieldGroup#RiskAssessment: {
+      Data: [
+        {Value: riskPriority,       Label: 'Risk Priority'},
+        {Value: riskScore,          Label: 'Risk Score'},
+        {Value: riskOverride,       Label: 'Engineer Override'},
+        {Value: riskConsequence,    Label: 'Consequence (1-5)'},
+        {Value: riskLikelihood,     Label: 'Likelihood (1-5)'},
+        {Value: riskOverrideReason, Label: 'Override Justification'},
+        {Value: assetClassStrategy_ID, Label: 'Asset Class Strategy'},
       ]
     },
     FieldGroup#GeoLocation: {
@@ -341,6 +353,21 @@ annotate AdminService.Bridges with {
   secondaryModes  @title: 'Secondary Modes';
   networkOperator @title: 'Network Operator';
   corridor        @title: 'Corridor';
+  // Risk: score/priority are computed on save; consequence/likelihood/override are editable.
+  riskScore          @Common.FieldControl: #ReadOnly @title: 'Risk Score';
+  riskPriority       @Common.FieldControl: #ReadOnly @title: 'Risk Priority';
+  riskOverride       @title: 'Engineer Override';
+  riskConsequence    @title: 'Consequence (1-5)';
+  riskLikelihood     @title: 'Likelihood (1-5)';
+  riskOverrideReason @UI.MultiLineText @title: 'Override Justification';
+  assetClassStrategy @(
+    Common.Text: assetClassStrategy.name, Common.TextArrangement: #TextOnly,
+    Common.ValueList: { CollectionPath: 'AssetClassStrategy', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: assetClassStrategy_ID, ValueListProperty: 'ID' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'transportMode' }
+    ]}
+  ) @title: 'Asset Class Strategy';
   region @(
     Common.ValueListWithFixedValues,
     Common.ValueList: { SearchSupported: true, CollectionPath: 'Regions', Parameters: [
@@ -1449,7 +1476,8 @@ annotate AdminService.NetworkRestrictionReport with @(
   UI.Chart: {
     ChartType: #Column,
     Dimensions: [ transportMode ],
-    DynamicMeasures: [ '@Analytics.AggregatedProperty#restrCount' ],
+    Measures: [ restrUnit ],
+    MeasureAttributes: [ { $Type: 'UI.ChartMeasureAttributeType', Measure: restrUnit, Role: #Axis1 } ],
     Title: 'Restrictions by Mode'
   },
   UI.PresentationVariant: {
@@ -1462,12 +1490,12 @@ annotate AdminService.NetworkRestrictionReport with @(
   Aggregation.ApplySupported: {
     Transformations: [ 'aggregate', 'groupby', 'filter' ],
     GroupableProperties: [ transportMode, network, restrictionType, restrictionSeverity, restrictionStatus, riskPriority, state ],
-    AggregatableProperties: [ { Property: ID } ]
-  },
-  Analytics.AggregatedProperty #restrCount: {
-    Name: 'restrCount', AggregationMethod: 'countdistinct', AggregatableProperty: ID, ![@Common.Label]: 'Restrictions'
+    AggregatableProperties: [ { Property: restrUnit } ]
   }
 );
+annotate AdminService.NetworkRestrictionReport with {
+  restrUnit @Analytics.Measure @Aggregation.default: #SUM @title: 'Restrictions' @UI.Hidden;
+};
 annotate AdminService.NetworkRestrictionReport with {
   ID @UI.Hidden;
   bridgeName @title:'Bridge'; bridgeId @title:'Bridge ID'; transportMode @title:'Mode'; network @title:'Network';

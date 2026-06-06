@@ -333,7 +333,8 @@ service AdminService {
           issuingAuthority,
           effectiveFrom,
           effectiveTo,
-          active
+          active,
+          1 as restrUnit : Integer   // SUM(restrUnit) = restriction count, for the ALP chart measure
     };
 
   // ── Bridge Risk report (ALV) — Phase 2 ──
