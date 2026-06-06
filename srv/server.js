@@ -1997,7 +1997,56 @@ cds.on('bootstrap', (app) => {
       if (to)   query = query.where('changedAt <=', new Date(to + 'T23:59:59Z').toISOString())
 
       const rows = await db.run(query)
-      res.json({ changes: rows || [] })
+
+      // Merge configurable-attribute value changes (AttributeValueHistory) so custom
+      // attributes appear in the change-log report alongside standard field changes.
+      // AttributeValueHistory uses lowercase object types ('bridge') and the same
+      // numeric objectId as ChangeLog, so rows group under the same object.
+      const ATTR_TYPE = { Bridge: 'bridge', Restriction: 'restriction' }
+      const attrObjectType = objectType ? ATTR_TYPE[objectType] : null
+      const wantAttr = !batchId && (!source || ['manual', 'import', 'api'].indexOf(source) !== -1) && (!objectType || !!attrObjectType)
+      let attrRows = []
+      if (wantAttr) {
+        let aq = SELECT.from('bridge.management.AttributeValueHistory').orderBy('changedAt desc').limit(maxRows)
+        if (attrObjectType) aq = aq.where({ objectType: attrObjectType })
+        if (objectId)  aq = aq.where({ objectId: String(objectId) })
+        if (changedBy) aq = aq.where({ changedBy })
+        if (from) aq = aq.where('changedAt >=', new Date(from).toISOString())
+        if (to)   aq = aq.where('changedAt <=', new Date(to + 'T23:59:59Z').toISOString())
+        const hist = await db.run(aq)
+        if (hist && hist.length) {
+          const defs = await db.run(SELECT.from('bridge.management.AttributeDefinitions').columns('internalKey', 'name', 'objectType'))
+          const labelByKey = {}
+          defs.forEach(d => { labelByKey[d.objectType + '|' + d.internalKey] = d.name })
+          const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
+          const coalesce = (h, p) => {
+            const v = (h[p + 'Text'] != null ? h[p + 'Text']
+              : h[p + 'Integer'] != null ? h[p + 'Integer']
+              : h[p + 'Decimal'] != null ? h[p + 'Decimal']
+              : h[p + 'Date'] != null ? h[p + 'Date']
+              : h[p + 'Boolean'])
+            return v == null ? null : String(v)
+          }
+          attrRows = hist.map(h => ({
+            ID: h.historyId,
+            changedAt: h.changedAt,
+            changedBy: h.changedBy,
+            objectType: cap(h.objectType),
+            objectId: h.objectId,
+            objectName: h.objectId,
+            fieldName: (labelByKey[h.objectType + '|' + h.attributeKey] || h.attributeKey) + '  (attribute)',
+            oldValue: coalesce(h, 'oldValue'),
+            newValue: coalesce(h, 'newValue'),
+            changeSource: h.changeSource || 'attribute',
+            batchId: null
+          }))
+        }
+      }
+
+      const merged = (rows || []).concat(attrRows)
+        .sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt))
+        .slice(0, maxRows)
+      res.json({ changes: merged })
     } catch (error) {
       res.status(500).json({ error: { message: error.message || 'Failed to load change log' } })
     }

@@ -66,9 +66,18 @@ sap.ui.define([], function () {
       createConfig: function (data) { return post(A + "/AttributeObjectTypeConfig", data); },
       updateConfig: function (id, data) { return patch(A + "/AttributeObjectTypeConfig('" + id + "')", data); },
 
-      // ── Bulk template ────────────────────────────────────────────────────
+      // ── Bulk template + import (mass create / maintain values) ─────────────
       templateUrl: function (objectType) {
         return X + "/template?objectType=" + encodeURIComponent(objectType) + "&format=xlsx";
+      },
+      // Upload a filled template to bulk create/update attribute values.
+      // mode: 'all' (abort on any error) | 'skip' (import valid rows, skip errors).
+      importValues: function (objectType, fileName, contentBase64, mode) {
+        return fetch(X + "/import?objectType=" + encodeURIComponent(objectType), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-csrf-token": "bms-import" },
+          body: JSON.stringify({ fileName: fileName, contentBase64: contentBase64, mode: mode || "skip" })
+        }).then(handle);
       }
     };
   };

@@ -172,6 +172,45 @@ sap.ui.define([
       window.open(this._svc.templateUrl(this._objectType), "_blank");
     },
 
+    // Mass create / maintain attribute values: upload a filled template.
+    onImportValues: function () {
+      var self = this;
+      var input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".xlsx,.csv";
+      input.onchange = function () {
+        var file = input.files && input.files[0];
+        if (!file) { return; }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var base64 = String(reader.result).split(",")[1] || "";
+          self._busy(true);
+          self._svc.importValues(self._objectType, file.name, base64, "skip")
+            .then(function (result) { self._busy(false); self._showImportResult(result); })
+            .catch(function (e) { self._busy(false); MessageBox.error("Import failed: " + e.message); });
+        };
+        reader.onerror = function () { MessageBox.error("Could not read the selected file."); };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    },
+
+    _showImportResult: function (r) {
+      r = r || {};
+      var created = r.created || 0, updated = r.updated || 0, skipped = r.skipped || 0;
+      var errors = r.errors || [];
+      var msg = "Created: " + created + "\nUpdated: " + updated + "\nSkipped: " + skipped;
+      if (errors.length) {
+        msg += "\n\nIssues (" + errors.length + "):\n" + errors.slice(0, 10).map(function (e) {
+          return "• " + (e && e.row != null ? "Row " + e.row + ": " : "") + ((e && e.message) || e);
+        }).join("\n");
+        if (errors.length > 10) { msg += "\n… and " + (errors.length - 10) + " more."; }
+        MessageBox.warning(msg, { title: "Import completed with issues" });
+      } else {
+        MessageBox.success(msg, { title: "Import complete" });
+      }
+    },
+
     // ── Group CRUD ─────────────────────────────────────────────────────────
     onAddGroup: function () {
       var self = this;

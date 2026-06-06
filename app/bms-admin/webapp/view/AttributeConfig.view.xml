@@ -17,7 +17,8 @@
         <f:snappedHeading><Title text="Attribute Configuration" level="H2"/></f:snappedHeading>
         <f:actions>
           <SegmentedButton id="objectTypeSelector" selectionChange=".onObjectTypeChange"/>
-          <Button text="Template" icon="sap-icon://download" press=".onExportTemplate" type="Transparent" tooltip="Download an Excel upload template for the selected object type"/>
+          <Button text="Template" icon="sap-icon://download" press=".onExportTemplate" type="Transparent" tooltip="Download an Excel template for bulk value entry"/>
+          <Button text="Import" icon="sap-icon://upload" press=".onImportValues" type="Transparent" tooltip="Bulk create/update attribute values from a filled template"/>
           <Button icon="sap-icon://sys-help" tooltip="How to use Attribute Configuration" press=".onShowHelp" type="Transparent"/>
         </f:actions>
       </f:DynamicPageTitle>
