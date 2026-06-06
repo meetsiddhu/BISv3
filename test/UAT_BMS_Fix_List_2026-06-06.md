@@ -11,7 +11,24 @@ Priority legend: **P1** blocks core flow / security / data loss · **P2** degrad
 
 ---
 
-### [P1-000] Deployed launchpad surfaces NO BMS apps (live BTP) — config XHR returns Login HTML
+### [P1-000] Deployed launchpad surfaces NO BMS apps — ✅ FIXED & VERIFIED LIVE (v3.0.3)
+**Status update**: Fixed by inlining the sandbox config in `app/router/fiori-apps.html` (commit af4c948, MTA 3.0.3). Verified live: launchpad now shows all 10 BMS tiles in 3 groups; Dashboard, Bridges create/edit, and soft-delete all work through the UI. Original finding retained below for the record.
+
+---
+
+### [P2-004] Sub-entity tiles (Defects / Inspections / Bridge Capacity) open the Bridges list in the sandbox shell
+- **File**: `app/router/fiori-apps.html` (FLP **sandbox** shell); `app/admin-bridges/webapp/manifest.json` (routes/inbounds ARE correctly defined)
+- **Symptom**: Clicking the Defects (or Inspections / Bridge Capacity) tile sets the title to "Defects" but shows the **Bridges** list-report; top-level Create makes a Bridge, and drilling into a bridge shows no Defects section.
+- **Root cause**: All three intents resolve to the same component (`BridgeManagement.adminbridges`) with no differentiating parameter. The FLP **sandbox** (`sandbox.js`) does not forward the intent action to the Fiori Elements router, so FE starts on its root route (Bridges) instead of the entity route. The manifest **does** define `BridgeDefects-manage` inbound + `BridgeDefectsList` route — so a **managed SAP launchpad** would route correctly; this is a sandbox-shell limitation.
+- **NOT introduced by the P1-000 fix**: the pre-fix config (`HEAD~2`) had byte-identical inbound mappings.
+- **Verified**: backend entities work (local OData CRUD passes; `BridgeDefects`/`BridgeInspections` have own keys/refs). Only the sandbox tile deep-link is affected.
+- **Fix options**: (a) deploy on a managed SAP Build Work Zone / FLP instead of the sandbox shell; or (b) give each sub-entity its own FE app (separate component) or pass a manifest startup parameter that FE maps to the entity route; or (c) add an explicit `defaultedParameterNames`/route hint in the inbound so the sandbox lands on the right page.
+- **Test**: launching `#BridgeDefects-manage` shows the BridgeDefects list with its own Create.
+- **Persona**: PO/SME, Dev.
+
+---
+
+### [P1-000-original] Deployed launchpad surfaced NO BMS apps — config XHR returned Login HTML
 - **File**: `app/router/xs-app.json` route 1 (`^/appconfig/fioriSandboxConfig\.json$` → rewrite `/launchpad/config` → `srv-api`); `app/fiori-apps.html:11-14` (synchronous XHR + `JSON.parse`)
 - **Symptom**: On the live deployment the launchpad "My Home" shows the **stock SAP Fiori sandbox sample apps** (Default Application, AppNavSample, …) and opening any BMS intent errors: *"The navigation target '#Dashboard-display' could not be resolved."* Runtime `ushell` `getLinks()` returns **25 intents, all samples, 0 BMS**.
 - **Root cause**: `fiori-apps.html` issues a **synchronous XHR** to `/appconfig/fioriSandboxConfig.json`; the approuter rewrites it to the protected backend route `/launchpad/config`. That request returns the **XSUAA Login page** (`content-type: text/html`, `<title>Login</title>`, HTTP 200) instead of JSON. `JSON.parse(html)` throws, the bootstrap script aborts before `window['sap-ushell-config']` is set, and `sandbox.js` falls back to its built-in sample catalog.

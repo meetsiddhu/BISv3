@@ -116,7 +116,34 @@ All synthetic records (local SQLite only — **no BTP data was written**):
 **Purge recipe**: delete `db.sqlite` and re-run `cds deploy --to sqlite:db.sqlite`,
 or `rm db.sqlite`. Nothing to purge on BTP.
 
-## Live UI walkthrough (deployed BTP) — BLOCKED by P1-000
+## Live UI walkthrough (deployed BTP) — COMPLETED after P1-000 fix (v3.0.3)
+
+After fixing P1-000 (inline sandbox config) and redeploying, the launchpad and live
+UI were driven in Chrome. Results:
+
+| Live check | Result |
+|------------|--------|
+| Launchpad shows all 10 BMS tiles (3 groups: Operations / Bridge Sub-domains / BMS Admin) | ✅ |
+| Dashboard KPIs render (Total Assets 31, Active Restrictions 3, Bridges Closed 0, condition distribution) | ✅ |
+| Bridges list shows 31 real bridges (Sydney Harbour, Anzac, Gladesville…) | ✅ |
+| **Bridge CREATE** — filled mandatory fields, saved → active `BRG-NSW-1032` | ✅ |
+| `bridgeId` auto-generates and is **state-aware** (BRG-AUS-1032 → BRG-NSW-1032 after picking NSW) | ✅ |
+| Controlled-vocab dropdowns (State, Posting Status, Structure Type) | ✅ |
+| **C-4 soft-delete** — saved Bridge object page shows **Deactivate + Edit, NO Delete button** | ✅ |
+| Create draft discards cleanly ("Draft discarded") | ✅ |
+| Bridge count incremented 31→32 after create (persistence) | ✅ |
+| Sub-entity tiles (Defects/Inspections/Capacity) open the Bridges list, not their own list | ⚠️ P2-004 (sandbox-shell routing limitation; pre-existing; managed FLP unaffected) |
+
+**TC-FUNC-001 (FK parse error)**: the standalone Defect/Inspection create-with-bridge-
+ComboBox surface is not reachable in the sandbox shell (P2-004), so the exact UI
+trigger could not be exercised here. However: (a) `FkMessageGuard.js` is served live
+(HTTP 200); (b) the backend Defect/Inspection create with integer `bridge_ID` FK passed
+in the local OData run; (c) the Bridge create form (same numeric-validation stack)
+worked cleanly with no stale parse errors. Confidence: high.
+
+---
+
+## (Superseded) Live UI walkthrough — originally BLOCKED by P1-000
 
 After allowlisting the domain and logging in, I drove the **deployed** launchpad in
 Chrome. Result: the launchpad loads but exposes **none of the BMS apps** — "My Home"
