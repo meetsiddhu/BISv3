@@ -1,6 +1,11 @@
 (function () {
     var SERVICE  = "/odata/v4/admin";
-    var APP_PATH = "/admin-bridges/webapp";
+    // Resolve the app base URL relative to the component so Leaflet assets load both
+    // in local dev (/admin-bridges/webapp) and in the deployed HTML5 repo
+    // (/BridgeManagementadminbridges). A hardcoded path 404s in the other environment.
+    var APP_PATH = (window.sap && sap.ui && sap.ui.require && sap.ui.require.toUrl)
+        ? sap.ui.require.toUrl("BridgeManagement/adminbridges")
+        : "/admin-bridges/webapp";
     var MAP_APP  = "";  // set to "/map-view/webapp/index.html" when deployed
 
     var LEAFLET = APP_PATH + "/lib/leaflet";

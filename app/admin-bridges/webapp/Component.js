@@ -4,14 +4,23 @@ sap.ui.define([
 ], function (AppComponent) {
     "use strict";
 
-    var GIS_SCRIPT = "/admin-bridges/webapp/ext/controller/gisMapInit.js";
-    var NUMERIC_GUARD_SCRIPT = "/admin-bridges/webapp/ext/controller/NumericInputGuard.js";
-    var RESTRICTIONS_VALIDATION_SCRIPT = "/admin-bridges/webapp/ext/controller/RestrictionsValidation.js";
-    var CUSTOM_ATTRS_SCRIPT = "/admin-bridges/webapp/ext/controller/CustomAttributesInit.js";
-    var FK_MESSAGE_GUARD_SCRIPT = "/admin-bridges/webapp/ext/controller/FkMessageGuard.js";
+    // Component-relative module paths (NOT absolute). The deployed app is served from
+    // the HTML5 application repository under /BridgeManagementadminbridges/, while local
+    // dev serves it under /admin-bridges/webapp/. Hardcoding either path 404s in the
+    // other environment, which silently broke the GIS Map, Custom Attributes, numeric
+    // guards and the FK message guard in production. Resolve at runtime via
+    // sap.ui.require.toUrl so the URL is always correct for the active environment.
+    var GIS_SCRIPT = "BridgeManagement/adminbridges/ext/controller/gisMapInit.js";
+    var NUMERIC_GUARD_SCRIPT = "BridgeManagement/adminbridges/ext/controller/NumericInputGuard.js";
+    var RESTRICTIONS_VALIDATION_SCRIPT = "BridgeManagement/adminbridges/ext/controller/RestrictionsValidation.js";
+    var CUSTOM_ATTRS_SCRIPT = "BridgeManagement/adminbridges/ext/controller/CustomAttributesInit.js";
+    var FK_MESSAGE_GUARD_SCRIPT = "BridgeManagement/adminbridges/ext/controller/FkMessageGuard.js";
 
-    function loadScript(id, src) {
+    function loadScript(id, moduleName) {
         if (document.getElementById(id)) return;
+        var src = (sap.ui.require && sap.ui.require.toUrl)
+            ? sap.ui.require.toUrl(moduleName)
+            : moduleName;
         var script = document.createElement("script");
         script.id = id;
         script.src = src;
