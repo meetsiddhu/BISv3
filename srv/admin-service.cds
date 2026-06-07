@@ -14,7 +14,9 @@ service AdminService {
     *,
     virtual hasCapacity : Boolean,
     // FE_UX-1: read-only criticality so the object-page risk fields colour like the report.
-    ( case riskPriority when 'Very High' then 1 when 'High' then 1 when 'Medium' then 2 when 'Low' then 3 else 0 end ) as riskCriticality : Integer
+    // SEARCHED case (not simple `when 'literal'`): the draft engine mis-translates the
+    // simple form to invalid `when ? = true` SQL and 500s draftEdit. (Regression fix.)
+    ( case when riskPriority = 'Very High' then 1 when riskPriority = 'High' then 1 when riskPriority = 'Medium' then 2 when riskPriority = 'Low' then 3 else 0 end ) as riskCriticality : Integer
   } actions {
     action deactivate() returns Bridges;
     action reactivate() returns Bridges;

@@ -56,6 +56,11 @@ describe('bulk operations integration (OPS-T3)', () => {
     expect(res.updated).toBe(0)
   })
 
+  // Regression note: the riskCriticality calculated element on the draft-enabled Bridges
+  // projection must use a SEARCHED case (`case when riskPriority = 'High'`), not a simple
+  // `case riskPriority when 'High'`, because the CAP draft engine mis-translates the simple
+  // form to invalid `when ? = true` SQL on HANA and 500s draftEdit. Verified live on HANA.
+
   test('massEditBridges rejects an out-of-range condition rating', async () => {
     const srv = await cds.connect.to('BridgeManagementService')
     const db = await cds.connect.to('db')
