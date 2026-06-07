@@ -69,3 +69,21 @@ Fix (v3.9.7): made `riskCriticality` a **virtual element** computed in a `this.a
 handler (like `hasCapacity`), so it never enters the draft SQL. Create/edit restored;
 object-page colour retained. This is exactly the kind of HANA-vs-SQLite, draft-only defect
 that unit tests on SQLite cannot catch — found only by live UAT.
+
+---
+
+## UAT addendum — v3.9.12 (i18n/WCAG + god-file split + GIS proximity fixes)
+
+Live, post-extraction smoke test surfaced and fixed **two pre-existing GIS proximity bugs**
+(neither a regression from the extraction — clusters + GeoJSON export passed throughout):
+
+| Scenario | Before | After (v3.9.12) |
+|---|---|---|
+| `GET /map/api/proximity` | **500** `invalid column name: bridgeId` (HANA columns are UPPERCASE; SELECT used camelCase) | fixed → **200** |
+| Proximity result set | **0 rows** (fluent `.where('lat >=', v)` form returned empty on HANA) | tagged-template where → **correct** |
+| 50 km of Sydney (-33.85, 151.21) | — | **9 bridges, distance-sorted**: Sydney Harbour Bridge 0.27 km, Anzac 3.28 km, Iron Cove 5.11 km, … Windsor 45.09 km ✅ |
+| Clusters (z6 / z15) | — | clusters / points 200 ✅ (parseBbox + zoomToCellSize, now extracted + unit-tested) |
+| GeoJSON export | — | 200, `FeatureCollection`, CRS **EPSG:7844**, 32 features ✅ |
+
+Proximity search was **completely broken on HANA before this release** and is now fully
+working. Verified live against the deployed app.
