@@ -27,6 +27,10 @@ const { SELECT, INSERT, UPDATE, DELETE } = cds.ql
 // take down the whole srv instance. Log via cds.log for observability and keep the
 // process alive; CF would otherwise restart the app and drop in-flight requests.
 const _bootLog = cds.log('server')
+// ARCH-T1/T3: the background audit-write .catch handlers reference LOG; without this it
+// is undefined and a failing audit write would throw a ReferenceError, turning a
+// recoverable logging path into a silent black hole over the audit trail.
+const LOG = cds.log('bms')
 process.on('uncaughtException', (err) => {
   _bootLog.error('uncaughtException (kept alive):', err && err.stack ? err.stack : err)
 })
@@ -1533,6 +1537,22 @@ cds.on('bootstrap', (app) => {
     return res.status(401).json({ error: 'Authentication required', code: 'UNAUTHENTICATED' })
   }
 
+  // SEC-T1/T2: scope guard for custom Express mutation routers (which run before CDS
+  // XSUAA middleware, so they must check the raw JWT scope themselves). GET is allowed
+  // for any authenticated user; state-changing verbs require the named scope. In dummy
+  // (local) auth, a user's roles array is honoured.
+  const requiresScope = (scope) => (req, res, next) => {
+    if (req.method === 'GET') return next()
+    if (_isDummyAuth) {
+      const roles = req.user?.roles || []
+      const ok = roles.includes('Admin') || roles.map(r => String(r).toLowerCase()).includes(scope)
+      return ok ? next() : res.status(403).json({ error: 'Forbidden', code: 'SCOPE_REQUIRED', scope })
+    }
+    return _jwtHasScope(req.headers.authorization, scope)
+      ? next()
+      : res.status(403).json({ error: 'Forbidden', code: 'SCOPE_REQUIRED', scope })
+  }
+
   const validateCsrfToken = (req, res, next) => {
     if (req.method === 'GET' && req.headers['x-csrf-token'] === 'Fetch') {
       res.set('X-CSRF-Token', 'required')
@@ -2525,7 +2545,7 @@ cds.on('bootstrap', (app) => {
     }
   })
 
-  app.use('/admin-bridges/api', requiresAuthentication, validateCsrfToken, adminBridgeRouter)
+  app.use('/admin-bridges/api', requiresAuthentication, requiresScope('manage'), validateCsrfToken, adminBridgeRouter)
 
   // ── BNAC Integration Config ─────────────────────────────────────────────
   const bnacRouter = express.Router()
@@ -2674,7 +2694,7 @@ cds.on('bootstrap', (app) => {
     } catch (error) { res.status(500).json({ error: { message: error.message } }) }
   })
 
-  app.use('/bnac/api', requiresAuthentication, validateCsrfToken, bnacRouter)
+  app.use('/bnac/api', requiresAuthentication, requiresScope('admin'), validateCsrfToken, bnacRouter)
 })
 
 cds.on('served', async () => {

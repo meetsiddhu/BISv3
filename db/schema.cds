@@ -231,6 +231,7 @@ entity BridgeCapacities : cuid, managed {
   eamMeasDocId          : String(18);
   eamMeasPointId        : String(20);
   eamSyncStatus         : String(20) default 'NOT_SYNCED';
+  eamLastSyncAt         : Timestamp;   // EAM-T1: symmetric sync-audit field
 
   // ── General ─────────────────────────────────────────────────────────────
   capacityType          : String(40);     // e.g. AS 5100.7, AS 1170
@@ -334,6 +335,7 @@ entity BridgeDefects : cuid, managed {
   eamNotificationId   : String(12);
   eamWorkOrderId      : String(12);
   eamSyncStatus       : String(20) default 'NOT_SYNCED';
+  eamLastSyncAt       : Timestamp;   // EAM-T2: symmetric sync-audit field
   active              : Boolean default true;
 }
 
