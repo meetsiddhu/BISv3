@@ -56,8 +56,16 @@ async function writeChangeLogs(db, { objectType, objectId, objectName, source, b
   try {
     await db.run(INSERT.into('bridge.management.ChangeLog').entries(entries))
   } catch (error) {
-    // Never break a business transaction because of audit logging
-    LOG.error('Failed to write change log:', error.message)
+    // OPS-4 / rule-3 ("ChangeLog on every CUD"): a silent audit miss is unacceptable
+    // for bulk/API paths (a 50k upload could leave no trail), so surface the error and
+    // let the caller abort. Single interactive UI edits tolerate + warn so a transient
+    // audit hiccup doesn't block an engineer's save.
+    const bulkSources = ['MassUpload', 'MassEdit', 'EAMSync', 'API', 'Import']
+    if (bulkSources.includes(source)) {
+      LOG.error(`Audit write failed for bulk operation (source=${source}); failing the operation:`, error.message)
+      throw error
+    }
+    LOG.error('Failed to write change log (tolerated for interactive edit):', error.message)
   }
 }
 

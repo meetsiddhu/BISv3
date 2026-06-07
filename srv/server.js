@@ -16,7 +16,8 @@ const mountAttributesApi = require('./attributes-api')
 
 const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-log')
 
-const { getConfigInt } = require('./system-config')
+const { getConfigInt, getCrsEpsg, getStorageSrid } = require('./system-config')
+const { validateGeoJson } = require('./lib/geo')
 const demoHandler = require('./demo-handler')
 
 const { SELECT, INSERT, UPDATE, DELETE } = cds.ql
@@ -1371,20 +1372,23 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
 
   let bridges;
   if (isHanaDb()) {
-    // HANA: ST_Distance for exact spherical distance
-    // All user-supplied coordinate/radius values are bound as parameterised placeholders
+    // HANA: ST_Distance for exact spherical distance.
+    // CONFIG-1: the comparison-point SRID is config-driven and identical to the SRID
+    // the geoLocation column was backfilled with (getStorageSrid), so they never
+    // mismatch. All user-supplied values are bound as parameterised placeholders.
+    const srid = await getStorageSrid();
     bridges = await db.run(`
       SELECT "ID","bridgeId","bridgeName","state","latitude","longitude",
              "postingStatus","conditionRating","structureType","route","region",
              "clearanceHeight","spanLength","nhvrAssessed",
-             "geoLocation".ST_Distance(NEW ST_Point(?, ?, 4326), 'meter') / 1000 AS "distanceKm"
+             "geoLocation".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 AS "distanceKm"
       FROM "BRIDGE_MANAGEMENT_BRIDGES"
       WHERE "LATITUDE" BETWEEN ? AND ?
         AND "LONGITUDE" BETWEEN ? AND ?
         AND "LATITUDE" IS NOT NULL AND "LONGITUDE" IS NOT NULL
-        AND "geoLocation".ST_Distance(NEW ST_Point(?, ?, 4326), 'meter') / 1000 <= ?
+        AND "geoLocation".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 <= ?
       ORDER BY "distanceKm"
-    `, [lngN, latN, minLat, maxLat, minLon, maxLon, lngN, latN, radN]);
+    `, [lngN, latN, srid, minLat, maxLat, minLon, maxLon, lngN, latN, srid, radN]);
   } else {
     // SQLite: haversine post-filter
     const candidateQuery = SELECT.from('bridge.management.Bridges')
@@ -1528,7 +1532,9 @@ cds.on('bootstrap', (app) => {
     }
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
       const csrfToken = req.headers['x-csrf-token']
-      if (process.env.NODE_ENV === 'production' && !csrfToken) {
+      // SEC-2: enforce CSRF in EVERY environment (staging/test handle real data).
+      // Only an explicit opt-out (CSRF_PROTECTION_DISABLED=true) bypasses it.
+      if (!csrfToken && process.env.CSRF_PROTECTION_DISABLED !== 'true') {
         return res.status(403).json({ error: 'CSRF token required', code: 'CSRF_MISSING' })
       }
     }
@@ -1761,13 +1767,20 @@ cds.on('bootstrap', (app) => {
         res.setHeader('Content-Disposition', 'attachment; filename="bridges.csv"');
         return res.send(csv);
       }
+      const exportEpsg = await getCrsEpsg();
       const geojson = {
         type: 'FeatureCollection',
-        features: bridges.map(b => ({
-          type: 'Feature',
-          geometry: b.geoJson ? JSON.parse(b.geoJson) : { type: 'Point', coordinates: [b.longitude, b.latitude] },
-          properties: { ...b, geoJson: undefined, latitude: undefined, longitude: undefined }
-        }))
+        // GIS-2: declare the datum so QGIS/ArcGIS don't assume WGS84 default.
+        crs: { type: 'name', properties: { name: `EPSG:${exportEpsg}` } },
+        features: bridges.map(b => {
+          // SEC-3: one malformed stored geometry must not 500 the whole export.
+          let geometry = { type: 'Point', coordinates: [b.longitude, b.latitude] };
+          if (b.geoJson) {
+            try { geometry = JSON.parse(b.geoJson); }
+            catch (e) { cds.log('bms').warn(`Skipping malformed geoJson for bridge ${b.ID}: ${e.message}`); }
+          }
+          return { type: 'Feature', geometry, properties: { ...b, geoJson: undefined, latitude: undefined, longitude: undefined } };
+        })
       };
       res.setHeader('Content-Type', 'application/geo+json');
       res.setHeader('Content-Disposition', 'attachment; filename="bridges.geojson"');
@@ -2653,6 +2666,10 @@ cds.on('served', async () => {
   const servedApp = cds.app
 
   servedApp.get('/launchpad/debug', (req, res) => {
+    // SEC-5: this endpoint leaks issuer/tenant/client_id; restrict to admins only.
+    if (!_jwtHasScope(req.headers.authorization, 'admin')) {
+      return res.status(403).json({ error: 'Forbidden', code: 'ADMIN_ONLY' })
+    }
     const user = req.user
     const secCtx = req.authInfo || req.tokenInfo
     // Decode full JWT payload for diagnosis (no sub/email — those are PII)
@@ -2661,7 +2678,7 @@ cds.on('served', async () => {
         const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
         if (!token) return {}
         return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
-      } catch { return {} }
+      } catch (err) { cds.log('bms').warn('JWT decode failed in /launchpad/debug:', err.message); return {} }
     })()
     res.json({
       // CDS auth state (always null for custom Express routes in CAP v9)
@@ -2728,6 +2745,13 @@ cds.on('served', async () => {
     try {
       const db = await cds.connect.to('db');
       for (const dataset of MASS_EDIT_DROPDOWN_DATASETS) {
+        // SEC-1: identifiers are interpolated into DDL (cannot be bound). Keys are
+        // static today; this allow-list guard makes injection impossible even if the
+        // dataset list is ever externalised.
+        if (!/^[A-Za-z0-9_]+$/.test(dataset.key)) {
+          cds.log('bms').warn('Skipping dataset with unsafe key:', dataset.key);
+          continue;
+        }
         const table = `bridge_management_${dataset.key}`;
         const cols = await db.run(`PRAGMA table_info(${table})`);
         if (!cols.some((col) => col.name === 'isActive')) {
@@ -2766,8 +2790,12 @@ cds.on('served', async () => {
   if (!isHanaDb()) return;
   try {
     const db = await cds.connect.to('db');
+    // CONFIG-2: SRID is config-driven (getStorageSrid) and identical to the proximity
+    // query's comparison SRID, so stored geometry and queries can never drift. The
+    // value is a validated integer from config (not user input), safe to interpolate.
+    const srid = await getStorageSrid();
     await db.run(`UPDATE "BRIDGE_MANAGEMENT_BRIDGES"
-      SET "GEOLOCATION" = NEW ST_Point("LONGITUDE", "LATITUDE", 4326)
+      SET "GEOLOCATION" = NEW ST_Point("LONGITUDE", "LATITUDE", ${srid})
       WHERE "LATITUDE" IS NOT NULL AND "LONGITUDE" IS NOT NULL AND "GEOLOCATION" IS NULL`);
   } catch (error) {
     // Spatial column may not exist in dev — ignore

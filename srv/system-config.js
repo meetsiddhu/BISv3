@@ -30,11 +30,24 @@ function getConfigBool(key, fallback = false) {
 function invalidateCache(key) { _cache.delete(key) }
 
 // GIS coordinate reference system (EPSG code), config-driven.
-// Default 7844 = GDA2020, the correct datum for Australian assets. Override via
-// the SystemConfig key GIS_CRS_EPSG. See docs/eam-mapping/GIS-CRS-POLICY.md.
+// Default 7844 = GDA2020, the DECLARED datum for Australian assets (used for GeoJSON
+// export declaration and policy). Override via SystemConfig key GIS_CRS_EPSG.
+// See docs/eam-mapping/GIS-CRS-POLICY.md.
 const DEFAULT_CRS_EPSG = 7844
 function getCrsEpsg() {
   return getConfigInt('GIS_CRS_EPSG', DEFAULT_CRS_EPSG)
 }
 
-module.exports = { getConfig, getConfigInt, getConfigBool, invalidateCache, getCrsEpsg, DEFAULT_CRS_EPSG }
+// HANA spatial COMPUTE/STORAGE SRID. This is the SRID the geoLocation column and all
+// ST_Point/ST_Distance comparisons actually use, and it MUST be an SRS installed in
+// HANA. Defaults to 4326 (WGS84) because HANA Cloud ships 4326 by default, GDA2020
+// (7844) may not be installed, and the two differ by <2 m (coordinate values are
+// interchangeable for storage/proximity). Both the proximity query and the geometry
+// backfill read this single value so they can never drift apart. Override via
+// SystemConfig key GIS_STORAGE_SRID once a matching HANA SRS exists.
+const DEFAULT_STORAGE_SRID = 4326
+function getStorageSrid() {
+  return getConfigInt('GIS_STORAGE_SRID', DEFAULT_STORAGE_SRID)
+}
+
+module.exports = { getConfig, getConfigInt, getConfigBool, invalidateCache, getCrsEpsg, getStorageSrid, DEFAULT_CRS_EPSG, DEFAULT_STORAGE_SRID }

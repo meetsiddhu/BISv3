@@ -1,6 +1,7 @@
 const cds  = require('@sap/cds')
 const path = require('path')
 const LOG  = cds.log('bms-upload')
+const { validateGeoJson } = require('../lib/geo')
 
 const ALLOWED_EXTENSIONS     = ['.xlsx', '.csv', '.xls']
 const MAX_FILE_SIZE_BYTES    = 50 * 1024 * 1024
@@ -139,7 +140,11 @@ module.exports = function registerUploadHandlers (srv, { logAudit }) {
                             dataSource:           parseString(row.dataSource),
                             sourceReferenceUrl:   parseString(row.sourceReferenceUrl),
                             openDataReference:    parseString(row.openDataReference),
-                            geoJson:              parseString(row.geoJson),
+                            geoJson:              (() => {            // GIS-5: never persist malformed/[lat,lon]-swapped geometry
+                                                    const gj = validateGeoJson(parseString(row.geoJson))
+                                                    if (!gj.ok) { LOG.warn(`Row ${row.bridgeId || '?'}: invalid geoJson dropped — ${gj.error}`); return null }
+                                                    return gj.value
+                                                  })(),
                             lastInspectionDate:   parseDate(row.lastInspectionDate),
                             gazetteReference:     parseString(row.gazetteReference),
                             nhvrReferenceUrl:     parseString(row.nhvrReferenceUrl),
