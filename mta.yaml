@@ -1,6 +1,6 @@
 _schema-version: 3.3.0
 ID: BridgeManagement
-version: 3.9.7
+version: 3.9.8
 description: "Bridge Management System — NSW standalone"
 parameters:
   enable-parallel-deployments: true

@@ -17,6 +17,28 @@
     };
     var _map = null;
 
+    // ── i18n (FREE_UX-R1) ─────────────────────────────────────────────────────
+    // This injected script has no controller, so it loads the app resource bundle
+    // itself and reads texts with an English fallback (so the map still renders if
+    // the bundle is unavailable). T(key, fallback) is the accessor.
+    var _bundle = null;
+    function T(sKey, sFallback) {
+        try { return (_bundle && _bundle.getText) ? _bundle.getText(sKey) : sFallback; }
+        catch (e) { return sFallback; }
+    }
+    function loadBundle(cb) {
+        if (_bundle || !(window.sap && sap.ui && sap.ui.require)) { cb(); return; }
+        try {
+            sap.ui.require(["sap/base/i18n/ResourceBundle"], function (ResourceBundle) {
+                try {
+                    ResourceBundle.create({ url: APP_PATH + "/i18n/i18n.properties", async: true })
+                        .then(function (b) { _bundle = b; cb(); })
+                        .catch(function () { cb(); });
+                } catch (e) { cb(); }
+            });
+        } catch (e) { cb(); }
+    }
+
     // ── Structure builder ───────────────────────────────────────────────────
     // Injects the full map UI into #gisMapHostEl the first time _gisInit runs.
     // Bypasses sap.ui.core.HTML content parsing (and jQuery DOMEval) entirely.
@@ -34,7 +56,7 @@
 
         var title = document.createElement("span");
         title.style.cssText = "font-size:15px;font-weight:600;color:#32363a";
-        title.textContent = "Location";
+        title.textContent = T("gisLocation", "Location");
 
         var spacer = document.createElement("div");
         spacer.style.cssText = "flex:1";
@@ -42,16 +64,16 @@
         var openBtn = document.createElement("button");
         openBtn.id = "gisOpenBtn";
         openBtn.type = "button";
-        openBtn.setAttribute("aria-label", "Open map in full view");
+        openBtn.setAttribute("aria-label", T("gisOpenMapAria", "Open map in full view"));
         openBtn.style.cssText = "padding:6px 14px;background:#0a6ed1;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;margin-right:6px";
-        openBtn.textContent = "🗺 Open Map";
+        openBtn.textContent = "🗺 " + T("gisOpenMap", "Open Map");
 
         var copyBtn = document.createElement("button");
         copyBtn.id = "gisCopyBtn";
         copyBtn.type = "button";
-        copyBtn.setAttribute("aria-label", "Copy coordinates to clipboard");
+        copyBtn.setAttribute("aria-label", T("gisCopyAria", "Copy coordinates to clipboard"));
         copyBtn.style.cssText = "padding:6px 10px;background:transparent;color:#0a6ed1;border:1px solid #0a6ed1;border-radius:4px;font-size:13px;cursor:pointer";
-        copyBtn.textContent = "📋 Copy";
+        copyBtn.textContent = "📋 " + T("gisCopy", "Copy");
 
         header.appendChild(title);
         header.appendChild(spacer);
@@ -61,14 +83,16 @@
         // Coordinate bar
         var coordBar = document.createElement("div");
         coordBar.id = "gisCoordBar";
+        coordBar.setAttribute("role", "status");
+        coordBar.setAttribute("aria-live", "polite");
         coordBar.style.cssText = "padding:8px 14px;font-size:13px;color:#32363a;background:#fafafa;border-bottom:1px solid #e5e5e5";
-        coordBar.textContent = "📍 Loading...";
+        coordBar.textContent = "📍 " + T("gisLoading", "Loading…");
 
         // Map canvas (Leaflet target)
         var canvas = document.createElement("div");
         canvas.id = "gisMapCanvas";
         canvas.setAttribute("role", "application");
-        canvas.setAttribute("aria-label", "Interactive bridge location map");
+        canvas.setAttribute("aria-label", T("gisMapAria", "Interactive bridge location map"));
         canvas.style.cssText = "width:100%;height:360px";
 
         // No-coordinates placeholder
@@ -82,11 +106,11 @@
 
         var noLabel = document.createElement("div");
         noLabel.style.cssText = "font-weight:600";
-        noLabel.textContent = "No Location Data";
+        noLabel.textContent = T("gisNoLocation", "No Location Data");
 
         var noHint = document.createElement("div");
         noHint.style.cssText = "font-size:12px;color:#aaa;margin-top:4px";
-        noHint.textContent = "Add latitude and longitude to see the map.";
+        noHint.textContent = T("gisNoLocationHint", "Add latitude and longitude to see the map.");
 
         noCoords.appendChild(noIcon);
         noCoords.appendChild(noLabel);
@@ -123,17 +147,19 @@
 
     // ── Public init ─────────────────────────────────────────────────────────
     window._gisInit = function () {
-        ensureStructure();
-        var el = document.getElementById("gisMapCanvas");
-        if (!el) return;
-        var openBtn = document.getElementById("gisOpenBtn");
-        if (openBtn && !openBtn._bmsWired) { openBtn._bmsWired = true; openBtn.addEventListener("click", window._gisOpen); }
-        var copyBtn = document.getElementById("gisCopyBtn");
-        if (copyBtn && !copyBtn._bmsWired) { copyBtn._bmsWired = true; copyBtn.addEventListener("click", window._gisCopy); }
-        if (!getBridgeKeyPredicate()) { setCoord("No bridge ID in URL"); return; }
-        readBridge("latitude,longitude,bridgeName,bridgeId,state,postingStatus,geoJson")
-            .then(draw)
-            .catch(function (error) { setCoord("Error: " + error.message); });
+        loadBundle(function () {
+            ensureStructure();
+            var el = document.getElementById("gisMapCanvas");
+            if (!el) return;
+            var openBtn = document.getElementById("gisOpenBtn");
+            if (openBtn && !openBtn._bmsWired) { openBtn._bmsWired = true; openBtn.addEventListener("click", window._gisOpen); }
+            var copyBtn = document.getElementById("gisCopyBtn");
+            if (copyBtn && !copyBtn._bmsWired) { copyBtn._bmsWired = true; copyBtn.addEventListener("click", window._gisCopy); }
+            if (!getBridgeKeyPredicate()) { setCoord(T("gisNoBridgeId", "No bridge ID in URL")); return; }
+            readBridge("latitude,longitude,bridgeName,bridgeId,state,postingStatus,geoJson")
+                .then(draw)
+                .catch(function (error) { setCoord(T("gisErrorPrefix", "Error:") + " " + error.message); });
+        });
     };
 
     // Parse a stored GeoJSON string safely; return null on any problem.
@@ -151,16 +177,16 @@
         var noEl = document.getElementById("gisNoCoords");
         var canv = document.getElementById("gisMapCanvas");
         if (!hasPoint && !geo) {
-            setCoord("No coordinates for this record");
+            setCoord(T("gisNoCoords", "No coordinates for this record"));
             if (noEl) noEl.style.display = "flex";
             if (canv) canv.style.display = "none";
             return;
         }
         if (hasPoint) {
-            setCoord("<strong>Lat:</strong> " + lat.toFixed(6) + " &nbsp; <strong>Lng:</strong> " + lng.toFixed(6) +
-                     (geo ? " &nbsp; <strong>Geometry:</strong> " + geo.type : ""));
+            setCoord("<strong>" + T("gisLat", "Lat:") + "</strong> " + lat.toFixed(6) + " &nbsp; <strong>" + T("gisLng", "Lng:") + "</strong> " + lng.toFixed(6) +
+                     (geo ? " &nbsp; <strong>" + T("gisGeometry", "Geometry:") + "</strong> " + geo.type : ""));
         } else {
-            setCoord("<strong>Geometry:</strong> " + geo.type);
+            setCoord("<strong>" + T("gisGeometry", "Geometry:") + "</strong> " + geo.type);
         }
         if (noEl) noEl.style.display = "none";
         if (canv) canv.style.display = "block";
@@ -253,7 +279,7 @@
                     var bridgeCoordinates = bridgeLocation.latitude + ", " + bridgeLocation.longitude;
                     if (navigator.clipboard) {
                         navigator.clipboard.writeText(bridgeCoordinates).then(function () {
-                            try { sap.m.MessageToast.show("Copied: " + bridgeCoordinates); } catch (error) {}
+                            try { sap.m.MessageToast.show(T("gisCopied", "Copied:") + " " + bridgeCoordinates); } catch (error) {}
                         });
                     }
                 }

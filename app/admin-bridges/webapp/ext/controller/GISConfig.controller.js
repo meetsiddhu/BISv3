@@ -20,9 +20,12 @@ sap.ui.define([
       this._refLayerUrl  = this._adminBase + "/ReferenceLayerConfig";
       this.getView().setModel(new JSONModel(this._defaults()), "config");
       this.getView().setModel(new JSONModel({ layers: [] }), "refLayers");
+      this._bundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
       this._loadConfig();
       this._loadRefLayers();
     },
+
+    _t: function (sKey) { try { return this._bundle ? this._bundle.getText(sKey) : sKey; } catch (e) { return sKey; } },
 
     _defaults: function () {
       return {
@@ -110,16 +113,16 @@ sap.ui.define([
         })
         .then(function (res) {
           if (res && !res.ok) return Promise.reject(res.statusText);
-          MessageToast.show("GIS configuration saved successfully.");
+          MessageToast.show(this._t("gisConfigSaved"));
         })
         .catch(function (err) {
-          MessageBox.error("Failed to save GIS configuration: " + (err || "Unknown error"));
+          MessageBox.error(this._t("gisConfigSaveFailed") + " " + (err || this._t("gisUnknownError")));
         });
     },
 
     onDiscard: function () {
       this._loadConfig();
-      MessageToast.show("Changes discarded.");
+      MessageToast.show(this._t("gisChangesDiscarded"));
     },
 
     // ── Reference Layer Library ──────────────────────────────────────────────
@@ -140,7 +143,7 @@ sap.ui.define([
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: oEvent.getParameter("state") })
-      }).catch(function () { MessageToast.show("Failed to update layer."); });
+      }).catch(function () { MessageToast.show(self._t("gisLayerUpdateFailed")); });
     },
 
     onToggleRefLayerDefault: function (oEvent) {
@@ -151,7 +154,7 @@ sap.ui.define([
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabledByDefault: oEvent.getParameter("state") })
-      }).catch(function () { MessageToast.show("Failed to update layer."); });
+      }).catch(function () { MessageToast.show(self._t("gisLayerUpdateFailed")); });
     },
 
     _openRefLayerDialog: function (oData) {
@@ -182,33 +185,33 @@ sap.ui.define([
       };
 
       var oDialog = new Dialog({
-        title: bEdit ? "Edit Reference Layer" : "Add Reference Layer",
+        title: bEdit ? self._t("gisEditRefLayer") : self._t("gisAddRefLayer"),
         contentWidth: "520px",
         content: [
           new VBox({ class: "sapUiSmallMargin", items: [
-            makeLabelInput("Layer Name *", "/name", "e.g. BOM Rainfall Radar"),
-            oSelect("Category", "/category", LAYER_CATEGORIES),
-            oSelect("Layer Type", "/layerType", LAYER_TYPES),
-            makeLabelInput("Service URL *", "/url", "https://services.ga.gov.au/..."),
-            makeLabelInput("Sub-layers / Layer IDs", "/subLayers", "WMS: comma-separated layer names"),
-            makeLabelInput("Attribution", "/attribution", "© Data Provider"),
-            makeLabelInput("Description", "/description", "Brief description for map users"),
+            makeLabelInput(self._t("gisDlgLayerName"), "/name", self._t("gisDlgLayerNamePh")),
+            oSelect(self._t("colCategory"), "/category", LAYER_CATEGORIES),
+            oSelect(self._t("gisDlgLayerType"), "/layerType", LAYER_TYPES),
+            makeLabelInput(self._t("gisDlgServiceUrl"), "/url", self._t("gisDlgServiceUrlPh")),
+            makeLabelInput(self._t("gisDlgSubLayers"), "/subLayers", self._t("gisDlgSubLayersPh")),
+            makeLabelInput(self._t("gisDlgAttribution"), "/attribution", self._t("gisDlgAttributionPh")),
+            makeLabelInput(self._t("colDescription"), "/description", self._t("gisDlgDescPh")),
             new VBox({ items: [
-              new Label({ text: "Opacity (0 – 1)" }),
+              new Label({ text: self._t("gisOpacityLabel") }),
               new sap.m.Slider({ value: "{dlg>/opacity}", min: 0, max: 1, step: 0.05, width: "100%" })
             ]}).addStyleClass("sapUiSmallMarginBottom"),
             new HBox({ items: [
-              new Label({ text: "Enable by default", width: "12rem" }),
+              new Label({ text: self._t("gisEnableByDefault"), width: "12rem" }),
               new sap.m.Switch({ state: "{dlg>/enabledByDefault}" })
             ]})
           ]})
         ],
         beginButton: new Button({
-          text: bEdit ? "Save" : "Add",
+          text: bEdit ? self._t("gisSave") : self._t("gisAdd"),
           type: "Emphasized",
           press: function () {
             var referenceLayer = oModel.getData();
-            if (!referenceLayer.name || !referenceLayer.url) { MessageToast.show("Name and URL are required."); return; }
+            if (!referenceLayer.name || !referenceLayer.url) { MessageToast.show(self._t("gisNameUrlRequired")); return; }
             var method = bEdit ? "PATCH" : "POST";
             var url    = bEdit ? self._refLayerUrl + "('" + referenceLayer.ID + "')" : self._refLayerUrl;
             var body   = Object.assign({}, referenceLayer);
@@ -216,10 +219,10 @@ sap.ui.define([
             fetch(url, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
               .then(function (res) { return res.ok ? res : Promise.reject(res.statusText); })
               .then(function () { self._loadRefLayers(); oDialog.close(); })
-              .catch(function (error) { MessageBox.error("Failed to save layer: " + error); });
+              .catch(function (error) { MessageBox.error(self._t("gisLayerSaveFailed") + " " + error); });
           }
         }),
-        endButton: new Button({ text: "Cancel", press: function () { oDialog.close(); } }),
+        endButton: new Button({ text: self._t("gisCancel"), press: function () { oDialog.close(); } }),
         afterClose: function () { oDialog.destroy(); }
       });
       oDialog.setModel(oModel, "dlg");
@@ -242,12 +245,12 @@ sap.ui.define([
       var src  = oEvent.getSource();
       var ctx  = src.getBindingContext("refLayers") || src.getParent().getBindingContext("refLayers");
       var row  = ctx.getObject();
-      MessageBox.confirm("Delete layer \"" + row.name + "\"?", {
+      MessageBox.confirm(self._t("gisDeleteLayerConfirm") + " \"" + row.name + "\"?", {
         onClose: function (action) {
           if (action !== "OK") return;
           fetch(self._refLayerUrl + "('" + row.ID + "')", { method: "DELETE" })
             .then(function () { self._loadRefLayers(); })
-            .catch(function () { MessageToast.show("Failed to delete layer."); });
+            .catch(function () { MessageToast.show(self._t("gisLayerDeleteFailed")); });
         }
       });
     },
@@ -272,37 +275,12 @@ sap.ui.define([
     },
 
     onShowHelp: function () {
-      var sHtml = [
-        "<h4>Purpose</h4>",
-        "<p>GIS Config controls the default map appearance and advanced GIS feature flags for all users of the Map View application.</p>",
-        "<h4>Basemap Settings</h4>",
-        "<p>Set the <strong>Default Basemap</strong> shown when users open the map (e.g. OpenStreetMap, Esri Satellite). If you enable HERE Maps, enter your HERE Maps API Key.</p>",
-        "<h4>Reference Layers</h4>",
-        "<p>Toggle default visibility of <strong>State Boundaries</strong> and <strong>LGA Boundaries</strong> overlay layers.</p>",
-        "<h4>Advanced GIS Features</h4>",
-        "<ul>",
-        "<li><strong>Scale Bar:</strong> distance scale on the map.</li>",
-        "<li><strong>GPS / Locate Me:</strong> browser geolocation button.</li>",
-        "<li><strong>Mini Map:</strong> overview inset map (bottom-right corner).</li>",
-        "<li><strong>Heat Map:</strong> density overlay by condition rating.</li>",
-        "<li><strong>Time Slider:</strong> filter bridges by year built.</li>",
-        "<li><strong>Stats Panel:</strong> live statistics sidebar.</li>",
-        "<li><strong>Proximity Analysis:</strong> find bridges within a radius.</li>",
-        "<li><strong>MGA Coordinates:</strong> show MGA grid reference alongside decimal degrees.</li>",
-        "<li><strong>Condition Alerts:</strong> highlight bridges below the alert threshold.</li>",
-        "<li><strong>Custom WMS:</strong> allow adding external WMS tile layers.</li>",
-        "<li><strong>Server-side Clustering:</strong> cluster markers server-side for large datasets.</li>",
-        "</ul>",
-        "<h4>Thresholds</h4>",
-        "<p>Set numeric defaults: condition alert threshold, proximity search radius, and heatmap parameters.</p>",
-        "<h4>Saving</h4>",
-        "<p>Click <strong>Save</strong> to apply changes immediately. Changes take effect for all users on their next map load.</p>"
-      ].join("");
+      var sHtml = this._t("gisHelpHtml");   // FREE_UX-R3: externalised to i18n
       var oDialog = new Dialog({
-        title: "GIS Configuration: Help",
+        title: this._t("gisHelpTitle"),
         contentWidth: "480px",
         content: [new FormattedText({ htmlText: sHtml })],
-        endButton: new Button({ text: "Close", press: function () { oDialog.close(); } }),
+        endButton: new Button({ text: this._t("gisClose"), press: function () { oDialog.close(); } }),
         afterClose: function () { oDialog.destroy(); }
       });
       oDialog.addStyleClass("sapUiContentPadding");

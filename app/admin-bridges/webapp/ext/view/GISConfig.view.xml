@@ -19,7 +19,7 @@
 
         <!-- Save / Discard toolbar -->
         <Toolbar id="gisConfigToolbar">
-          <Button icon="sap-icon://information" tooltip="How to use GIS Configuration" press=".onShowHelp" type="Transparent"/>
+          <Button icon="sap-icon://information" tooltip="{i18n>gisHowToUse}" press=".onShowHelp" type="Transparent"/>
           <ToolbarSpacer/>
           <Button
             id="btnDiscard"
@@ -40,17 +40,17 @@
               <Label text="{i18n>gisConfigDefaultBasemap}"/>
               <Select id="selBasemap" selectedKey="{config>/defaultBasemap}">
                 <items>
-                  <core:Item key="osm" text="OpenStreetMap"/>
-                  <core:Item key="esriStreet" text="Esri Street"/>
-                  <core:Item key="esriSatellite" text="Esri Satellite"/>
-                  <core:Item key="esriTopo" text="Esri Topo"/>
-                  <core:Item key="google" text="Google Maps"/>
-                  <core:Item key="googleSat" text="Google Satellite"/>
-                  <core:Item key="here" text="HERE Maps"/>
+                  <core:Item key="osm" text="{i18n>basemapOsm}"/>
+                  <core:Item key="esriStreet" text="{i18n>basemapEsriStreet}"/>
+                  <core:Item key="esriSatellite" text="{i18n>basemapEsriSat}"/>
+                  <core:Item key="esriTopo" text="{i18n>basemapEsriTopo}"/>
+                  <core:Item key="google" text="{i18n>basemapGoogleMaps}"/>
+                  <core:Item key="googleSat" text="{i18n>basemapGoogleSat}"/>
+                  <core:Item key="here" text="{i18n>basemapHere}"/>
                 </items>
               </Select>
               <Label text="{i18n>gisConfigHereApiKey}"/>
-              <Input id="inpHereApiKey" value="{config>/hereApiKey}" placeholder="Your HERE Maps API key" type="Password"/>
+              <Input id="inpHereApiKey" value="{config>/hereApiKey}" placeholder="{i18n>gisHereKeyPlaceholder}" type="Password"/>
             </f:content>
           </f:SimpleForm>
         </Panel>
@@ -121,22 +121,22 @@
         <Panel id="panelRefLayerLib" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <headerToolbar>
             <OverflowToolbar>
-              <Title text="Reference Layer Library" level="H4" />
+              <Title text="{i18n>gisRefLayerLibrary}" level="H4" />
               <ToolbarSpacer />
-              <Button icon="sap-icon://add" text="Add Custom Layer" press=".onAddRefLayer" type="Default" />
+              <Button icon="sap-icon://add" text="{i18n>gisAddCustomLayer}" press=".onAddRefLayer" type="Default" />
             </OverflowToolbar>
           </headerToolbar>
           <VBox class="sapUiSmallMargin">
-            <Text text="Enable layers to make them available in the Map View Reference Layers panel. Preset layers (🔒) cannot be deleted: only activated or deactivated. Layers enabled by default will be switched on when users first open the map." class="sapUiSmallMarginBottom" wrapping="true" />
-            <Table id="tblRefLayers" items="{refLayers>/layers}" noDataText="No reference layers configured." growing="true" growingThreshold="20">
+            <Text text="{i18n>gisRefLayerHint}" class="sapUiSmallMarginBottom" wrapping="true" />
+            <Table id="tblRefLayers" items="{refLayers>/layers}" noDataText="{i18n>gisNoRefLayers}" growing="true" growingThreshold="20">
               <columns>
-                <Column width="3rem" hAlign="Center"><Text text="On"/></Column>
-                <Column width="8rem"><Text text="Category"/></Column>
-                <Column><Text text="Name"/></Column>
-                <Column width="4rem"><Text text="Type"/></Column>
-                <Column><Text text="Description"/></Column>
-                <Column width="5rem" hAlign="Center"><Text text="Default On"/></Column>
-                <Column width="6rem" hAlign="Center"><Text text="Actions"/></Column>
+                <Column width="3rem" hAlign="Center"><Text text="{i18n>colOn}"/></Column>
+                <Column width="8rem"><Text text="{i18n>colCategory}"/></Column>
+                <Column><Text text="{i18n>colName}"/></Column>
+                <Column width="4rem"><Text text="{i18n>colType}"/></Column>
+                <Column><Text text="{i18n>colDescription}"/></Column>
+                <Column width="5rem" hAlign="Center"><Text text="{i18n>colDefaultOn}"/></Column>
+                <Column width="6rem" hAlign="Center"><Text text="{i18n>colActions}"/></Column>
               </columns>
               <items>
                 <ColumnListItem>
@@ -151,9 +151,9 @@
                     <Text text="{refLayers>description}" maxLines="2" wrapping="true" />
                     <Switch state="{refLayers>enabledByDefault}" change=".onToggleRefLayerDefault" />
                     <HBox>
-                      <Button icon="sap-icon://edit" type="Transparent" tooltip="Edit layer" press=".onEditRefLayer" visible="{= !${refLayers>isPreset} }" />
-                      <Button icon="sap-icon://locked" type="Transparent" tooltip="System preset: cannot be deleted" visible="{refLayers>isPreset}" enabled="false" />
-                      <Button icon="sap-icon://delete" type="Transparent" tooltip="Delete layer" press=".onDeleteRefLayer" visible="{= !${refLayers>isPreset} }" />
+                      <Button icon="sap-icon://edit" type="Transparent" tooltip="{i18n>gisEditLayer}" press=".onEditRefLayer" visible="{= !${refLayers>isPreset} }" />
+                      <Button icon="sap-icon://locked" type="Transparent" tooltip="{i18n>gisPresetCannotDelete}" visible="{refLayers>isPreset}" enabled="false" />
+                      <Button icon="sap-icon://delete" type="Transparent" tooltip="{i18n>gisDeleteLayer}" press=".onDeleteRefLayer" visible="{= !${refLayers>isPreset} }" />
                     </HBox>
                   </cells>
                 </ColumnListItem>
@@ -184,9 +184,9 @@
               <items>
                 <ColumnListItem>
                   <cells>
-                    <Input value="{config>label}" placeholder="Layer name"/>
-                    <Input value="{config>url}" placeholder="WMS URL"/>
-                    <Input value="{config>layers}" placeholder="Layer names"/>
+                    <Input value="{config>label}" placeholder="{i18n>gisLayerNamePlaceholder}"/>
+                    <Input value="{config>url}" placeholder="{i18n>gisWmsUrlPlaceholder}"/>
+                    <Input value="{config>layers}" placeholder="{i18n>gisLayerNamesPlaceholder}"/>
                     <Button icon="sap-icon://delete" type="Transparent" press=".onDeleteCustomWms"/>
                   </cells>
                 </ColumnListItem>
