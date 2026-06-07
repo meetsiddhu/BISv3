@@ -19,9 +19,9 @@
           <Bar id="filterBar" class="nhvrTopBar">
             <contentLeft>
               <Button icon="sap-icon://building" tooltip="{i18n>fullRecord}" press=".onNavToBridgesFE" type="Transparent" />
-              <Button icon="sap-icon://bar-chart" tooltip="Reports" press=".onNavToReports" type="Transparent" />
-              <Button icon="sap-icon://upload-to-cloud" tooltip="Upload" press=".onNavToUpload" type="Transparent" />
-              <Button icon="sap-icon://grid" tooltip="Mass Edit" press=".onNavToMassEdit" type="Transparent" />
+              <Button icon="sap-icon://bar-chart" tooltip="{i18n>navReports}" press=".onNavToReports" type="Transparent" />
+              <Button icon="sap-icon://upload-to-cloud" tooltip="{i18n>navUpload}" press=".onNavToUpload" type="Transparent" />
+              <Button icon="sap-icon://grid" tooltip="{i18n>navMassEdit}" press=".onNavToMassEdit" type="Transparent" />
             </contentLeft>
             <contentMiddle>
               <Title text="{i18n>filterTitle}" level="H4" />

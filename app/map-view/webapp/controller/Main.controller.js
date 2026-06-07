@@ -672,7 +672,7 @@ sap.ui.define([
         nhvrAssessedLabel: bridge.nhvrAssessed ? this._text("statusAssessed") : this._text("statusNotAssessed"),
         vehicleClass: bridge.vehicleClass || null,
         freightRoute: !!bridge.freightRoute,
-        freightRouteLabel: bridge.freightRoute ? this._text("statusFreight") : "No Freight Route",
+        freightRouteLabel: bridge.freightRoute ? this._text("statusFreight") : this._text("freightNone"),
         overMassRoute: Boolean(bridge.overMassRoute),
         hmlApproved: Boolean(bridge.hmlApproved),
         bDoubleApproved: Boolean(bridge.bDoubleApproved),
@@ -1159,7 +1159,7 @@ sap.ui.define([
         if (this._mapInitAttempts <= 20) {
           setTimeout(this._initMap.bind(this), 50);
         } else {
-          MessageBox.error("Map container not found. The map host control did not render.");
+          MessageBox.error(this._text("errMapContainer"));
         }
         return;
       }
@@ -1895,7 +1895,7 @@ sap.ui.define([
         map.setView(locationEvent.latlng, 13);
       });
       map.on("locationerror", function () {
-        sap.m.MessageToast.show("Could not determine your location.");
+        sap.m.MessageToast.show(this._text("errGeolocation"));
       });
     },
 
@@ -2217,7 +2217,7 @@ sap.ui.define([
           model.setProperty("/proximity/lat", lat);
           model.setProperty("/proximity/lng", lng);
         } else {
-          sap.m.MessageToast.show("Enter coordinates or pan the map first.");
+          sap.m.MessageToast.show(this._text("errProximityCoords"));
           return;
         }
       }
@@ -2234,7 +2234,7 @@ sap.ui.define([
         }.bind(this))
         .catch(function () {
           model.setProperty("/proximity/loading", false);
-          sap.m.MessageToast.show("Proximity search failed.");
+          sap.m.MessageToast.show(this._text("errProximityFailed"));
         });
     },
 
