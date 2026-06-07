@@ -429,7 +429,7 @@
                     width="100%"
                     change=".onTimeSliderChange"
                     class="sapUiSmallMarginTop" />
-                  <Button text="Reset" icon="sap-icon://reset" press=".onResetTimeSlider"
+                  <Button text="{i18n>reset}" icon="sap-icon://reset" press=".onResetTimeSlider"
                           visible="{view>/timeSlider/active}" class="sapUiTinyMarginTop" />
                 </VBox>
               </content>
@@ -495,20 +495,20 @@
             </contentMiddle>
             <contentRight>
               <ObjectStatus text="{view>/bridgeCountText}" state="Information" />
-              <MenuButton text="Export" icon="sap-icon://download" type="Default" buttonMode="Split" defaultAction=".onExport">
+              <MenuButton text="{i18n>export}" icon="sap-icon://download" type="Default" buttonMode="Split" defaultAction=".onExport">
                 <menu>
                   <Menu>
                     <items>
-                      <MenuItem text="Bridges: GeoJSON" press=".onExport">
+                      <MenuItem text="{i18n>exportBridgesGeoJson}" press=".onExport">
                         <customData><core:CustomData key="export" value="bridges-geojson" /></customData>
                       </MenuItem>
-                      <MenuItem text="Bridges: CSV" press=".onExport">
+                      <MenuItem text="{i18n>exportBridgesCsv}" press=".onExport">
                         <customData><core:CustomData key="export" value="bridges-csv" /></customData>
                       </MenuItem>
-                      <MenuItem text="Restrictions: GeoJSON" press=".onExport">
+                      <MenuItem text="{i18n>exportRestrictionsGeoJson}" press=".onExport">
                         <customData><core:CustomData key="export" value="restrictions-geojson" /></customData>
                       </MenuItem>
-                      <MenuItem text="Restrictions: CSV" press=".onExport">
+                      <MenuItem text="{i18n>exportRestrictionsCsv}" press=".onExport">
                         <customData><core:CustomData key="export" value="restrictions-csv" /></customData>
                       </MenuItem>
                     </items>
@@ -613,7 +613,7 @@
         <customHeader>
           <Bar>
             <contentLeft>
-              <Button icon="sap-icon://decline" press=".onCloseFeaturePanel" type="Transparent" tooltip="Close" />
+              <Button icon="sap-icon://decline" press=".onCloseFeaturePanel" type="Transparent" tooltip="{i18n>close}" />
             </contentLeft>
             <contentMiddle>
               <Title text="{= ${view>/selectedFeature/type} === 'restriction' ? ${i18n>restrictionDetail} : ${i18n>bridgeDetail} }" level="H4" />
