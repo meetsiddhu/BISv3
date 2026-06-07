@@ -191,6 +191,16 @@
                     "icon": "sap-icon://history",
                     "targetURL": "#EAMSyncLog-display&/EAMSyncLog"
                   }
+                },
+                {
+                  "id": "BridgeElements",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Bridge Elements",
+                    "subtitle": "NSW Level-2 Elements",
+                    "icon": "sap-icon://tree",
+                    "targetURL": "#BridgeElements-manage&/BridgeElements"
+                  }
                 }
               ]
             },
@@ -476,6 +486,20 @@
               "semanticObject": "EAMSyncLog",
               "action": "display",
               "title": "EAM Sync Log",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "BridgeElements-manage": {
+              "semanticObject": "BridgeElements",
+              "action": "manage",
+              "title": "Bridge Elements",
               "signature": {
                 "parameters": {},
                 "additionalParameters": "allowed"

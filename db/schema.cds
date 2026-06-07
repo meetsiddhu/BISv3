@@ -218,6 +218,10 @@ entity BridgeRestrictions : cuid, managed {
   lanesTotal          : Integer;
   laneWidthLimit      : Decimal(9,2);  // posted lane width (m)
   restrictionSeverity : String(20);   // Critical | Major | Minor (manual; -> RestrictionSeverities)
+  // EAM-R2 (complement): a posting/restriction often originates an EAM notification.
+  eamNotificationId   : String(12);
+  eamSyncStatus       : String(20) default 'NOT_SYNCED';
+  eamLastSyncAt       : Timestamp;
 }
 
 entity BridgeCapacities : cuid, managed {

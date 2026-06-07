@@ -13,7 +13,7 @@
       "fallbackLocale": ""
     },
     "applicationVersion": {
-      "version": "1.0.3"
+      "version": "1.0.4"
     },
     "dataSources": {
       "AdminService": {
@@ -195,6 +195,17 @@
           "title": "EAM Sync Log",
           "subTitle": "Integration audit trail",
           "icon": "sap-icon://history"
+        },
+        "BridgeElements-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "BridgeElements",
+          "action": "manage",
+          "title": "Bridge Elements",
+          "subTitle": "NSW Level-2 elements",
+          "icon": "sap-icon://tree"
         }
       }
     }
@@ -393,6 +404,16 @@
           "name": "EAMSyncLogList",
           "pattern": "EAMSyncLog:?query:",
           "target": "EAMSyncLogList"
+        },
+        {
+          "name": "BridgeElementsList",
+          "pattern": "BridgeElements:?query:",
+          "target": "BridgeElementsList"
+        },
+        {
+          "name": "BridgeElementsPage",
+          "pattern": "BridgeElements({key}):?query:",
+          "target": "BridgeElementsPage"
         }
       ],
       "targets": {
@@ -939,6 +960,36 @@
               "entitySet": "EAMSyncLog",
               "liveMode": false,
               "initialLoad": "Enabled"
+            }
+          }
+        },
+        "BridgeElementsList": {
+          "type": "Component",
+          "id": "BridgeElementsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeElements",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "BridgeElements": {
+                  "detail": {
+                    "route": "BridgeElementsPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "BridgeElementsPage": {
+          "type": "Component",
+          "id": "BridgeElementsPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "BridgeElements",
+              "editableHeaderContent": false
             }
           }
         }

@@ -1467,6 +1467,53 @@ annotate AdminService.EAMSyncLog with @(
   ]
 );
 annotate AdminService.EAMSyncLog with { ID @UI.Hidden; };
+
+// ── Bridge Elements (INSPECT-4/R3/R4 / EAM-4) — NSW Level-2 element hierarchy, draft CRUD ──
+annotate bridge.management.BridgeElements with @fiori.draft.enabled;
+annotate AdminService.BridgeElements with @odata.draft.enabled;
+annotate AdminService.BridgeElements with @(
+  UI.HeaderInfo: { TypeName: 'Bridge Element', TypeNamePlural: 'Bridge Elements',
+    Title: { $Type: 'UI.DataField', Value: elementCode }, Description: { $Type: 'UI.DataField', Value: elementType } },
+  UI.SelectionFields: [ bridge_ID, elementType, active ],
+  UI.LineItem: [
+    { $Type: 'UI.DataField', Value: bridge_ID,       Label: 'Bridge' },
+    { $Type: 'UI.DataField', Value: elementCode,     Label: 'Element Code' },
+    { $Type: 'UI.DataField', Value: elementType,     Label: 'Type' },
+    { $Type: 'UI.DataField', Value: description,     Label: 'Description' },
+    { $Type: 'UI.DataField', Value: material,        Label: 'Material' },
+    { $Type: 'UI.DataField', Value: conditionRating, Label: 'Condition (1-10)' },
+    { $Type: 'UI.DataField', Value: eamEquipId,      Label: 'EAM Equipment' },
+    { $Type: 'UI.DataField', Value: active,          Label: 'Active' }
+  ],
+  UI.Facets: [ { $Type: 'UI.ReferenceFacet', ID: 'ElMain', Label: 'Element', Target: '@UI.FieldGroup#ElMain' } ],
+  UI.FieldGroup #ElMain: { Data: [
+    { $Type: 'UI.DataField', Value: bridge_ID }, { $Type: 'UI.DataField', Value: parent_ID },
+    { $Type: 'UI.DataField', Value: elementCode }, { $Type: 'UI.DataField', Value: elementType },
+    { $Type: 'UI.DataField', Value: description }, { $Type: 'UI.DataField', Value: material },
+    { $Type: 'UI.DataField', Value: conditionRating }, { $Type: 'UI.DataField', Value: eamEquipId },
+    { $Type: 'UI.DataField', Value: active }
+  ]}
+);
+annotate AdminService.BridgeElements with {
+  ID @UI.Hidden;
+  bridge @(
+    Common.FieldControl: #Mandatory, Common.Text: bridge.bridgeName, Common.TextArrangement: #TextOnly,
+    Common.ValueList: { CollectionPath: 'Bridges', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: bridge_ID, ValueListProperty: 'ID' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeName' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeId' }
+    ]} ) @title: 'Bridge';
+  elementType @(
+    Common.FieldControl: #Mandatory,
+    Common.ValueList: { CollectionPath: 'ElementTypes', Parameters: [
+      { $Type: 'Common.ValueListParameterInOut', LocalDataProperty: elementType, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'category' }
+    ]} ) @title: 'Element Type';
+  elementCode @title: 'Element Code'; description @title: 'Description'; material @title: 'Material';
+  conditionRating @title: 'Condition (1-10)'; eamEquipId @title: 'EAM Equipment'; active @title: 'Active';
+  parent @title: 'Parent Element';
+};
 ////////////////////////////////////////////////////////////////////////////
 //  Attribute Class & Characteristics — draft enablement only.
 //  UI annotations (LineItem / Facets / FieldGroups) are defined globally in
