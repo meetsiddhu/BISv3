@@ -418,6 +418,27 @@ service AdminService {
           status
     };
 
+  // NET-1: network-level portfolio analytics — aggregate condition/risk/backlog per
+  // network + transport mode for capital-planning ALP consumption (PIARC/Austroads AGAM
+  // network view). Read-only; the per-bridge worklist remains BridgeRiskReport.
+  @readonly
+  @cds.redirection.target: false
+  @restrict: [{ grant: 'READ', to: 'view' }]
+  entity NetworkPortfolioReport as
+    select from my.Bridges {
+      key network,
+          transportMode,
+          count(*)                                                                    as bridgeCount          : Integer,
+          avg(conditionRating)                                                        as avgCondition         : Decimal(4, 2),
+          avg(riskScore)                                                              as avgRiskScore         : Decimal(6, 2),
+          sum(case when riskPriority = 'Very High' or riskPriority = 'High' then 1 else 0 end) as highRiskCount : Integer,
+          sum(case when inspectionOverdue then 1 else 0 end)                          as overdueCount         : Integer,
+          sum(case when policyInterventionDue then 1 else 0 end)                      as interventionDueCount : Integer,
+          sum(expectedValueAud)                                                       as totalExpectedValueAud: Decimal(15, 2),
+          sum(mitigationCostAud)                                                      as totalMitigationCostAud: Decimal(15, 2)
+    }
+    group by network, transportMode;
+
   @readonly
   @restrict: [{ grant: 'READ', to: 'admin' }]
   entity UserActivity as projection on my.UserActivity;
