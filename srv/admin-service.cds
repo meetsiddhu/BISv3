@@ -246,6 +246,10 @@ service AdminService {
   @restrict: [{ grant: 'READ', to: 'view' }]
   entity ElementTypes as projection on my.ElementTypes;
 
+  // AUDIT-009: NSW bridge-classification codelist behind importanceLevel.
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity ImportanceLevels as projection on my.ImportanceLevels;
+
   // ── Risk & Asset-Class Strategy governance (Phase 4) ──
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
   entity AssetClassStrategy as projection on my.AssetClassStrategy;

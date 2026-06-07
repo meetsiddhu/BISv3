@@ -1,0 +1,5 @@
+code,name,descr,active
+4,State Strategic Route,Motorways and state-significant freight/passenger corridors — failure has statewide network consequence,true
+3,Major Regional,Major regional roads and regional freight routes — significant regional detour/impact on failure,true
+2,Minor Regional,Minor regional and collector roads — moderate localised network consequence,true
+1,Local Access,Local access roads — limited network consequence with available alternative routes,true

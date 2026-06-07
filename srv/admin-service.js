@@ -414,6 +414,61 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     this.before(['CREATE', 'UPDATE'], ent, validateEamEnums)
   }
 
+  // ── AUDIT-006 (NSW/NHVR): heavy-vehicle fields must be mutually consistent ────
+  // Runs on SAVE (full active entity), so a partial draft edit can't false-positive.
+  const validateHeavyVehicleFields = (req) => {
+    const d = req.data
+    if (d.nhvrAssessed === true && isBlank(d.nhvrReferenceUrl)) {
+      req.error({ code: 'NHVR_REF_REQUIRED', message: 'An NHVR reference URL is required when the bridge is marked NHVR-assessed.', target: 'nhvrReferenceUrl', status: 400 })
+    }
+    if (d.hmlApproved === true && isBlank(d.loadRating)) {
+      req.error({ code: 'HML_LOADRATING_REQUIRED', message: 'A load rating is required for an HML-approved bridge.', target: 'loadRating', status: 400 })
+    }
+    if ((d.overMassRoute === true || d.bDoubleApproved === true) && d.freightRoute !== true) {
+      req.error({ code: 'FREIGHT_ROUTE_REQUIRED', message: 'Over-mass / B-double approval requires the bridge to be flagged as a freight route.', target: 'freightRoute', status: 400 })
+    }
+  }
+  this.before('SAVE', Bridges, validateHeavyVehicleFields)
+
+  // ── AUDIT-009: importanceLevel must be a governed NSW classification (1-4) ────
+  this.before('SAVE', Bridges, async (req) => {
+    const d = req.data
+    if (d.importanceLevel != null) {
+      const lvl = await SELECT.one.from('bridge.management.ImportanceLevels').columns('code').where({ code: d.importanceLevel })
+      if (!lvl) req.error({ code: 'UNKNOWN_IMPORTANCE_LEVEL', message: `Importance level ${d.importanceLevel} is not a defined NSW classification (1=Local … 4=State Strategic).`, target: 'importanceLevel', status: 400 })
+    }
+  })
+
+  // ── AUDIT-003: a structured element's type must be a known ElementType code ───
+  const validateElementType = async (req) => {
+    const d = req.data
+    if (!isBlank(d.elementType)) {
+      const et = await SELECT.one.from('bridge.management.ElementTypes').columns('code').where({ code: d.elementType })
+      if (!et) req.error({ code: 'UNKNOWN_ELEMENT_TYPE', message: `Element type "${d.elementType}" is not a known ElementType code.`, target: 'elementType', status: 400 })
+    }
+  }
+  this.before('SAVE', 'BridgeElements', validateElementType)
+
+  // ── AUDIT-005: capacity clearance-survey date cannot be in the future ────────
+  this.before('SAVE', BridgeCapacities, (req) => {
+    const d = req.data
+    if (d.clearanceSurveyDate && d.clearanceSurveyDate > new Date().toISOString().slice(0, 10)) {
+      req.error({ code: 'CLEARANCE_DATE_FUTURE', message: 'Clearance survey date cannot be in the future.', target: 'clearanceSurveyDate', status: 400 })
+    }
+  })
+
+  // ── AUDIT-008: AssetClassStrategy interval/review-cycle bounds ───────────────
+  this.before('SAVE', 'AssetClassStrategy', (req) => {
+    const d = req.data
+    if (d.inspectionIntervalMonths != null && (d.inspectionIntervalMonths < 1 || d.inspectionIntervalMonths > 240)) {
+      req.error({ code: 'STRATEGY_INTERVAL_RANGE', message: 'Inspection interval must be between 1 and 240 months.', target: 'inspectionIntervalMonths', status: 400 })
+    }
+    if (d.reviewCycleMonths != null && (d.reviewCycleMonths < 1 || d.reviewCycleMonths > 240)) {
+      req.error({ code: 'STRATEGY_REVIEW_RANGE', message: 'Review cycle must be between 1 and 240 months.', target: 'reviewCycleMonths', status: 400 })
+    }
+  })
+
+
   // Refinement (R1/R5): a bridge's transport mode must match its network's mode, so a
   // Rail bridge can't be filed under a road network and corrupt the cross-modal view.
   this.before('SAVE', Bridges, async (req) => {
@@ -577,6 +632,16 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const from = current && current.status, to = req.data.status
     if (from && to && from !== to && !(DEFECT_TRANSITIONS[from] || []).includes(to)) {
       req.error(409, `Invalid defect status transition '${from}' -> '${to}'.`)
+    }
+    // AUDIT-011: closing a defect must be traceable to its EAM remediation (EAM owns the
+    // work) OR carry a target completion date — no silent closure without an evidence link.
+    if (to === 'Completed') {
+      const full = await db.run(SELECT.one.from('bridge.management.BridgeDefects')
+        .columns('eamWorkOrderId', 'eamNotificationId', 'targetCompletionDate').where({ ID: key.ID || key }))
+      const merged = { ...full, ...req.data }
+      if (isBlank(merged.eamWorkOrderId) && isBlank(merged.eamNotificationId) && isBlank(merged.targetCompletionDate)) {
+        req.error(400, 'Completing a defect requires an EAM work-order/notification reference or a target completion date.')
+      }
     }
   })
 

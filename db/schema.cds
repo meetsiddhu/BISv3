@@ -38,6 +38,9 @@ entity Bridges : managed {
       riskPriority       : String(20);                     // Very High | High | Medium | Low (-> RiskBand)
       riskOverride       : Boolean default false;          // engineer override of derived score
       riskOverrideReason : String(255);
+      // ISO-AUDIT-007: structured override approval (who signed off the override, when).
+      riskOverrideApprovedBy : String(111);
+      riskOverrideApprovedAt : Timestamp;
       riskAssessedAt     : Timestamp;
       riskAssessedBy     : String(111);
       // ── ISO 55000 capital-planning extension (RISK-2/RISK-4) ──
@@ -68,6 +71,10 @@ entity Bridges : managed {
       numberOfLanes : Integer;
       condition    : String(40);
       conditionRating : Integer @assert.range: [1, 10];
+      // ELEM-1/AUDIT-010: provenance of the bridge condition + the worst element rolled up
+      // from BridgeElements. conditionSource = Manual | DerivedFromElements (auto roll-up).
+      conditionSource       : String(20) default 'Manual';
+      worstElementCondition : Integer @assert.range: [1, 10];
       structuralAdequacyRating : Integer @assert.range: [1, 10];
       postingStatus : String(40);
       conditionStandard : String(111);
@@ -88,8 +95,11 @@ entity Bridges : managed {
       nhvrAssessed : Boolean;
       nhvrAssessmentDate : Date;
       loadRating   : Decimal(9,2);
+      // CAPA-1: which evaluation standard the load rating follows (AS5100 default for NSW;
+      // scaffolds AASHTO/Eurocode for multi-country scope without replicating EAM).
+      ratingStandardType : String(20) default 'AS5100'; // AS5100 | AASHTO | Eurocode | Other
       pbsApprovalClass : String(40);
-      importanceLevel : Integer @assert.range: [1, 4];
+      importanceLevel : Integer @assert.range: [1, 4];  // -> ImportanceLevels (NSW classification)
       averageDailyTraffic : Integer;
       heavyVehiclePercent : Decimal(5,2) @assert.range: [0, 100];
       gazetteReference : String(111);
@@ -432,6 +442,9 @@ entity AssetClassStrategy : cuid, managed {
   // RISK-2: assumed condition-degradation rate (legacy points/year) for the RUL estimate.
   // Explicitly an ASSUMPTION — surfaced as advisory, not baked into the core score.
   degradationRatePerYear   : Decimal(4,2);
+  // DET-1: deterioration model class. Default Linear (the transparent RUL proxy); Markov /
+  // Custom are scaffolded for future per-material calibration (ChangeLog is the history feed).
+  deteriorationModel       : String(20) default 'Linear'; // Linear | Markov | Custom
   // Complement-EAM: the SAP EAM maintenance plan this engineering strategy maps to.
   // EAM executes the schedule; this app holds the bridge-engineering policy + feeds it.
   eamMaintenancePlan       : String(40);
@@ -456,6 +469,16 @@ entity RiskBand {
   reviewedBy   : String(111); // RISK-R3: calibration sign-off (who approved this threshold)
   reviewedAt   : Date;        // RISK-R3: last calibration/review date
   reviewSource : String(255); // RISK-R3: evidence reference (NSW manual / failure-data study)
+  active       : Boolean default true; // ISO-AUDIT-010: historize via soft-delete (superseded thresholds kept, active=false)
+}
+
+// AUDIT-009: NSW bridge-classification codelist behind importanceLevel (1-4). Gives the
+// risk consequence input a governed, documented meaning rather than a bare integer.
+entity ImportanceLevels {
+  key code : Integer;       // 1 (Local Access) .. 4 (State Strategic Route)
+  name     : String(60);
+  descr    : String(255);
+  active   : Boolean default true;
 }
 
 entity States : sap.common.CodeList {
@@ -584,8 +607,9 @@ entity ChangeLog {
   fieldName        : String(111);
   oldValue         : LargeString;
   newValue         : LargeString;
-  changeSource     : String(40);   // OData | MassEdit | MassUpload
+  changeSource     : String(40);   // OData | MassEdit | MassUpload | Calibration
   batchId          : String(111);  // groups all fields changed in one save
+  changeReason     : LargeString;  // ISO-AUDIT-003: governance narrative / justification (e.g. risk-override reason)
 }
 
 entity UserActivity {
