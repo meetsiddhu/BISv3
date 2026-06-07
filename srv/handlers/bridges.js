@@ -1,32 +1,16 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('bms-bridges')
-
-const CONDITION_LABELS = {
-    1: 'Good',
-    2: 'Fair',
-    3: 'Poor',
-    4: 'Very Poor',
-    5: 'Critical'
-}
-
-const LEGACY_RATING_TO_TFNSW = {
-    10: 1, 9: 1,
-    8: 2,  7: 2,
-    6: 3,  5: 3,
-    4: 4,  3: 4,
-    2: 5,  1: 5
-}
+const { CONDITION_LABELS, deriveCondition } = require('../lib/condition-rating')
 
 function registerBridgeHandlers (srv, { logAudit }) {
 
     srv.before(['CREATE', 'UPDATE'], 'Bridges', async req => {
         const data = req.data
         if (data.conditionRating !== undefined) {
-            const rating = data.conditionRating
-            if (rating < 1 || rating > 10) return req.error(400, 'conditionRating must be 1–10')
-            const tfnswRating      = LEGACY_RATING_TO_TFNSW[rating] || rating
-            data.condition         = CONDITION_LABELS[tfnswRating]
-            data.highPriorityAsset = rating <= 4
+            const derived = deriveCondition(data.conditionRating)
+            if (!derived) return req.error(400, 'conditionRating must be 1–10')
+            data.condition         = derived.condition
+            data.highPriorityAsset = derived.highPriorityAsset
         }
         if (typeof data.bridgeId   === 'string') data.bridgeId   = data.bridgeId.trim()
         if (typeof data.bridgeName === 'string') data.bridgeName = data.bridgeName.trim()

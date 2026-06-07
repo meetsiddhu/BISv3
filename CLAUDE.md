@@ -50,6 +50,22 @@
   `SAP-S4-ALIGNMENT.md` (plan), `04-gap-analysis.md` (field design),
   `99-open-questions.md` (12 recorded decisions).
 
+## 4b. Condition rating & EAM boundary
+
+- **Condition rating** has one source of truth: `srv/lib/condition-rating.js`. Stored
+  `conditionRating` is the legacy BMS **1–10** scale (10 = best); the label uses the
+  **TfNSW 1–5** band (1 = Good … 5 = Critical). High-priority = TfNSW ≥ 4. Never
+  re-define the mapping inline — import the module.
+- **Complement SAP EAM, do not replicate it.** SAP EAM is the system of record for the
+  maintenance-execution + asset-master layer (functional locations, equipment, work/
+  maintenance orders, notifications, maintenance plans, costs/valuation). This app owns
+  the bridge-**engineering** specialist data (condition, capacity, risk, restrictions,
+  GIS) and the **integration/mapping** layer. Reference EAM objects (FLOC/equipment/
+  order/notification ids) and deep-link out — do **not** build a parallel work-order,
+  maintenance-plan, or depreciation engine. Inspection *scheduling/execution* lives in
+  EAM; this app provides the engineering policy (`AssetClassStrategy`) + an advisory
+  overdue signal and maps strategy → EAM maintenance plan (`eamMaintenancePlan`).
+
 ## 5. Working agreements
 
 - Change in small, logically-grouped commits; run `npx cds build` + `npm test`

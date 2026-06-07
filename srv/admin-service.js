@@ -533,9 +533,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // The SAVE event fires at draftActivate time, ensuring computed fields are persisted to the
   // active entity. The before-CREATE handler fires on the draft entity but computed values
   // are lost through activation — SAVE is the reliable hook for draft-enabled entities.
-  // Reference: TfNSW Bridge Inspection Manual 1-5 scale (mapped from legacy 1-10 BMS scale).
-  const CONDITION_LABELS_ADMIN = { 1:'Good', 2:'Fair', 3:'Poor', 4:'Very Poor', 5:'Critical' }
-  const LEGACY_TO_TFNSW_ADMIN  = { 10:1,9:1, 8:2,7:2, 6:3,5:3, 4:4,3:4, 2:5,1:5 }
+  // Condition rating mapping is centralised in srv/lib/condition-rating.js (ARCH-2).
+  const { deriveCondition } = require('./lib/condition-rating')
 
   this.before('SAVE', Bridges, req => {
     const data = req.data
@@ -543,11 +542,10 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       data.bridgeId = bridgeIdFor(data.ID, data.state)
     }
     if (data.conditionRating != null) {
-      const r      = Number(data.conditionRating)
-      const tfnsw  = LEGACY_TO_TFNSW_ADMIN[r] || (r >= 1 && r <= 5 ? r : null)
-      if (tfnsw) {
-        data.condition         = CONDITION_LABELS_ADMIN[tfnsw]
-        data.highPriorityAsset = r <= 4   // legacy scale ≤4 flags the bridge
+      const derived = deriveCondition(data.conditionRating)
+      if (derived) {
+        data.condition         = derived.condition
+        data.highPriorityAsset = derived.highPriorityAsset
       }
     }
   })

@@ -1347,8 +1347,9 @@ async function loadClusters({ bbox, zoom = 6 } = {}) {
   };
 }
 
-function haversineDistanceKm(lat1, lng1, lat2, lng2) {
-  const earthRadiusKm = 6371;
+function haversineDistanceKm(lat1, lng1, lat2, lng2, earthRadiusKm = 6371) {
+  // CONFIG-4: radius is config-driven (default 6371 km mean). HANA defers to ST_Distance
+  // which respects the CRS; this SQLite fallback is intentionally a spherical approximation.
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const haversineTerm = Math.sin(dLat / 2) ** 2 +
@@ -1364,9 +1365,12 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
     throw new Error('lat, lng and radius (km) are required');
   }
 
-  // Approximate bounding box for initial filter (faster)
-  const latDelta = radN / 111;
-  const lngDelta = radN / (111 * Math.cos(latN * Math.PI / 180));
+  // Approximate bounding box for initial filter (faster). CONFIG-5: km-per-degree is
+  // config-driven (default 111) so the approximation constant isn't a magic literal.
+  const kmPerDeg = await getConfigInt('GIS_KM_PER_DEGREE', 111);
+  const earthRadiusKm = await getConfigInt('GIS_EARTH_RADIUS_KM', 6371);
+  const latDelta = radN / kmPerDeg;
+  const lngDelta = radN / (kmPerDeg * Math.cos(latN * Math.PI / 180));
   const minLat = latN - latDelta, maxLat = latN + latDelta;
   const minLon = lngN - lngDelta, maxLon = lngN + lngDelta;
 
@@ -1401,7 +1405,7 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
     bridges = candidates
       .map(b => ({
         ...b,
-        distanceKm: haversineDistanceKm(latN, lngN, Number(b.latitude), Number(b.longitude))
+        distanceKm: haversineDistanceKm(latN, lngN, Number(b.latitude), Number(b.longitude), earthRadiusKm)
       }))
       .filter(b => b.distanceKm <= radN)
       .sort((nearerBridge, fartherBridge) => nearerBridge.distanceKm - fartherBridge.distanceKm);

@@ -1,24 +1,10 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('bms-mass-edit')
 
+const { deriveCondition } = require('../lib/condition-rating')
+
 const EDITABLE_GRID_FIELDS = ['condition', 'conditionRating', 'postingStatus', 'loadRating',
                                'hmlApproved', 'bDoubleApproved', 'freightRoute']
-
-const LEGACY_RATING_TO_TFNSW = {
-    10: 1, 9: 1,
-    8: 2,  7: 2,
-    6: 3,  5: 3,
-    4: 4,  3: 4,
-    2: 5,  1: 5
-}
-
-const CONDITION_LABELS = {
-    1: 'Good',
-    2: 'Fair',
-    3: 'Poor',
-    4: 'Very Poor',
-    5: 'Critical'
-}
 
 module.exports = function registerMassEditHandlers (srv, { logAudit, validateEnum }) {
 
@@ -43,13 +29,12 @@ module.exports = function registerMassEditHandlers (srv, { logAudit, validateEnu
                     if (row[fieldName] !== undefined) patch[fieldName] = row[fieldName]
                 })
                 if (patch.conditionRating !== undefined) {
-                    const parsedRating = parseInt(patch.conditionRating, 10)
-                    if (parsedRating < 1 || parsedRating > 10) {
+                    const derived = deriveCondition(patch.conditionRating)
+                    if (!derived) {
                         failed++; errors.push(`Row ${rowIndex + 1}: conditionRating must be 1-10`); continue
                     }
-                    const tfnswRating = LEGACY_RATING_TO_TFNSW[parsedRating]
-                    patch.condition = CONDITION_LABELS[tfnswRating]
-                    patch.highPriorityAsset = parsedRating <= 4
+                    patch.condition = derived.condition
+                    patch.highPriorityAsset = derived.highPriorityAsset
                 }
                 await db.run(UPDATE('bridge.management.Bridges').set(patch).where({ ID: row.ID }))
                 updated++
