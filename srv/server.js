@@ -16,7 +16,7 @@ const mountAttributesApi = require('./attributes-api')
 
 const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-log')
 
-const { getConfigInt, getCrsEpsg, getStorageSrid } = require('./system-config')
+const { getConfig, getConfigInt, getCrsEpsg, getStorageSrid } = require('./system-config')
 const { validateGeoJson } = require('./lib/geo')
 const demoHandler = require('./demo-handler')
 
@@ -1222,19 +1222,23 @@ function buildRestrictionsCsv(restrictions, customAttributeColumns = [], customF
   return header + '\n' + rows.join('\n');
 }
 
-function zoomToCellSize(zoom) {
-  if (zoom <= 4)  return 2.0;
-  if (zoom <= 5)  return 1.0;
-  if (zoom <= 6)  return 0.5;
-  if (zoom <= 7)  return 0.25;
-  if (zoom <= 8)  return 0.1;
-  return null; // individual points at zoom 9+
+// CONFIG-R3: zoom→grid-cell mapping is config-driven. [maxZoom, cellSizeDeg] pairs;
+// override via SystemConfig key GIS_CLUSTER_ZOOM_CELLS (JSON). Beyond the last pair,
+// individual points are returned (null).
+const DEFAULT_ZOOM_CELLS = [[4, 2.0], [5, 1.0], [6, 0.5], [7, 0.25], [8, 0.1]];
+function zoomToCellSize(zoom, cells = DEFAULT_ZOOM_CELLS) {
+  for (const pair of cells) { if (zoom <= pair[0]) return pair[1]; }
+  return null;
+}
+async function getZoomCells() {
+  try { const raw = await getConfig('GIS_CLUSTER_ZOOM_CELLS'); const c = raw ? JSON.parse(raw) : null; return Array.isArray(c) ? c : DEFAULT_ZOOM_CELLS; }
+  catch { return DEFAULT_ZOOM_CELLS; }
 }
 
 async function loadClusters({ bbox, zoom = 6 } = {}) {
   const db = await cds.connect.to('db');
   const bboxParsed = parseBbox(bbox);
-  const cellSize = zoomToCellSize(Number(zoom));
+  const cellSize = zoomToCellSize(Number(zoom), await getZoomCells());
 
   // At high zoom, return individual bridge points (not clusters)
   if (!cellSize) {
@@ -1611,9 +1615,9 @@ cds.on('bootstrap', (app) => {
       // FIX 6: ZIP bomb / oversized file guard — check BEFORE decoding/parsing
       // Base64 encodes 3 bytes as 4 chars; decoded size ≈ base64Length * 0.75
       const estimatedBytes = Math.ceil(contentBase64.length * 0.75)
-      const MAX_BYTES = 50 * 1024 * 1024 // 50 MB
+      const MAX_BYTES = await getConfigInt('MAX_UPLOAD_FILE_BYTES', 50 * 1024 * 1024) // CONFIG-R2
       if (estimatedBytes > MAX_BYTES) {
-        return res.status(400).json({ error: { message: 'File too large. Maximum 50MB allowed.' } })
+        return res.status(400).json({ error: { message: `File too large. Maximum ${Math.round(MAX_BYTES / 1024 / 1024)}MB allowed.` } })
       }
 
       // FIX 6: Extension whitelist — only allow safe spreadsheet formats
@@ -1749,8 +1753,10 @@ cds.on('bootstrap', (app) => {
           res.setHeader('Content-Disposition', 'attachment; filename="bridge-restrictions.csv"');
           return res.send(csv);
         }
+        const restrEpsg = await getCrsEpsg(); // GIS-R1: declare the datum
         const geojson = {
           type: 'FeatureCollection',
+          crs: { type: 'name', properties: { name: `EPSG:${restrEpsg}` } },
           features: restrictions.map(r => ({
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [r.longitude, r.latitude] },
@@ -1806,8 +1812,10 @@ cds.on('bootstrap', (app) => {
   mapRouter.get('/proximity', async (req, res) => {
     try {
       const { lat, lng, radius } = req.query;
-      const bridges = await loadProximityBridges({ lat, lng, radiusKm: radius || 10 });
-      res.json({ bridges, searchCenter: { lat: Number(lat), lng: Number(lng) }, radiusKm: Number(radius || 10) });
+      const defaultRadius = await getConfigInt('GIS_PROXIMITY_DEFAULT_RADIUS_KM', 10); // CONFIG-R4
+      const radiusKm = radius || defaultRadius;
+      const bridges = await loadProximityBridges({ lat, lng, radiusKm });
+      res.json({ bridges, searchCenter: { lat: Number(lat), lng: Number(lng) }, radiusKm: Number(radiusKm) });
     } catch (error) {
       res.status(error.message.includes('required') ? 400 : 500)
          .json({ error: { message: error.message || 'Proximity search failed' } });
@@ -1819,6 +1827,8 @@ cds.on('bootstrap', (app) => {
       const db = await cds.connect.to('db');
       let cfg = await db.run(SELECT.one.from('bridge_management_GISConfig').where({ id: 'default' }));
       if (!cfg) {
+        // CONFIG-R1: GISConfig (admin-editable, auto-seeded singleton) IS the config
+        // source. This literal is the last-resort fallback only if that row is missing.
         cfg = {
           id: 'default', defaultBasemap: 'osm', hereApiKey: '',
           showStateBoundaries: false, showLgaBoundaries: false,
@@ -2148,6 +2158,8 @@ cds.on('bootstrap', (app) => {
   const qualityRouter = express.Router()
 
   // Default completeness fields — used as fallback when no required_field rules are configured
+  // CONFIG-R5: admin-configured DataQualityRules (required_field rules) override this;
+  // this list is only the fallback when no completeness rules are configured.
   const QUALITY_COMPLETENESS_FIELDS_DEFAULT = [
     'bridgeName', 'bridgeId', 'state', 'region', 'assetOwner',
     'latitude', 'longitude', 'structureType', 'condition',

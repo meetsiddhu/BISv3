@@ -1165,6 +1165,10 @@ sap.ui.define([
       }
 
       this._mapInitAttempts = 0;
+      // GIS-R2: coordinates are stored as GDA2020 (EPSG:7844). Leaflet's default Web
+      // Mercator (EPSG:3857) is intentional for DISPLAY — GDA2020≈WGS84 (<2 m), well
+      // under one screen pixel at any usable zoom. The authoritative datum lives in the
+      // data/export path (see GIS-CRS-POLICY.md); the map view is visualisation only.
       this._leafletMap = window.L.map(host, {
         zoomControl: true,
         attributionControl: true

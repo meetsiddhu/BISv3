@@ -2,6 +2,7 @@ const cds = require('@sap/cds')
 const LOG = cds.log('bms-mass-edit')
 
 const { deriveCondition } = require('../lib/condition-rating')
+const { writeChangeLogs, diffRecords } = require('../audit-log')
 
 const EDITABLE_GRID_FIELDS = ['condition', 'conditionRating', 'postingStatus', 'loadRating',
                                'hmlApproved', 'bDoubleApproved', 'freightRoute']
@@ -12,6 +13,7 @@ module.exports = function registerMassEditHandlers (srv, { logAudit, validateEnu
         const { rows } = req.data
         if (!rows?.length) return req.error(400, 'rows array is required')
         const db = await cds.connect.to('db')
+        const batchId = cds.utils.uuid()   // OPS-R2: group this mass-edit's audit entries
         let updated = 0, failed = 0
         const errors = []
 
@@ -37,6 +39,13 @@ module.exports = function registerMassEditHandlers (srv, { logAudit, validateEnu
                     patch.highPriorityAsset = derived.highPriorityAsset
                 }
                 await db.run(UPDATE('bridge.management.Bridges').set(patch).where({ ID: row.ID }))
+                // OPS-R2: durable audit (rule-3) — diff'd, source-tagged, and fail-fast
+                // (writeChangeLogs throws for the MassEdit bulk source, failing the row).
+                await writeChangeLogs(db, {
+                    objectType: 'Bridge', objectId: row.ID, objectName: currentBridge.bridgeName,
+                    source: 'MassEdit', batchId, changedBy: req.user?.id,
+                    changes: diffRecords(currentBridge, { ...currentBridge, ...patch })
+                })
                 updated++
             } catch (rowError) { failed++; errors.push(`Row ${rowIndex + 1}: ${rowError.message}`) }
         }
