@@ -36,7 +36,7 @@ function diffRecords(oldRecord, newRecord) {
   return changes
 }
 
-async function writeChangeLogs(db, { objectType, objectId, objectName, source, batchId, changedBy, changes }) {
+async function writeChangeLogs(db, { objectType, objectId, objectName, source, batchId, changedBy, changes, changeReason }) {
   if (!changes || !changes.length) return
 
   const entries = changes.map(change => ({
@@ -50,7 +50,8 @@ async function writeChangeLogs(db, { objectType, objectId, objectName, source, b
     oldValue: change.oldValue,
     newValue: change.newValue,
     changeSource: source,
-    batchId: batchId || null
+    batchId: batchId || null,
+    changeReason: changeReason || change.reason || null  // ISO-AUDIT-003: governance narrative
   }))
 
   try {

@@ -57,9 +57,15 @@ function deriveRisk (b, weights) {
   // under-weighting incomplete data (documented in METHODOLOGY.md).
   const condLk = b.conditionRating != null ? clampRisk(Math.ceil((11 - b.conditionRating) / 2), 1, 5) : 3
   const strLk  = b.structuralAdequacyRating != null ? clampRisk(Math.ceil((11 - b.structuralAdequacyRating) / 2), 1, 5) : condLk
+  // P1-001: clamp each weighted likelihood component to [1,5] BEFORE the max, so an
+  // out-of-range weight can't push a single component arbitrarily high pre-clamp. The
+  // worse (higher) of condition/structural still drives likelihood.
   const likelihood = (override && b.riskLikelihood)
     ? b.riskLikelihood
-    : clampRisk(Math.round(Math.max(condLk * w.likelihood_condition, strLk * w.likelihood_structural)), 1, 5)
+    : clampRisk(Math.round(Math.max(
+        clampRisk(condLk * w.likelihood_condition, 1, 5),
+        clampRisk(strLk * w.likelihood_structural, 1, 5)
+      )), 1, 5)
 
   const score = consequence * likelihood * 4 // 4..100
   const band = RISK_BANDS.find(x => score >= x.min) || RISK_BANDS[RISK_BANDS.length - 1]

@@ -397,11 +397,23 @@ service AdminService {
           nextInspectionDue,
           inspectionOverdue,
           ( case inspectionOverdue when true then 1 else 3 end ) as overdueCriticality : Integer,
+          // ISO-AUDIT-005: SAMP policy-intervention signal.
+          policyInterventionDue,
+          // ELEM-1/AUDIT-010: worst rolled-up element condition + provenance of the rating.
+          worstElementCondition,
+          conditionSource,
           // ISO 55000 capital-planning columns (RISK-2/4) — decision-support.
           estimatedRulYears,
           likelyFailureCostAud,
           expectedValueAud,
           benefitCostRatio,
+          // ISO-AUDIT-009: explicit ROI decision band so a null/0 ratio isn't ambiguous.
+          ( case
+              when benefitCostRatio is null then 'Insufficient Data'
+              when benefitCostRatio > 1     then 'Viable'
+              when benefitCostRatio >= 0    then 'Marginal'
+              else 'Unviable'
+            end ) as roiStatus : String(20),
           mitigationCostAud,
           status
     };

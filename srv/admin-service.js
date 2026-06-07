@@ -24,7 +24,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     if (!stratId) return null
     const db = await cds.connect.to('db')
     return db.run(SELECT.one.from('bridge.management.AssetClassStrategy')
-      .columns('inspectionIntervalMonths', 'degradationRatePerYear').where({ ID: stratId }))
+      .columns('inspectionIntervalMonths', 'degradationRatePerYear', 'interventionThreshold').where({ ID: stratId }))
   }
 
   // Load active RiskConfig weights (config-driven scoring; rule 4). Cached per
@@ -37,7 +37,16 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       const rows = await db.run(SELECT.from('bridge.management.RiskConfig')
         .columns('factor', 'weight', 'active'))
       _riskWeights = weightsFromConfig(rows)
-    } catch (e) { _riskWeights = {} }
+      // P3-003: surface whether a config probability map is in effect, so a silent
+      // fallback to the documented default proxy is visible in the logs.
+      cds.log('bms').info('Risk weights loaded', {
+        factors: Object.keys(_riskWeights).length,
+        customProbMap: Object.keys(_riskWeights).some(k => k.startsWith('prob_'))
+      })
+    } catch (e) {
+      cds.log('bms').warn('RiskConfig load failed; using default weights:', e.message)
+      _riskWeights = {}
+    }
     return _riskWeights
   }
 
@@ -394,6 +403,10 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const ev = expectedValueAud(r.likelihood, req.data.likelyFailureCostAud, probMapFromConfig(weights))
     req.data.expectedValueAud  = ev
     req.data.benefitCostRatio  = benefitCostRatio(ev, req.data.mitigationCostAud, req.data.riskReductionPct)
+    // ISO-AUDIT-005: SAMP intervention signal — flag when condition has reached/passed the
+    // strategy's intervention threshold (lower 1-10 rating = worse condition).
+    req.data.policyInterventionDue = !!(strat && strat.interventionThreshold != null &&
+      req.data.conditionRating != null && req.data.conditionRating <= strat.interventionThreshold)
   })
 
   // EAM-T4 (extends EAM-R4): validate EAM reference enums on EVERY EAM-bearing entity so
@@ -514,7 +527,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
                'likelyFailureCostAud', 'mitigationCostAud', 'riskReductionPct'))
     // Strategy map (one query) for inspection-due + RUL recompute.
     const strategies = await db.run(SELECT.from('bridge.management.AssetClassStrategy')
-      .columns('ID', 'inspectionIntervalMonths', 'degradationRatePerYear'))
+      .columns('ID', 'inspectionIntervalMonths', 'degradationRatePerYear', 'interventionThreshold'))
     const stratById = new Map(strategies.map(s => [s.ID, s]))
     // ISO-AUDIT-001: rule-3 audit trail for the mass risk mutation. One batchId ties the
     // whole recalc together; source 'Calibration' is in audit-log's durable bulkSources
@@ -534,6 +547,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         estimatedRulYears: estimatedRulYears(b.conditionRating, strat && strat.degradationRatePerYear),
         expectedValueAud: ev,
         benefitCostRatio: benefitCostRatio(ev, b.mitigationCostAud, b.riskReductionPct),
+        policyInterventionDue: !!(strat && strat.interventionThreshold != null &&
+          b.conditionRating != null && b.conditionRating <= strat.interventionThreshold),
         riskAssessedAt: new Date().toISOString(), riskAssessedBy: changedBy
       }).where({ ID: b.ID }))
       n++
@@ -554,6 +569,83 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     }
     return `Recalculated risk + inspection-due for ${n} bridges (${audited} changed, audited).`
   })
+
+  // ── FIT-002: condition→risk auto-trigger ─────────────────────────────────────
+  // When an inspection lands a condition rating, propagate it to the parent bridge and
+  // recompute risk (so the worklist reflects the latest inspection without a manual edit).
+  // EAM still owns scheduling/execution; this is the engineering condition→risk flow.
+  // Fully guarded: a failure here must never break the inspection save.
+  const propagateInspectionToBridge = async (inspId, req) => {
+    try {
+      const db = await cds.connect.to('db')
+      const insp = await db.run(SELECT.one.from('bridge.management.BridgeInspections')
+        .columns('bridge_ID', 'conditionRating', 'structuralRating', 'inspectionDate', 'inspectionRef')
+        .where({ ID: inspId }))
+      if (!insp || !insp.bridge_ID || insp.conditionRating == null) return
+      const b = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: insp.bridge_ID }))
+      if (!b) return
+      // Don't let an older (backfilled) inspection override a more recent condition.
+      if (b.lastInspectionDate && insp.inspectionDate && insp.inspectionDate < b.lastInspectionDate) return
+      const weights = await getRiskWeights()
+      const strat = await getStrategy(b.assetClassStrategy_ID)
+      const merged = { ...b,
+        conditionRating: insp.conditionRating,
+        structuralAdequacyRating: insp.structuralRating ?? b.structuralAdequacyRating,
+        lastInspectionDate: insp.inspectionDate || b.lastInspectionDate }
+      const r = deriveRisk(merged, weights)
+      const due = nextInspectionDue(merged.lastInspectionDate, strat && strat.inspectionIntervalMonths)
+      const ev = expectedValueAud(r.likelihood, b.likelyFailureCostAud, probMapFromConfig(weights))
+      await db.run(UPDATE('bridge.management.Bridges').set({
+        conditionRating: insp.conditionRating,
+        conditionSource: 'DerivedFromInspection',
+        structuralAdequacyRating: merged.structuralAdequacyRating,
+        lastInspectionDate: merged.lastInspectionDate,
+        riskConsequence: r.consequence, riskLikelihood: r.likelihood, riskScore: r.score, riskPriority: r.priority,
+        nextInspectionDue: due, inspectionOverdue: isOverdue(due),
+        estimatedRulYears: estimatedRulYears(insp.conditionRating, strat && strat.degradationRatePerYear),
+        expectedValueAud: ev, benefitCostRatio: benefitCostRatio(ev, b.mitigationCostAud, b.riskReductionPct),
+        policyInterventionDue: !!(strat && strat.interventionThreshold != null && insp.conditionRating <= strat.interventionThreshold),
+        riskAssessedAt: new Date().toISOString(), riskAssessedBy: req.user?.id || 'system'
+      }).where({ ID: b.ID }))
+      const changes = []
+      if (Number(b.conditionRating) !== Number(insp.conditionRating)) changes.push({ fieldName: 'conditionRating', oldValue: String(b.conditionRating ?? ''), newValue: String(insp.conditionRating) })
+      if ((b.riskPriority || '') !== r.priority) changes.push({ fieldName: 'riskPriority', oldValue: b.riskPriority || '', newValue: r.priority })
+      if (changes.length) {
+        await writeChangeLogs(db, {
+          objectType: 'Bridge', objectId: b.ID, objectName: b.bridgeId || b.ID,
+          source: 'OData', batchId: cds.utils.uuid(), changedBy: req.user?.id || 'system',
+          changeReason: `Condition auto-derived from inspection ${insp.inspectionRef || inspId} (FIT-002)`, changes
+        })
+      }
+    } catch (e) {
+      cds.log('bms').error('FIT-002 inspection->bridge propagation failed:', e.message)
+    }
+  }
+  this.after(['CREATE', 'UPDATE'], 'BridgeInspections', async (result, req) => {
+    const id = result?.ID || req.data?.ID
+    if (id) await propagateInspectionToBridge(id, req)
+  })
+
+  // ── ELEM-1 / AUDIT-010: element-level condition roll-up ──────────────────────
+  // Maintain Bridges.worstElementCondition = worst (min, since 10=best) active element
+  // rating. Surfaces under-stated bridge condition for inspectors/planners. Guarded.
+  const rollupElements = async (bridgeId) => {
+    if (!bridgeId) return
+    try {
+      const db = await cds.connect.to('db')
+      const rows = await db.run(SELECT.from('bridge.management.BridgeElements')
+        .columns('conditionRating').where({ bridge_ID: bridgeId, active: true }))
+      const ratings = rows.map(r => r.conditionRating).filter(v => v != null)
+      const worst = ratings.length ? Math.min(...ratings) : null
+      await db.run(UPDATE('bridge.management.Bridges').set({ worstElementCondition: worst }).where({ ID: bridgeId }))
+    } catch (e) {
+      cds.log('bms').error('ELEM-1 element roll-up failed:', e.message)
+    }
+  }
+  this.after(['CREATE', 'UPDATE'], 'BridgeElements', async (result, req) => {
+    await rollupElements(result?.bridge_ID || req.data?.bridge_ID)
+  })
+
   const TYPE_UNIT_MAP = {
     'Speed Restriction': ['km/h'],
     'Mass Limit':        ['t'],

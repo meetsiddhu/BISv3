@@ -92,6 +92,9 @@ entity Bridges : managed {
       // overdue signal surfaced in the risk worklist.
       nextInspectionDue  : Date;
       inspectionOverdue  : Boolean default false;
+      // ISO-AUDIT-005: SAMP policy signal — true when conditionRating has reached/passed
+      // the governing AssetClassStrategy.interventionThreshold (derived on save).
+      policyInterventionDue : Boolean default false;
       nhvrAssessed : Boolean;
       nhvrAssessmentDate : Date;
       loadRating   : Decimal(9,2);
