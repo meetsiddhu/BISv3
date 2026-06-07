@@ -70,10 +70,15 @@ async function writeChangeLogs(db, { objectType, objectId, objectName, source, b
 }
 
 async function fetchCurrentRecord(db, entity, where) {
+  // OPS-2: a missing record is NOT an error — SELECT.one returns undefined without
+  // throwing, so we return that as-is. The catch only fires on a genuine DB failure
+  // (bad connection, locked table); surface it (log + rethrow) rather than masking it
+  // as "no prior record", which would silently corrupt the audit diff.
   try {
     return await db.run(SELECT.one.from(entity).where(where))
-  } catch (_) {
-    return null
+  } catch (error) {
+    LOG.error(`fetchCurrentRecord failed for ${entity}:`, error.message)
+    throw error
   }
 }
 

@@ -862,16 +862,12 @@ async function saveMassEditRestrictions(updates, { user } = {}) {
         }
       }
     }
+    // SEC-003: audit inside the transaction so a failed write rolls back the edit (rule 3).
+    for (const entry of auditEntries) await writeChangeLogs(tx, entry)
     await tx.commit()
   } catch (error) {
     await tx.rollback(error)
     throw error
-  }
-
-  // Phase 3 — background audit writes (fire-and-forget; writeChangeLogs suppresses errors).
-  if (auditEntries.length) {
-    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
-      .catch(err => LOG.error('Audit log write failed (restrictions):', err.message))
   }
 
   return { updated }
@@ -1483,7 +1479,9 @@ cds.on('bootstrap', (app) => {
   app.use((req, _res, next) => {
     const userId = req.user?.id
     if (userId) {
-      const displayName = req.user?.name || req.user?.email || userId
+      // SEC-004: do NOT persist email (PII) in UserActivity — prefer the display name,
+      // else fall back to the system id. Email is never written to the activity store.
+      const displayName = req.user?.name || userId
       recordActivity(userId, displayName, req.path).catch(() => {})
     }
     next()
@@ -1668,7 +1666,12 @@ cds.on('bootstrap', (app) => {
             attrValues.get(exportedCustomField.objectId).set(exportedCustomField.attributeKey, exportedCustomField.valueText ?? exportedCustomField.valueInteger ?? exportedCustomField.valueDecimal ?? exportedCustomField.valueDate ?? exportedCustomField.valueBoolean ?? '');
           }
           return { attrCols, attrValues };
-        } catch (_) { return { attrCols: [], attrValues: new Map() }; }
+        } catch (err) {
+          // P1-002: do not silently mask a failed custom-attribute export — log it (with
+          // an attributesMissing flag for callers) so a partial export is detectable.
+          LOG.error('Custom-attribute export failed; exporting base columns only:', err.message);
+          return { attrCols: [], attrValues: new Map(), attributesMissing: true };
+        }
       }
 
       if (layer === 'restrictions') {
@@ -2745,7 +2748,9 @@ cds.on('served', async () => {
       SET "GEOLOCATION" = NEW ST_Point("LONGITUDE", "LATITUDE", ${srid})
       WHERE "LATITUDE" IS NOT NULL AND "LONGITUDE" IS NOT NULL AND "GEOLOCATION" IS NULL`);
   } catch (error) {
-    // Spatial column may not exist in dev — ignore
+    // HANA-1: the spatial column may legitimately not exist in dev/SQLite — but log at
+    // WARN so a genuine HANA backfill problem is visible to ops during deployment.
+    LOG.warn('Spatial GEOLOCATION backfill skipped (column may not exist):', error.message);
   }
 });
 

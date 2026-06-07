@@ -41,4 +41,32 @@ describe('GeoJSON ingress validation (GIS-1/GIS-5)', () => {
   test('out-of-range coordinate is rejected', () => {
     expect(validateGeoJson('{"type":"Point","coordinates":[999,-33]}').ok).toBe(false)
   })
+
+  // SEC-006: DoS guards
+  test('valid GeometryCollection still passes', () => {
+    const gc = '{"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[151,-33]}]}'
+    expect(validateGeoJson(gc).ok).toBe(true)
+  })
+
+  test('oversized raw payload is rejected (SEC-006 size guard)', () => {
+    const big = '{"type":"LineString","coordinates":[' + '[151,-33],'.repeat(300000) + '[151,-33]]}'
+    const r = validateGeoJson(big)
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/bytes|too large|range/)
+  })
+
+  test('excessive coordinate count is rejected (SEC-006 count guard)', () => {
+    // Just over the pair budget but under the byte budget — exercises the count guard.
+    const coords = []
+    for (let i = 0; i < 120000; i++) coords.push([151, -33])
+    const r = validateGeoJson({ type: 'MultiPoint', coordinates: coords })
+    expect(r.ok).toBe(false)
+  })
+
+  test('deeply nested arrays are rejected (SEC-006 depth guard)', () => {
+    let nested = [151, -33]
+    for (let i = 0; i < 20; i++) nested = [nested]
+    const r = validateGeoJson({ type: 'Polygon', coordinates: nested })
+    expect(r.ok).toBe(false)
+  })
 })
