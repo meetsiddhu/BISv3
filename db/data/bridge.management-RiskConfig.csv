@@ -4,3 +4,7 @@ likelihood_structural,Structural adequacy drives likelihood,1,true
 consequence_importance,Importance level drives consequence,1,true
 consequence_traffic,Traffic volume contributes to consequence,0.5,true
 consequence_priority,High-priority asset raises consequence,1,true
+mode_Rail,Rail bridge network criticality bump,1,true
+mode_LightRail,Light-rail bridge network criticality bump,1,true
+mode_Road,Road bridge mode bump,0,true
+mode_Pedestrian,Pedestrian/active-transport mode bump,0,true

@@ -17,6 +17,16 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   // ── Risk prioritisation engine (Phase 2/4) — see srv/lib/risk.js (unit-tested) ──
   const { deriveRisk, weightsFromConfig } = require('./lib/risk')
+  const { nextInspectionDue, isOverdue } = require('./lib/inspection')
+
+  // Cache of strategyId -> inspectionIntervalMonths (refreshed alongside risk weights).
+  const getStrategyInterval = async (stratId) => {
+    if (!stratId) return null
+    const db = await cds.connect.to('db')
+    const s = await db.run(SELECT.one.from('bridge.management.AssetClassStrategy')
+      .columns('inspectionIntervalMonths').where({ ID: stratId }))
+    return s ? s.inspectionIntervalMonths : null
+  }
 
   // Load active RiskConfig weights (config-driven scoring; rule 4). Cached per
   // process; the admin can refresh via recalcRisk after editing weights.
@@ -364,7 +374,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   this.before('SAVE', Bridges, req => validateEntityFields('Bridges', req))
 
-  // Compute risk score/priority on every bridge save (Phase 2).
+  // Compute risk score/priority on every bridge save (Phase 2; mode-aware via Gap B).
   this.before('SAVE', Bridges, async (req) => {
     const r = deriveRisk(req.data, await getRiskWeights())
     req.data.riskConsequence = r.consequence
@@ -373,6 +383,28 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     req.data.riskPriority    = r.priority
     req.data.riskAssessedAt  = new Date().toISOString()
     req.data.riskAssessedBy  = req.user?.id || 'system'
+
+    // Gap A / INSPECT-1/2: derive the inspection-due signal from the linked strategy.
+    if (req.data.assetClassStrategy_ID !== undefined || req.data.lastInspectionDate !== undefined) {
+      const interval = await getStrategyInterval(req.data.assetClassStrategy_ID)
+      const due = nextInspectionDue(req.data.lastInspectionDate, interval)
+      req.data.nextInspectionDue = due
+      req.data.inspectionOverdue = isOverdue(due)
+    }
+  })
+
+  // Refinement (R1/R5): a bridge's transport mode must match its network's mode, so a
+  // Rail bridge can't be filed under a road network and corrupt the cross-modal view.
+  this.before('SAVE', Bridges, async (req) => {
+    const d = req.data
+    if (d.network && d.transportMode) {
+      const db = await cds.connect.to('db')
+      const net = await db.run(SELECT.one.from('bridge.management.Networks')
+        .columns('mode').where({ code: d.network }))
+      if (net && net.mode && net.mode !== d.transportMode) {
+        req.error(409, `Transport mode '${d.transportMode}' does not match network '${d.network}' (mode '${net.mode}').`)
+      }
+    }
   })
 
   // Backfill / refresh risk for all bridges (admin action).
@@ -381,19 +413,26 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     _riskWeights = null // force a reload so freshly-edited weights take effect
     const weights = await getRiskWeights()
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
-      .columns('ID', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
-               'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence', 'riskLikelihood'))
+      .columns('ID', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
+               'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence',
+               'riskLikelihood', 'lastInspectionDate', 'assetClassStrategy_ID'))
+    // Strategy interval map (one query) for inspection-due recompute.
+    const strategies = await db.run(SELECT.from('bridge.management.AssetClassStrategy')
+      .columns('ID', 'inspectionIntervalMonths'))
+    const intervalById = new Map(strategies.map(s => [s.ID, s.inspectionIntervalMonths]))
     let n = 0
     for (const b of bridges) {
       const r = deriveRisk(b, weights)
+      const due = nextInspectionDue(b.lastInspectionDate, intervalById.get(b.assetClassStrategy_ID))
       await db.run(UPDATE('bridge.management.Bridges').set({
         riskConsequence: r.consequence, riskLikelihood: r.likelihood,
         riskScore: r.score, riskPriority: r.priority,
+        nextInspectionDue: due, inspectionOverdue: isOverdue(due),
         riskAssessedAt: new Date().toISOString(), riskAssessedBy: req.user?.id || 'system'
       }).where({ ID: b.ID }))
       n++
     }
-    return `Recalculated risk for ${n} bridges.`
+    return `Recalculated risk + inspection-due for ${n} bridges.`
   })
   const TYPE_UNIT_MAP = {
     'Speed Restriction': ['km/h'],

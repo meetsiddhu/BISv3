@@ -129,13 +129,15 @@ annotate AdminService.Bridges with @(
     },
     FieldGroup#RiskAssessment: {
       Data: [
-        {Value: riskPriority,       Label: 'Risk Priority'},
-        {Value: riskScore,          Label: 'Risk Score'},
+        {Value: riskPriority,       Label: 'Risk Priority', Criticality: riskCriticality},
+        {Value: riskScore,          Label: 'Risk Score',    Criticality: riskCriticality},
         {Value: riskOverride,       Label: 'Engineer Override'},
         {Value: riskConsequence,    Label: 'Consequence (1-5)'},
         {Value: riskLikelihood,     Label: 'Likelihood (1-5)'},
         {Value: riskOverrideReason, Label: 'Override Justification'},
         {Value: assetClassStrategy_ID, Label: 'Asset Class Strategy'},
+        {Value: nextInspectionDue,  Label: 'Next Inspection Due'},
+        {Value: inspectionOverdue,  Label: 'Inspection Overdue'},
       ]
     },
     FieldGroup#GeoLocation: {
@@ -497,7 +499,9 @@ annotate AdminService.BridgeRestrictions with {
     Common.ValueList: { CollectionPath: 'Bridges', Parameters: [
       { $Type: 'Common.ValueListParameterOut',      LocalDataProperty: bridge_ID,   ValueListProperty: 'ID' },
       { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeName' },
-      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeId'   }
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeId'   },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'state'      },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'transportMode' }
     ]}
   ) @title: 'Bridge';
   createdAt @UI.Hidden;  createdBy @UI.Hidden;  modifiedAt @UI.Hidden;  modifiedBy @UI.Hidden;
@@ -818,7 +822,9 @@ annotate AdminService.BridgeCapacities with {
     Common.ValueList: { CollectionPath: 'Bridges', Parameters: [
       { $Type: 'Common.ValueListParameterOut',      LocalDataProperty: bridge_ID,   ValueListProperty: 'ID' },
       { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeName' },
-      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeId'   }
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeId'   },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'state'      },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'transportMode' }
     ]}
   ) @title: 'Bridge';
   createdAt  @UI.Hidden;  createdBy  @UI.Hidden;  modifiedAt @UI.Hidden;  modifiedBy @UI.Hidden;
@@ -1426,7 +1432,7 @@ annotate AdminService.BridgeRiskReport with @(
   Capabilities.UpdateRestrictions: { Updatable: false },
   Capabilities.DeleteRestrictions: { Deletable: false },
   UI.HeaderInfo: { TypeName: 'Bridge Risk', TypeNamePlural: 'Bridge Risk', Title: { Value: bridgeName }, Description: { Value: riskPriority } },
-  UI.SelectionFields: [ transportMode, network, state, assetClass, riskPriority ],
+  UI.SelectionFields: [ transportMode, network, state, assetClass, riskPriority, inspectionOverdue ],
   UI.LineItem: [
     { Value: bridgeId,                 Label: 'Bridge ID' },
     { Value: bridgeName,               Label: 'Bridge' },
@@ -1440,7 +1446,11 @@ annotate AdminService.BridgeRiskReport with @(
     { Value: conditionRating,          Label: 'Condition' },
     { Value: structuralAdequacyRating, Label: 'Structural' },
     { Value: importanceLevel,          Label: 'Importance' },
-    { Value: lastInspectionDate,       Label: 'Last Inspected' }
+    { Value: strategyName,             Label: 'Strategy' },
+    { Value: inspectionIntervalMonths, Label: 'Interval (mo)' },
+    { Value: lastInspectionDate,       Label: 'Last Inspected' },
+    { Value: nextInspectionDue,        Label: 'Next Due', Criticality: overdueCriticality },
+    { Value: inspectionOverdue,        Label: 'Overdue', Criticality: overdueCriticality }
   ]
 );
 annotate AdminService.BridgeRiskReport with {
@@ -1449,6 +1459,9 @@ annotate AdminService.BridgeRiskReport with {
   network @title:'Network'; assetClass @title:'Asset Class'; riskPriority @title:'Risk Priority';
   riskScore @title:'Risk Score'; riskConsequence @title:'Consequence'; riskLikelihood @title:'Likelihood';
   conditionRating @title:'Condition'; structuralAdequacyRating @title:'Structural'; importanceLevel @title:'Importance';
+  strategyName @title:'Strategy'; inspectionIntervalMonths @title:'Interval (mo)';
+  nextInspectionDue @title:'Next Due'; inspectionOverdue @title:'Overdue';
+  riskCriticality @UI.Hidden; overdueCriticality @UI.Hidden;
 };
 
 ////////////////////////////////////////////////////////////////////////////

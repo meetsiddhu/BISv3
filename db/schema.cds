@@ -70,6 +70,12 @@ entity Bridges : managed {
       remarks      : LargeString;
       status       : String(40);
       lastInspectionDate : Date;
+      // Decision-support only (INSPECT-1/2 / R3): derived on save from
+      // lastInspectionDate + the linked AssetClassStrategy.inspectionIntervalMonths.
+      // EAM owns the actual maintenance plan / scheduling; this is the engineering
+      // overdue signal surfaced in the risk worklist.
+      nextInspectionDue  : Date;
+      inspectionOverdue  : Boolean default false;
       nhvrAssessed : Boolean;
       nhvrAssessmentDate : Date;
       loadRating   : Decimal(9,2);
@@ -353,6 +359,9 @@ entity AssetClassStrategy : cuid, managed {
   interventionThreshold    : Integer @assert.range: [1, 10];  // condition at/below which action triggers
   reviewCycleMonths        : Integer;
   description              : LargeString;
+  // Complement-EAM: the SAP EAM maintenance plan this engineering strategy maps to.
+  // EAM executes the schedule; this app holds the bridge-engineering policy + feeds it.
+  eamMaintenancePlan       : String(40);
   active                   : Boolean default true;
 }
 

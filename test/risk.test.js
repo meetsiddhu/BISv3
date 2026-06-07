@@ -68,6 +68,20 @@ describe('risk prioritisation engine', () => {
     expect(heavy.consequence).toBeGreaterThanOrEqual(light.consequence)
   })
 
+  test('mode criticality raises consequence for rail vs road (Gap B)', () => {
+    const base = { importanceLevel: 2, conditionRating: 5, structuralAdequacyRating: 5 }
+    const w = { mode_Rail: 1, mode_Road: 0 }
+    const road = deriveRisk(Object.assign({ transportMode: 'Road' }, base), w)
+    const rail = deriveRisk(Object.assign({ transportMode: 'Rail' }, base), w)
+    expect(rail.consequence).toBeGreaterThan(road.consequence)
+    expect(rail.score).toBeGreaterThan(road.score)
+  })
+
+  test('mode weighting defaults to no-op when unconfigured (backward compatible)', () => {
+    const b = { importanceLevel: 3, transportMode: 'Rail', conditionRating: 6, structuralAdequacyRating: 6 }
+    expect(deriveRisk(b)).toEqual(deriveRisk(b, {}))
+  })
+
   test('weightsFromConfig ignores inactive rows', () => {
     const w = weightsFromConfig([
       { factor: 'consequence_importance', weight: 2, active: true },

@@ -30,14 +30,18 @@ function deriveRisk (b, weights) {
   const w = Object.assign({}, DEFAULT_WEIGHTS, weights || {})
   const override = b.riskOverride === true
 
-  // Consequence: importance + high-priority + heavy-traffic, each weighted.
+  // Consequence: importance + high-priority + heavy-traffic + transport-mode
+  // criticality, each weighted. The mode bump (e.g. a rail/light-rail corridor carries
+  // higher network consequence than an equivalent local road) is config-driven via a
+  // RiskConfig factor keyed `mode_<TransportMode>`; absent config => 0 (no change).
   const importanceComp = (b.importanceLevel || 2) * w.consequence_importance
   const priorityComp = (b.highPriorityAsset ? 1 : 0) * w.consequence_priority
   const heavyTraffic = Number(b.averageDailyTraffic) > 10000 ? 1 : 0
   const trafficComp = heavyTraffic * w.consequence_traffic
+  const modeComp = Number(w['mode_' + (b.transportMode || 'Road')] || 0)
   const consequence = (override && b.riskConsequence)
     ? b.riskConsequence
-    : clampRisk(Math.round(importanceComp + priorityComp + trafficComp), 1, 5)
+    : clampRisk(Math.round(importanceComp + priorityComp + trafficComp + modeComp), 1, 5)
 
   // Likelihood: worse of condition / structural ratings, each weighted.
   const condLk = b.conditionRating != null ? clampRisk(Math.ceil((11 - b.conditionRating) / 2), 1, 5) : 3

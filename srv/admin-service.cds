@@ -12,7 +12,9 @@ service AdminService {
   ]
   entity Bridges as projection on my.Bridges {
     *,
-    virtual hasCapacity : Boolean
+    virtual hasCapacity : Boolean,
+    // FE_UX-1: read-only criticality so the object-page risk fields colour like the report.
+    ( case riskPriority when 'Very High' then 1 when 'High' then 1 when 'Medium' then 2 when 'Low' then 3 else 0 end ) as riskCriticality : Integer
   } actions {
     action deactivate() returns Bridges;
     action reactivate() returns Bridges;
@@ -365,6 +367,12 @@ service AdminService {
           ( case riskPriority when 'Very High' then 1 when 'High' then 1 when 'Medium' then 2 when 'Low' then 3 else 0 end ) as riskCriticality : Integer,
           postingStatus,
           lastInspectionDate,
+          // Gap A / INSPECT-1/2: strategy-driven inspection-due signal in the worklist.
+          assetClassStrategy.name                     as strategyName             : String,
+          assetClassStrategy.inspectionIntervalMonths as inspectionIntervalMonths : Integer,
+          nextInspectionDue,
+          inspectionOverdue,
+          ( case inspectionOverdue when true then 1 else 3 end ) as overdueCriticality : Integer,
           status
     };
 
