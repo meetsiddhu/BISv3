@@ -523,7 +523,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
       .columns('ID', 'bridgeId', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
                'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence',
-               'riskLikelihood', 'riskScore', 'riskPriority', 'lastInspectionDate', 'assetClassStrategy_ID',
+               'riskLikelihood', 'riskScore', 'riskPriority', 'inspectionOverdue', 'policyInterventionDue',
+               'lastInspectionDate', 'assetClassStrategy_ID',
                'likelyFailureCostAud', 'mitigationCostAud', 'riskReductionPct'))
     // Strategy map (one query) for inspection-due + RUL recompute.
     const strategies = await db.run(SELECT.from('bridge.management.AssetClassStrategy')
@@ -540,25 +541,30 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       const strat = stratById.get(b.assetClassStrategy_ID)
       const due = nextInspectionDue(b.lastInspectionDate, strat && strat.inspectionIntervalMonths)
       const ev = expectedValueAud(r.likelihood, b.likelyFailureCostAud, probMapFromConfig(weights))
+      const overdue = isOverdue(due)
+      const interventionDue = !!(strat && strat.interventionThreshold != null &&
+        b.conditionRating != null && b.conditionRating <= strat.interventionThreshold)
       await db.run(UPDATE('bridge.management.Bridges').set({
         riskConsequence: r.consequence, riskLikelihood: r.likelihood,
         riskScore: r.score, riskPriority: r.priority,
-        nextInspectionDue: due, inspectionOverdue: isOverdue(due),
+        nextInspectionDue: due, inspectionOverdue: overdue,
         estimatedRulYears: estimatedRulYears(b.conditionRating, strat && strat.degradationRatePerYear),
         expectedValueAud: ev,
         benefitCostRatio: benefitCostRatio(ev, b.mitigationCostAud, b.riskReductionPct),
-        policyInterventionDue: !!(strat && strat.interventionThreshold != null &&
-          b.conditionRating != null && b.conditionRating <= strat.interventionThreshold),
+        policyInterventionDue: interventionDue,
         riskAssessedAt: new Date().toISOString(), riskAssessedBy: changedBy
       }).where({ ID: b.ID }))
       n++
-      // Audit only bridges whose score/band/consequence/likelihood actually changed, so the
-      // recalc is fully traceable without flooding ChangeLog with no-op rows.
+      // Audit any bridge whose score/band/consequence/likelihood OR a derived policy flag
+      // (overdue / intervention-due) actually changed — the recalc is fully traceable
+      // without flooding ChangeLog with no-op rows.
       const changes = []
       if (Number(b.riskScore) !== Number(r.score)) changes.push({ fieldName: 'riskScore', oldValue: String(b.riskScore ?? ''), newValue: String(r.score) })
       if ((b.riskPriority || '') !== r.priority) changes.push({ fieldName: 'riskPriority', oldValue: b.riskPriority || '', newValue: r.priority })
       if (Number(b.riskConsequence) !== Number(r.consequence)) changes.push({ fieldName: 'riskConsequence', oldValue: String(b.riskConsequence ?? ''), newValue: String(r.consequence) })
       if (Number(b.riskLikelihood) !== Number(r.likelihood)) changes.push({ fieldName: 'riskLikelihood', oldValue: String(b.riskLikelihood ?? ''), newValue: String(r.likelihood) })
+      if (!!b.inspectionOverdue !== overdue) changes.push({ fieldName: 'inspectionOverdue', oldValue: String(!!b.inspectionOverdue), newValue: String(overdue) })
+      if (!!b.policyInterventionDue !== interventionDue) changes.push({ fieldName: 'policyInterventionDue', oldValue: String(!!b.policyInterventionDue), newValue: String(interventionDue) })
       if (changes.length) {
         await writeChangeLogs(db, {
           objectType: 'Bridge', objectId: b.ID, objectName: b.bridgeId || b.ID,
@@ -609,6 +615,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       }).where({ ID: b.ID }))
       const changes = []
       if (Number(b.conditionRating) !== Number(insp.conditionRating)) changes.push({ fieldName: 'conditionRating', oldValue: String(b.conditionRating ?? ''), newValue: String(insp.conditionRating) })
+      if (Number(b.structuralAdequacyRating ?? '') !== Number(merged.structuralAdequacyRating ?? '')) changes.push({ fieldName: 'structuralAdequacyRating', oldValue: String(b.structuralAdequacyRating ?? ''), newValue: String(merged.structuralAdequacyRating ?? '') })
+      if (String(b.lastInspectionDate ?? '') !== String(merged.lastInspectionDate ?? '')) changes.push({ fieldName: 'lastInspectionDate', oldValue: String(b.lastInspectionDate ?? ''), newValue: String(merged.lastInspectionDate ?? '') })
       if ((b.riskPriority || '') !== r.priority) changes.push({ fieldName: 'riskPriority', oldValue: b.riskPriority || '', newValue: r.priority })
       if (changes.length) {
         await writeChangeLogs(db, {
@@ -629,21 +637,30 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // ── ELEM-1 / AUDIT-010: element-level condition roll-up ──────────────────────
   // Maintain Bridges.worstElementCondition = worst (min, since 10=best) active element
   // rating. Surfaces under-stated bridge condition for inspectors/planners. Guarded.
-  const rollupElements = async (bridgeId) => {
+  const rollupElements = async (bridgeId, req) => {
     if (!bridgeId) return
     try {
       const db = await cds.connect.to('db')
+      const b = await db.run(SELECT.one.from('bridge.management.Bridges').columns('bridgeId', 'worstElementCondition').where({ ID: bridgeId }))
       const rows = await db.run(SELECT.from('bridge.management.BridgeElements')
         .columns('conditionRating').where({ bridge_ID: bridgeId, active: true }))
       const ratings = rows.map(r => r.conditionRating).filter(v => v != null)
       const worst = ratings.length ? Math.min(...ratings) : null
+      if (b && Number(b.worstElementCondition) === Number(worst)) return // no change → no write/audit
       await db.run(UPDATE('bridge.management.Bridges').set({ worstElementCondition: worst }).where({ ID: bridgeId }))
+      // Rule 3: audit the derived-condition change (direct db.run bypasses the OData hook).
+      await writeChangeLogs(db, {
+        objectType: 'Bridge', objectId: bridgeId, objectName: (b && b.bridgeId) || bridgeId,
+        source: 'OData', batchId: cds.utils.uuid(), changedBy: req?.user?.id || 'system',
+        changeReason: 'Worst element condition rolled up from BridgeElements (ELEM-1)',
+        changes: [{ fieldName: 'worstElementCondition', oldValue: String(b?.worstElementCondition ?? ''), newValue: String(worst ?? '') }]
+      })
     } catch (e) {
       cds.log('bms').error('ELEM-1 element roll-up failed:', e.message)
     }
   }
   this.after(['CREATE', 'UPDATE'], 'BridgeElements', async (result, req) => {
-    await rollupElements(result?.bridge_ID || req.data?.bridge_ID)
+    await rollupElements(result?.bridge_ID || req.data?.bridge_ID, req)
   })
 
   const TYPE_UNIT_MAP = {

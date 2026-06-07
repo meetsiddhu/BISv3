@@ -71,8 +71,9 @@ entity Bridges : managed {
       numberOfLanes : Integer;
       condition    : String(40);
       conditionRating : Integer @assert.range: [1, 10];
-      // ELEM-1/AUDIT-010: provenance of the bridge condition + the worst element rolled up
-      // from BridgeElements. conditionSource = Manual | DerivedFromElements (auto roll-up).
+      // ELEM-1/AUDIT-010 + FIT-002: provenance of the bridge condition + the worst element
+      // rolled up from BridgeElements. conditionSource =
+      // Manual | DerivedFromInspection (FIT-002 auto from latest inspection) | DerivedFromElements.
       conditionSource       : String(20) default 'Manual';
       worstElementCondition : Integer @assert.range: [1, 10];
       structuralAdequacyRating : Integer @assert.range: [1, 10];

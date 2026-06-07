@@ -2264,7 +2264,10 @@ cds.on('bootstrap', (app) => {
     } catch (error) { res.status(500).json({ error: { message: error.message } }) }
   })
 
-  app.use('/system/api', requiresAuthentication, validateCsrfToken, sysRouter)
+  // SEC (verify-round P0): SystemConfig mutation must require 'admin' — matches the
+  // @restrict on the SystemConfig OData entity. requiresScope lets GET (config/banner
+  // reads used by every authenticated user) through; only PATCH /config/:key is gated.
+  app.use('/system/api', requiresAuthentication, requiresScope('admin'), validateCsrfToken, sysRouter)
 
   // ── Admin Bridges attachment API ─────────────────────────────────────────
   const adminBridgeRouter = express.Router()

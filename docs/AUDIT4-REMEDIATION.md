@@ -83,7 +83,24 @@
 
 ---
 
-**Verification after remediation:** 13 test suites / **128 tests** pass (Node 20);
+## Verify-round closures (adversarial re-audit of v3.9.15 → v3.9.16)
+
+The final adversarial verification surfaced issues the batches above had missed or overstated.
+All are now closed:
+
+| Item | Sev | Finding (from verify round) | Status |
+|---|:--:|---|:--:|
+| SYS-SCOPE | **P0** | `/system/api` PATCH SystemConfig had no scope gate (rule-5 violation) | ✅ `requiresScope('admin')` on the mount |
+| RISK-NAN-2 | P1 | NaN guard covered weights but not the bridge vector / override values | ✅ `clampRisk` NaN-safe + override values clamped; +1 test (non-numeric bridge + override) |
+| FE-TITLE | P1 | residual hardcoded `Title` ('Restriction/Bridge Detail') | ✅ bound to `i18n>restrictionDetail/bridgeDetail` |
+| AUDIT-ROLLUP | P2 | `rollupElements` mutated `worstElementCondition` with no ChangeLog | ✅ audited (only on actual change) |
+| AUDIT-RECALC | P2 | recalcRisk didn't audit `policyInterventionDue`/`inspectionOverdue` flips | ✅ added to change detection |
+| AUDIT-PROPAGATE | P2 | FIT-002 didn't audit `structuralAdequacyRating`/`lastInspectionDate` | ✅ added to change detection |
+| DOC-DRIFT | P3 | `conditionSource` enum doc omitted `DerivedFromInspection` | ✅ comment updated |
+
+Tracked (P3, non-blocking): dedicated integration tests for the six AUDIT validators + FIT-002/ELEM-1 (draft-flow harness); `attributesMissing` flag surfaced in logs only.
+
+**Verification after remediation:** 13 test suites / **129 tests** pass (Node 20);
 `npx eslint .` = **0 errors**; `npx cds build` completes. Deployed target: v3.9.15.
 Items marked ◑/📄 are deliberate, documented scope decisions (regression risk or
 genuinely-larger features), not gaps left silent.

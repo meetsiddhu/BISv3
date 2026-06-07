@@ -141,6 +141,18 @@ describe('risk prioritisation engine', () => {
     expect(w.likelihood_condition).toBe(1.5)
   })
 
+  test('deriveRisk never emits NaN for non-numeric BRIDGE inputs (RISK P0-001 hardening)', () => {
+    // Non-numeric importance / condition / structural must not leak NaN into the score.
+    const r1 = deriveRisk({ importanceLevel: 'abc', conditionRating: 'x', structuralAdequacyRating: null })
+    expect(Number.isFinite(r1.score)).toBe(true)
+    expect(['Very High', 'High', 'Medium', 'Low']).toContain(r1.priority)
+    // Non-numeric MANUAL OVERRIDE values must not leak NaN either.
+    const r2 = deriveRisk({ riskOverride: true, riskConsequence: 'abc', riskLikelihood: 'def' })
+    expect(Number.isFinite(r2.score)).toBe(true)
+    expect(Number.isFinite(r2.consequence)).toBe(true)
+    expect(Number.isFinite(r2.likelihood)).toBe(true)
+  })
+
   test('deriveRisk never emits NaN even if a malformed weight reaches it (RISK P0-001)', () => {
     const b = { importanceLevel: 4, highPriorityAsset: true, conditionRating: 2, structuralAdequacyRating: 2 }
     // A non-finite weight passed directly (bypassing weightsFromConfig's guard) must be

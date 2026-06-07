@@ -616,7 +616,7 @@
               <Button icon="sap-icon://decline" press=".onCloseFeaturePanel" type="Transparent" tooltip="Close" />
             </contentLeft>
             <contentMiddle>
-              <Title text="{= ${view>/selectedFeature/type} === 'restriction' ? 'Restriction Detail' : 'Bridge Detail' }" level="H4" />
+              <Title text="{= ${view>/selectedFeature/type} === 'restriction' ? ${i18n>restrictionDetail} : ${i18n>bridgeDetail} }" level="H4" />
             </contentMiddle>
           </Bar>
         </customHeader>

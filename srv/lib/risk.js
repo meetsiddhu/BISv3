@@ -12,7 +12,9 @@ const RISK_BANDS = [
   { name: 'Low',       min: 0 }
 ]
 
-const clampRisk = (n, lo, hi) => Math.max(lo, Math.min(hi, n))
+// NaN-safe clamp: a non-finite input collapses to the lower bound, so a stray NaN
+// anywhere in the pipeline can never propagate into the score (RISK P0-001 hardening).
+const clampRisk = (n, lo, hi) => { const x = Number(n); return Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : lo }
 
 // Default weights mirror the RiskConfig seed, so scoring is unchanged when no
 // config is supplied. Admin overrides these from the RiskConfig table (rule 4:
@@ -48,8 +50,9 @@ function deriveRisk (b, weights) {
   const heavyTraffic = Number(b.averageDailyTraffic) > 10000 ? 1 : 0
   const trafficComp = heavyTraffic * w.consequence_traffic
   const modeComp = Number(w['mode_' + (b.transportMode || 'Road')] || 0)
+  // Override values are clamped/coerced too (a non-numeric manual override can't leak NaN).
   const consequence = (override && b.riskConsequence)
-    ? b.riskConsequence
+    ? clampRisk(b.riskConsequence, 1, 5)
     : clampRisk(Math.round(importanceComp + priorityComp + trafficComp + modeComp), 1, 5)
 
   // Likelihood: worse of condition / structural ratings, each weighted. P3-002: a missing
@@ -61,7 +64,7 @@ function deriveRisk (b, weights) {
   // out-of-range weight can't push a single component arbitrarily high pre-clamp. The
   // worse (higher) of condition/structural still drives likelihood.
   const likelihood = (override && b.riskLikelihood)
-    ? b.riskLikelihood
+    ? clampRisk(b.riskLikelihood, 1, 5)
     : clampRisk(Math.round(Math.max(
         clampRisk(condLk * w.likelihood_condition, 1, 5),
         clampRisk(strLk * w.likelihood_structural, 1, 5)
