@@ -1318,16 +1318,22 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
     // the geoLocation column was backfilled with (getStorageSrid), so they never
     // mismatch. All user-supplied values are bound as parameterised placeholders.
     const srid = await getStorageSrid();
+    // GIS fix: CDS 'plain' naming -> HANA columns are UPPERCASE (the WHERE/backfill already
+    // use "LATITUDE"/"GEOLOCATION"). The SELECT previously used camelCase quoted names
+    // ("bridgeId", "geoLocation") which don't exist -> 'invalid column name' 500. Use the
+    // real uppercase columns + camelCase aliases so result keys stay camelCase downstream.
     bridges = await db.run(`
-      SELECT "ID","bridgeId","bridgeName","state","latitude","longitude",
-             "postingStatus","conditionRating","structureType","route","region",
-             "clearanceHeight","spanLength","nhvrAssessed",
-             "geoLocation".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 AS "distanceKm"
+      SELECT "ID","BRIDGEID" AS "bridgeId","BRIDGENAME" AS "bridgeName","STATE" AS "state",
+             "LATITUDE" AS "latitude","LONGITUDE" AS "longitude",
+             "POSTINGSTATUS" AS "postingStatus","CONDITIONRATING" AS "conditionRating",
+             "STRUCTURETYPE" AS "structureType","ROUTE" AS "route","REGION" AS "region",
+             "CLEARANCEHEIGHT" AS "clearanceHeight","SPANLENGTH" AS "spanLength","NHVRASSESSED" AS "nhvrAssessed",
+             "GEOLOCATION".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 AS "distanceKm"
       FROM "BRIDGE_MANAGEMENT_BRIDGES"
       WHERE "LATITUDE" BETWEEN ? AND ?
         AND "LONGITUDE" BETWEEN ? AND ?
         AND "LATITUDE" IS NOT NULL AND "LONGITUDE" IS NOT NULL
-        AND "geoLocation".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 <= ?
+        AND "GEOLOCATION".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 <= ?
       ORDER BY "distanceKm"
     `, [lngN, latN, srid, minLat, maxLat, minLon, maxLon, lngN, latN, srid, radN]);
   } else {
