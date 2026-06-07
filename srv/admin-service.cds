@@ -432,8 +432,10 @@ service AdminService {
           avg(conditionRating)                                                        as avgCondition         : Decimal(4, 2),
           avg(riskScore)                                                              as avgRiskScore         : Decimal(6, 2),
           sum(case when riskPriority = 'Very High' or riskPriority = 'High' then 1 else 0 end) as highRiskCount : Integer,
-          sum(case when inspectionOverdue then 1 else 0 end)                          as overdueCount         : Integer,
-          sum(case when policyInterventionDue then 1 else 0 end)                      as interventionDueCount : Integer,
+          // HANA requires an explicit boolean comparison in a searched CASE (a bare boolean
+          // column is invalid — "syntax near THEN"); SQLite tolerates the bare form.
+          sum(case when inspectionOverdue = true then 1 else 0 end)                   as overdueCount         : Integer,
+          sum(case when policyInterventionDue = true then 1 else 0 end)               as interventionDueCount : Integer,
           sum(expectedValueAud)                                                       as totalExpectedValueAud: Decimal(15, 2),
           sum(mitigationCostAud)                                                      as totalMitigationCostAud: Decimal(15, 2)
     }
