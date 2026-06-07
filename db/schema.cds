@@ -112,6 +112,19 @@ entity Bridges : managed {
       conditionReportRef  : String(111);
       structuralAdequacy  : String(40);
       conditionNotes      : LargeString;
+      // ── SAP EAM object reference (EAM-1) — this app COMPLEMENTS EAM. These point at
+      // the EAM master/work objects so users deep-link out; EAM remains the system of
+      // record for the functional location / equipment / work execution. ──
+      eamFlocId       : String(40);   // EAM Functional Location id
+      eamEquipId      : String(40);   // EAM Equipment number
+      eamObjectType   : String(20);   // FLOC | EQUIPMENT | BOTH
+      eamSystem       : String(40);   // EAM system identifier
+      eamSyncStatus   : String(20) default 'NOT_SYNCED'; // NOT_SYNCED | SYNCED | PENDING | ERROR
+      eamSyncMode     : String(20) default 'STANDALONE'; // STANDALONE | PUSH | PULL | BIDIRECTIONAL
+      eamLastSyncAt   : Timestamp;
+      eamLastSyncBy   : String(111);
+      eamPlant        : String(4);    // EAM maintenance plant
+      eamCompanyCode  : String(4);
 }
 
 /** Hierarchically organized Restrictions */

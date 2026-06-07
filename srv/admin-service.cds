@@ -226,6 +226,15 @@ service AdminService {
   @restrict: [{ grant: '*', to: 'admin' }]
   entity EAMCodeMapping as projection on my.EAMCodeMapping;
 
+  // EAM-2: admin-configurable BIS<->EAM field mapping (no hardcoded maps in sync code).
+  @restrict: [{ grant: '*', to: 'admin' }]
+  entity EAMFieldMapping as projection on my.EAMFieldMapping;
+
+  // EAM-3: append-only EAM sync audit trail — read-only, admin.
+  @readonly
+  @restrict: [{ grant: 'READ', to: 'admin' }]
+  entity EAMSyncLog as projection on my.EAMSyncLog;
+
   // ── Risk & Asset-Class Strategy governance (Phase 4) ──
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
   entity AssetClassStrategy as projection on my.AssetClassStrategy;

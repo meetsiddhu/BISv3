@@ -1412,6 +1412,61 @@ annotate AdminService.EAMCodeMapping with {
   description  @title: 'Description' @UI.MultiLineText;
   active       @title: 'Active';
 };
+
+// ── EAM Field Mapping (EAM-2) — admin draft CRUD ──
+annotate bridge.management.EAMFieldMapping with @fiori.draft.enabled;
+annotate AdminService.EAMFieldMapping with @odata.draft.enabled;
+annotate AdminService.EAMFieldMapping with @(
+  UI.HeaderInfo: { TypeName: 'EAM Field Mapping', TypeNamePlural: 'EAM Field Mappings',
+    Title: { $Type: 'UI.DataField', Value: bisField }, Description: { $Type: 'UI.DataField', Value: eamField } },
+  UI.SelectionFields: [ bisEntity, eamObject, direction, active ],
+  UI.LineItem: [
+    { $Type: 'UI.DataField', Value: bisEntity, Label: 'BIS Entity' },
+    { $Type: 'UI.DataField', Value: bisField,  Label: 'BIS Field' },
+    { $Type: 'UI.DataField', Value: eamObject, Label: 'EAM Object' },
+    { $Type: 'UI.DataField', Value: eamField,  Label: 'EAM Field' },
+    { $Type: 'UI.DataField', Value: direction, Label: 'Direction' },
+    { $Type: 'UI.DataField', Value: active,    Label: 'Active' }
+  ],
+  UI.Facets: [ { $Type: 'UI.ReferenceFacet', ID: 'FmMain', Label: 'Mapping', Target: '@UI.FieldGroup#FmMain' } ],
+  UI.FieldGroup #FmMain: { Data: [
+    { $Type: 'UI.DataField', Value: bisEntity }, { $Type: 'UI.DataField', Value: bisField },
+    { $Type: 'UI.DataField', Value: eamObject }, { $Type: 'UI.DataField', Value: eamField },
+    { $Type: 'UI.DataField', Value: direction }, { $Type: 'UI.DataField', Value: transformRule },
+    { $Type: 'UI.DataField', Value: notes }, { $Type: 'UI.DataField', Value: active }
+  ]}
+);
+annotate AdminService.EAMFieldMapping with {
+  ID @UI.Hidden;
+  bisEntity @Common.FieldControl: #Mandatory @title: 'BIS Entity';
+  bisField  @Common.FieldControl: #Mandatory @title: 'BIS Field';
+  eamObject @Common.FieldControl: #Mandatory @title: 'EAM Object';
+  eamField  @Common.FieldControl: #Mandatory @title: 'EAM Field';
+  direction @title: 'Direction'; transformRule @title: 'Transform Rule';
+  notes @title: 'Notes' @UI.MultiLineText; active @title: 'Active';
+};
+
+// ── EAM Sync Log (EAM-3) — read-only ALV ──
+annotate AdminService.EAMSyncLog with @(
+  Capabilities.InsertRestrictions: { Insertable: false },
+  Capabilities.UpdateRestrictions: { Updatable: false },
+  Capabilities.DeleteRestrictions: { Deletable: false },
+  UI.HeaderInfo: { TypeName: 'EAM Sync Entry', TypeNamePlural: 'EAM Sync Log',
+    Title: { $Type: 'UI.DataField', Value: objectType }, Description: { $Type: 'UI.DataField', Value: operation } },
+  UI.SelectionFields: [ operation, objectType, eamSystem ],
+  UI.LineItem: [
+    { $Type: 'UI.DataField', Value: syncAt,        Label: 'When' },
+    { $Type: 'UI.DataField', Value: operation,     Label: 'Operation' },
+    { $Type: 'UI.DataField', Value: objectType,    Label: 'Object' },
+    { $Type: 'UI.DataField', Value: bisObjectId,   Label: 'BIS Id' },
+    { $Type: 'UI.DataField', Value: eamObjectId,   Label: 'EAM Id' },
+    { $Type: 'UI.DataField', Value: eamSystem,     Label: 'EAM System' },
+    { $Type: 'UI.DataField', Value: httpStatus,    Label: 'HTTP' },
+    { $Type: 'UI.DataField', Value: eamReturnCode, Label: 'Return' },
+    { $Type: 'UI.DataField', Value: syncBy,        Label: 'By' }
+  ]
+);
+annotate AdminService.EAMSyncLog with { ID @UI.Hidden; };
 ////////////////////////////////////////////////////////////////////////////
 //  Attribute Class & Characteristics — draft enablement only.
 //  UI annotations (LineItem / Facets / FieldGroups) are defined globally in

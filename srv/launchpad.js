@@ -76,6 +76,16 @@ function buildSandboxConfig (isAdmin) {
         id: 'EAMMapping',
         tileType: 'sap.ushell.ui.tile.StaticTile',
         properties: { title: 'EAM Code Mapping', subtitle: 'SAP EAM Value Mapping', icon: 'sap-icon://chain-link', targetURL: '#EAMMapping-manage&/EAMCodeMapping' }
+      },
+      {
+        id: 'EAMFieldMapping',
+        tileType: 'sap.ushell.ui.tile.StaticTile',
+        properties: { title: 'EAM Field Mapping', subtitle: 'BIS to EAM Field Map', icon: 'sap-icon://chain-link', targetURL: '#EAMFieldMapping-manage&/EAMFieldMapping' }
+      },
+      {
+        id: 'EAMSyncLog',
+        tileType: 'sap.ushell.ui.tile.StaticTile',
+        properties: { title: 'EAM Sync Log', subtitle: 'Integration Audit Trail', icon: 'sap-icon://history', targetURL: '#EAMSyncLog-display&/EAMSyncLog' }
       }
     )
   }
@@ -158,6 +168,16 @@ function buildSandboxConfig (isAdmin) {
     }
     inbounds['EAMMapping-manage'] = {
       semanticObject: 'EAMMapping', action: 'manage', title: 'EAM Code Mapping',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    }
+    inbounds['EAMFieldMapping-manage'] = {
+      semanticObject: 'EAMFieldMapping', action: 'manage', title: 'EAM Field Mapping',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
+    }
+    inbounds['EAMSyncLog-display'] = {
+      semanticObject: 'EAMSyncLog', action: 'display', title: 'EAM Sync Log',
       signature: { parameters: {}, additionalParameters: 'allowed' },
       resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
     }

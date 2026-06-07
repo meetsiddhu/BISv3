@@ -1,0 +1,6 @@
+ID,bisEntity,bisField,eamObject,eamField,direction,transformRule,active,notes
+c1f10001-0000-4000-8000-000000000001,Bridges,bridgeName,FunctionalLocation,PLTXT,TO_EAM,,true,Bridge name to EAM functional location description
+c1f10001-0000-4000-8000-000000000002,Bridges,eamFlocId,FunctionalLocation,TPLNR,BIDIRECTIONAL,,true,Functional location key link
+c1f10001-0000-4000-8000-000000000003,Bridges,conditionRating,Equipment,EQART,FROM_EAM,,true,Condition synced from EAM equipment classification
+c1f10001-0000-4000-8000-000000000004,BridgeInspections,inspectionDate,MaintenanceOrder,GSTRP,TO_EAM,,true,Inspection date to EAM order basic start
+c1f10001-0000-4000-8000-000000000005,BridgeDefects,defectType,Notification,QMART,TO_EAM,,true,Defect type to EAM notification type

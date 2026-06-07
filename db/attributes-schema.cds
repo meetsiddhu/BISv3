@@ -120,3 +120,41 @@ entity EAMCodeMapping : cuid, managed {
   description  : String(255);
   active       : Boolean default true;
 }
+
+/**
+ * SAP EAM FIELD mapping (EAM-2 / OQ-07) — admin-configurable BIS<->EAM field map so the
+ * integration layer NEVER hardcodes mappings. One row per field per direction.
+ * e.g. Bridges.bridgeName -> EAM FunctLocation PLTXT, direction TO_EAM.
+ */
+entity EAMFieldMapping : cuid, managed {
+  bisEntity     : String(60)  not null;  // e.g. Bridges
+  bisField      : String(80)  not null;  // e.g. bridgeName
+  eamObject     : String(40)  not null;  // EAM object e.g. FunctionalLocation / Equipment / Notification
+  eamField      : String(40)  not null;  // EAM field e.g. PLTXT
+  direction     : String(15)  default 'BIDIRECTIONAL'; // TO_EAM | FROM_EAM | BIDIRECTIONAL | NONE
+  transformRule : String(255);           // optional expression/codelist ref
+  active        : Boolean default true;
+  notes         : String(255);
+}
+
+/**
+ * SAP EAM SYNC LOG (EAM-3) — append-only audit trail of every EAM sync operation,
+ * SEPARATE from business ChangeLog so integration failures are auditable on their own.
+ * Read-only in the service. This app COMPLEMENTS EAM — it records the linkage/sync, it
+ * does not execute EAM work.
+ */
+entity EAMSyncLog : cuid {
+  syncAt        : Timestamp;
+  syncBy        : String(111);
+  operation     : String(20);   // PUSH | PULL | LINK | UNLINK
+  objectType    : String(40);   // Bridge | Inspection | Defect | Restriction
+  bisObjectId   : String(40);
+  eamObjectId   : String(40);
+  eamSystem     : String(40);
+  httpStatus    : Integer;
+  eamReturnCode : String(20);
+  eamMessage    : String(1000);
+  durationMs    : Integer;
+  batchId       : String(40);
+  changeSource  : String(20) default 'EAMSync';
+}

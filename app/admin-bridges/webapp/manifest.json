@@ -13,7 +13,7 @@
       "fallbackLocale": ""
     },
     "applicationVersion": {
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     "dataSources": {
       "AdminService": {
@@ -173,6 +173,28 @@
           "title": "Risk Factors",
           "subTitle": "Risk scoring weightings",
           "icon": "sap-icon://settings"
+        },
+        "EAMFieldMapping-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "EAMFieldMapping",
+          "action": "manage",
+          "title": "EAM Field Mapping",
+          "subTitle": "BIS to EAM field map",
+          "icon": "sap-icon://chain-link"
+        },
+        "EAMSyncLog-display": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "EAMSyncLog",
+          "action": "display",
+          "title": "EAM Sync Log",
+          "subTitle": "Integration audit trail",
+          "icon": "sap-icon://history"
         }
       }
     }
@@ -356,6 +378,21 @@
           "name": "RiskConfigPage",
           "pattern": "RiskConfig({key}):?query:",
           "target": "RiskConfigPage"
+        },
+        {
+          "name": "EAMFieldMappingList",
+          "pattern": "EAMFieldMapping:?query:",
+          "target": "EAMFieldMappingList"
+        },
+        {
+          "name": "EAMFieldMappingPage",
+          "pattern": "EAMFieldMapping({key}):?query:",
+          "target": "EAMFieldMappingPage"
+        },
+        {
+          "name": "EAMSyncLogList",
+          "pattern": "EAMSyncLog:?query:",
+          "target": "EAMSyncLogList"
         }
       ],
       "targets": {
@@ -859,6 +896,49 @@
             "settings": {
               "entitySet": "RiskConfig",
               "editableHeaderContent": false
+            }
+          }
+        },
+        "EAMFieldMappingList": {
+          "type": "Component",
+          "id": "EAMFieldMappingList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "EAMFieldMapping",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "EAMFieldMapping": {
+                  "detail": {
+                    "route": "EAMFieldMappingPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "EAMFieldMappingPage": {
+          "type": "Component",
+          "id": "EAMFieldMappingPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "EAMFieldMapping",
+              "editableHeaderContent": false,
+              "sharingEnabled": false
+            }
+          }
+        },
+        "EAMSyncLogList": {
+          "type": "Component",
+          "id": "EAMSyncLogList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "EAMSyncLog",
+              "liveMode": false,
+              "initialLoad": "Enabled"
             }
           }
         }
