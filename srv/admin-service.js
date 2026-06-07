@@ -505,6 +505,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     Completed:  [],
     Cancelled:  []
   }
+  const DEFECT_STATUSES = ['Open', 'InProgress', 'OnHold', 'Completed', 'Cancelled']
   this.before('UPDATE', BridgeDefects, async (req) => {
     if (req.data.status === undefined) return
     const key = req.params[req.params.length - 1]
@@ -514,6 +515,24 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const from = current && current.status, to = req.data.status
     if (from && to && from !== to && !(DEFECT_TRANSITIONS[from] || []).includes(to)) {
       req.error(409, `Invalid defect status transition '${from}' -> '${to}'.`)
+    }
+  })
+
+  // INSPECT-R2: reject an unknown status on CREATE/UPDATE.
+  this.before(['CREATE', 'UPDATE'], BridgeDefects, (req) => {
+    if (req.data.status !== undefined && !DEFECT_STATUSES.includes(req.data.status)) {
+      req.error(400, `Invalid defect status '${req.data.status}'. Allowed: ${DEFECT_STATUSES.join(', ')}.`)
+    }
+  })
+
+  // INSPECT-R1: a defect's linked element must belong to the same bridge as the defect.
+  this.before(['CREATE', 'UPDATE'], BridgeDefects, async (req) => {
+    if (!req.data.element_ID || !req.data.bridge_ID) return
+    const db = await cds.connect.to('db')
+    const el = await db.run(SELECT.one.from('bridge.management.BridgeElements')
+      .columns('bridge_ID').where({ ID: req.data.element_ID }))
+    if (el && el.bridge_ID && String(el.bridge_ID) !== String(req.data.bridge_ID)) {
+      req.error(409, 'The linked element belongs to a different bridge.')
     }
   })
   this.before('CREATE', Restrictions, req => validateEntityFields('Restrictions', req))

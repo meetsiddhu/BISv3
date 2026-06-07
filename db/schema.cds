@@ -131,8 +131,10 @@ entity Bridges : managed {
       eamSyncMode     : String(20) default 'STANDALONE'; // STANDALONE | PUSH | PULL | BIDIRECTIONAL
       eamLastSyncAt   : Timestamp;
       eamLastSyncBy   : String(111);
-      eamPlant        : String(4);    // EAM maintenance plant
-      eamCompanyCode  : String(4);
+      eamPlant            : String(4);    // EAM maintenance plant (WERKS)
+      eamCompanyCode      : String(4);    // BUKRS
+      eamControllingArea  : String(4);    // KOKRS — sourced from EAM; reference only
+      eamOrgUnit          : String(20);   // ORGID — sourced from EAM; reference only
 }
 
 /** Hierarchically organized Restrictions */
@@ -221,6 +223,11 @@ entity BridgeRestrictions : cuid, managed {
 entity BridgeCapacities : cuid, managed {
   bridge                : Association to Bridges;
 
+  // EAM-R1 (complement): capacity assessments map to EAM measuring documents/points.
+  eamMeasDocId          : String(18);
+  eamMeasPointId        : String(20);
+  eamSyncStatus         : String(20) default 'NOT_SYNCED';
+
   // ── General ─────────────────────────────────────────────────────────────
   capacityType          : String(40);     // e.g. AS 5100.7, AS 1170
 
@@ -294,6 +301,11 @@ entity BridgeInspections : cuid, managed {
   nextInspectionDue   : Date;
   inspectionNotes     : LargeString;
   recommendations     : LargeString;
+  // EAM-R1 (complement): links the inspection to its EAM maintenance order. EAM executes;
+  // this app holds the engineering inspection record + the reference.
+  eamOrderId          : String(12);
+  eamSyncStatus       : String(20) default 'NOT_SYNCED';
+  eamLastSyncAt       : Timestamp;
   active              : Boolean default true;
   defects             : Association to many BridgeDefects
                           on defects.inspection = $self;

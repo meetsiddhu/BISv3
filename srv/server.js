@@ -2533,6 +2533,10 @@ cds.on('bootstrap', (app) => {
     try {
       const { environment, baseUrl, description, active } = req.body || {}
       if (!environment || !baseUrl) return res.status(400).json({ error: { message: 'environment and baseUrl are required' } })
+      // SEC-R4: whitelist the environment identifier (defence-in-depth; used in keys/URLs).
+      if (!/^[A-Z0-9_]{1,50}$/.test(String(environment).toUpperCase())) {
+        return res.status(400).json({ error: { message: 'environment must match ^[A-Z0-9_]{1,50}$' } })
+      }
       const db = await cds.connect.to('db')
       await db.run(INSERT.into('bridge.management.BnacEnvironment').entries({
         environment: environment.toUpperCase(),

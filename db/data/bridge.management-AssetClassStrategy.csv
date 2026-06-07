@@ -1,4 +1,4 @@
-ID,assetClass,transportMode,name,inspectionIntervalMonths,targetConditionRating,interventionThreshold,description,active
-a5100001-0000-4000-8000-000000000001,*,Road,Road Bridge Standard Strategy,24,7,4,Default road bridge inspection and intervention strategy,true
-a5100001-0000-4000-8000-000000000002,*,Rail,Rail Bridge Standard Strategy,12,8,5,Heavy rail bridge strategy with tighter intervals,true
-a5100001-0000-4000-8000-000000000003,*,LightRail,Light Rail Bridge Strategy,18,7,4,Light rail bridge inspection strategy,true
+ID,assetClass,transportMode,name,inspectionIntervalMonths,targetConditionRating,interventionThreshold,reviewCycleMonths,degradationRatePerYear,eamMaintenancePlan,description,active
+a5100001-0000-4000-8000-000000000001,*,Road,Road Bridge Standard Strategy,24,7,4,60,0.30,MP-ROAD-STD,Default road bridge inspection and intervention strategy,true
+a5100001-0000-4000-8000-000000000002,*,Rail,Rail Bridge Standard Strategy,12,8,5,36,0.40,MP-RAIL-STD,Heavy rail bridge strategy with tighter intervals,true
+a5100001-0000-4000-8000-000000000003,*,LightRail,Light Rail Bridge Strategy,18,7,4,48,0.35,MP-LR-STD,Light rail bridge inspection strategy,true

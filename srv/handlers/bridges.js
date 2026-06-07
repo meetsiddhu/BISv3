@@ -1,6 +1,6 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('bms-bridges')
-const { CONDITION_LABELS, deriveCondition } = require('../lib/condition-rating')
+const { CONDITION_LABELS, deriveCondition, labelToTfNSW, labelToLegacy } = require('../lib/condition-rating')
 
 function registerBridgeHandlers (srv, { logAudit }) {
 
@@ -24,10 +24,14 @@ function registerBridgeHandlers (srv, { logAudit }) {
     srv.on('changeCondition', 'Bridges', async req => {
         const { conditionValue, score } = req.data
         const { ID } = req.params[0]
-        const matchingTfnswKey = Object.keys(CONDITION_LABELS).find(
-            conditionKey => CONDITION_LABELS[conditionKey] === conditionValue
-        )
-        const conditionRating = score || (matchingTfnswKey ? Number(matchingTfnswKey) * 2 : null)
+        // ARCH-R2: validate the label.
+        if (labelToTfNSW(conditionValue) == null) {
+            return req.error(400, 'conditionValue must be one of: ' + Object.values(CONDITION_LABELS).join(', '))
+        }
+        // ARCH-R1: a supplied legacy score (1-10) wins; otherwise synthesise the legacy
+        // rating in the CORRECT direction (Good->10, Critical->2) — the old `key*2`
+        // inverted it (Good->2 = Critical).
+        const conditionRating = (Number(score) >= 1 && Number(score) <= 10) ? Number(score) : labelToLegacy(conditionValue)
         await UPDATE('bridge.management.Bridges').set({
             condition:         conditionValue,
             conditionRating,
