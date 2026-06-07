@@ -14,6 +14,20 @@ export default [
     ]
   },
   {
+    // Idiomatic intentional-ignore convention: a leading underscore on a param, var, or
+    // caught error signals "deliberately unused" (e.g. fixed handler signatures, catches
+    // that intentionally swallow). Genuinely-dead names without the prefix still warn.
+    rules: {
+      'no-unused-vars': ['warn', {
+        args: 'after-used',
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'all',
+        caughtErrorsIgnorePattern: '^_'
+      }]
+    }
+  },
+  {
     files: ['app/**/webapp/**/*.js'],
     languageOptions: {
       globals: {
