@@ -27,7 +27,7 @@ function currentUser(req) {
   return req.user?.id || xUser || 'system'
 }
 
-function getTypedValueColumn(dataType) {
+function _getTypedValueColumn(dataType) {
   switch (dataType) {
     case 'Integer':     return 'valueInteger'
     case 'Decimal':     return 'valueDecimal'
@@ -35,11 +35,6 @@ function getTypedValueColumn(dataType) {
     case 'Boolean':     return 'valueBoolean'
     default:            return 'valueText'  // Text, SingleSelect, MultiSelect
   }
-}
-
-function extractRawValue(row, dataType) {
-  const col = getTypedValueColumn(dataType)
-  return row[col] ?? null
 }
 
 function coerceValue(dataType, raw) {
@@ -87,7 +82,6 @@ async function loadActiveConfig(db, objectType) {
   )
   if (!groups.length) return []
 
-  const groupIds = groups.map(g => g.ID)
   const allDefs = await db.run(
     SELECT.from('bridge.management.AttributeDefinitions')
       .where({ objectType, status: 'Active' })
@@ -474,7 +468,7 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
   // mode=all: abort on any error; mode=skip: import valid rows, skip errors
   router.post('/import', async (req, res) => {
     const { objectType } = req.query
-    const { fileName, contentBase64, mode = 'all' } = req.body || {}
+    const { contentBase64, mode = 'all' } = req.body || {}
     if (!objectType) return res.status(400).json({ error: { message: 'objectType is required' } })
     if (!contentBase64) return res.status(400).json({ error: { message: 'File content (contentBase64) is required' } })
 

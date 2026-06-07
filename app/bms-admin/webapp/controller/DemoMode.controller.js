@@ -100,7 +100,7 @@ sap.ui.define([
       );
     },
 
-    _callAction: function (url, loadingMsg, successMsg, expectActive) {
+    _callAction: function (url, loadingMsg, successMsg, _expectActive) {
       var self = this;
       var btnLoad  = this.byId("btnLoadDemo");
       var btnClear = this.byId("btnClearDemo");

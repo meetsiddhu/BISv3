@@ -1,5 +1,4 @@
 const cds = require('@sap/cds')
-const LOG = cds.log('bms-admin')
 
 module.exports = function registerAdminHandlers (srv, { logAudit }) {
 

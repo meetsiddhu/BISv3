@@ -13,7 +13,7 @@ extend service BridgeManagementService with {
         loadRating, hmlApproved, bDoubleApproved, freightRoute
     };
 
-    @restrict: [{ grant: '*', to: ['manage','admin'] }]
+    @requires: ['manage','admin']
     action massEditBridges(rows: array of {
         ID: Integer; condition: String; conditionRating: Integer;
         postingStatus: String; loadRating: Decimal;

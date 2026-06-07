@@ -171,7 +171,7 @@ function generateAndRebuild(destFile, count, label) {
 function rebuildFromWorkbookSheet(srcXlsx, sheetName, destFile, label) {
   const wb = XLSX.readFile(srcXlsx)
   const ws = wb.Sheets[sheetName]
-  const rows = readRows(srcXlsx)  // reuse readRows on xlsx; sheet_to_json picks first sheet
+  const _rows = readRows(srcXlsx)  // reuse readRows on xlsx; sheet_to_json picks first sheet
   // Manually read the correct sheet
   const raw = XLSX.utils.sheet_to_json(ws, { defval: '' })
   const clean = raw.map(row => {

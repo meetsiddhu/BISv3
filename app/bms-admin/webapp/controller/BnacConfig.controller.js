@@ -153,7 +153,7 @@ sap.ui.define([
           }));
           this._histModel.setData({ history: rows });
         })
-        .catch(e => console.error("History load failed:", e));
+        .catch(function () { /* load history is non-critical; leave panel empty on failure */ });
     },
 
     onShowHelp: function () {

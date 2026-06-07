@@ -21,8 +21,8 @@ module.exports = class BridgeManagementService extends cds.ApplicationService { 
 
     // Map View — inline (no external state needed)
     this.on('geocodeAddress',  req => ({ latitude: null, longitude: null, formattedAddress: req.data.address }))
-    this.on('reverseGeocode',  req => ({ address: '', suburb: '', state: '', postcode: '' }))
-    this.on('getMapApiConfig', req => ({ provider: 'OSM', apiKey: '', defaultZoom: 6 }))
+    this.on('reverseGeocode',  () => ({ address: '', suburb: '', state: '', postcode: '' }))
+    this.on('getMapApiConfig', () => ({ provider: 'OSM', apiKey: '', defaultZoom: 6 }))
 
     return super.init()
 }}

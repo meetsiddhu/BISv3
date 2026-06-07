@@ -56,7 +56,7 @@ function validateGeoJson (raw) {
     return { ok: false, error: `GeoJSON exceeds ${MAX_GEOJSON_BYTES} bytes` }
   }
   let g
-  try { g = typeof raw === 'string' ? JSON.parse(raw) : raw } catch (e) { return { ok: false, error: 'not valid JSON' } }
+  try { g = typeof raw === 'string' ? JSON.parse(raw) : raw } catch (_e) { return { ok: false, error: 'not valid JSON' } }
   if (!g || typeof g !== 'object') return { ok: false, error: 'not a GeoJSON object' }
   const geom = g.type === 'Feature' ? g.geometry : g
   const result = validateGeometry(geom)

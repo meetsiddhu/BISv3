@@ -300,11 +300,11 @@ service AdminService {
       key historyId as ID,
           changedAt,
           changedBy,
-          ( case objectType
+          cast(( case objectType
               when 'bridge'      then 'Bridge'
               when 'restriction' then 'Restriction'
               else objectType
-            end ) as objectType : String(40),
+            end ) as String(40)) as objectType : String(40),
           objectId,
           objectId      as objectName : String(255),
           attributeKey  as fieldName  : String(111),

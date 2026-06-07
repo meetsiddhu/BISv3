@@ -33,7 +33,7 @@ const path = require('path')
 // ─── CLI args ─────────────────────────────────────────────────────────────────
 const args   = process.argv.slice(2)
 const argVal = (flag, def) => { const i = args.indexOf(flag); return i >= 0 ? args[i+1] : def }
-const STATE  = argVal('--state', 'NSW').toUpperCase()
+const _STATE  = argVal('--state', 'NSW').toUpperCase()
 const OUT    = argVal('--out', null)
 const COUNT_OVERRIDE = argVal('--count', null)
 
@@ -357,7 +357,6 @@ function csvVal (v) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const bridges = []
-let   seq     = 1
 let   seqMap  = {}   // LGA → seq for short IDs
 
 for (const lgaData of NSW_LGAS) {
@@ -368,7 +367,6 @@ for (const lgaData of NSW_LGAS) {
     for (let i = 0; i < count; i++) {
         const bridgeId = `BRG-NSW-${lgaCode}-${String(seqMap[lgaCode]++).padStart(4, '0')}`
         bridges.push(generateBridge(bridgeId, lgaData, seqMap[lgaCode] - 1))
-        seq++
     }
 }
 

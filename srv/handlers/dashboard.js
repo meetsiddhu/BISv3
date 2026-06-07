@@ -1,9 +1,8 @@
 const cds = require('@sap/cds')
-const LOG = cds.log('bms-dashboard')
 
-module.exports = function registerDashboardHandlers (srv, { logAudit }) {
+module.exports = function registerDashboardHandlers (srv) {
 
-    srv.on('getNetworkKPIs', async req => {
+    srv.on('getNetworkKPIs', async () => {
         const db = await cds.connect.to('db')
         const [bridges, activeRestrictions] = await Promise.all([
             db.run(SELECT.from('bridge.management.Bridges')),
@@ -33,8 +32,7 @@ module.exports = function registerDashboardHandlers (srv, { logAudit }) {
         return Object.entries(conditionDistribution).map(([condition, count]) => ({ condition, count }))
     })
 
-    srv.on('getRestrictionSummary', async req => {
-        const { state, region } = req.data
+    srv.on('getRestrictionSummary', async () => {
         const db = await cds.connect.to('db')
         const activeRestrictions = await db.run(
             SELECT.from('bridge.management.Restrictions').where({ restrictionStatus: 'Active', active: true })

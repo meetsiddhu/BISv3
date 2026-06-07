@@ -28,6 +28,12 @@ export default [
     }
   },
   {
+    // Developer/CLI tooling (data generators, seeders, CSV rebuilders) — console output
+    // is their intended interface, not a code smell.
+    files: ['scripts/**/*.js'],
+    rules: { 'no-console': 'off' }
+  },
+  {
     files: ['app/**/webapp/**/*.js'],
     languageOptions: {
       globals: {
@@ -41,7 +47,8 @@ export default [
       }
     },
     rules: {
-      'no-empty': 'warn',
+      // An empty catch is an explicit "intentionally ignore" in UI event code.
+      'no-empty': ['warn', { allowEmptyCatch: true }],
       'no-useless-assignment': 'warn'
     }
   }

@@ -25,7 +25,7 @@ sap.ui.define([
       this._loadRefLayers();
     },
 
-    _t: function (sKey) { try { return this._bundle ? this._bundle.getText(sKey) : sKey; } catch (e) { return sKey; } },
+    _t: function (sKey) { try { return this._bundle ? this._bundle.getText(sKey) : sKey; } catch (_e) { return sKey; } },
 
     _defaults: function () {
       return {

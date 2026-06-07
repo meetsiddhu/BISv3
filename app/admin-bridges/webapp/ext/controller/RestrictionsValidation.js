@@ -14,7 +14,7 @@
     function getControl(input) {
         try {
             return sap.ui.getCore().byId(input.id.replace(/-inner$/, "").replace(/-placeholder$/, ""));
-        } catch (e) { return null; }
+        } catch (_e) { return null; }
     }
 
     function getBindingContext(input) {
@@ -45,7 +45,7 @@
                 "\u201d. Expected: " + allowed.join(", ") + ".",
                 { duration: 4000 }
             );
-        } catch (e) {}
+        } catch (_e) {}
     }
 
     function setUnitValueState(errorMsg) {

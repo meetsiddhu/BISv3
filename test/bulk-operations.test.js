@@ -24,11 +24,11 @@ describe('bulk operations integration (OPS-T3)', () => {
       const db = await cds.connect.to('db')
       await db.run(DELETE.from('bridge.management.Bridges').where({ ID }))
       await db.run(DELETE.from('bridge.management.ChangeLog').where({ objectId: String(ID) }))
-    } catch (e) { /* ignore */ }
+    } catch (_e) { /* ignore */ }
   })
 
   test('massEditBridges updates condition AND writes a durable MassEdit audit', async () => {
-    const srv = await cds.connect.to('BridgeManagementService')
+    const _srv = await cds.connect.to('BridgeManagementService')
     const db = await cds.connect.to('db')
     await db.run(INSERT.into('bridge.management.Bridges').entries({
       ID, bridgeId: 'BRG-TEST-OPS', bridgeName: 'Test Bridge', state: 'NSW', conditionRating: 8
@@ -50,7 +50,7 @@ describe('bulk operations integration (OPS-T3)', () => {
   })
 
   test('massEditBridges reports a row failure for an unknown bridge (no silent loss)', async () => {
-    const srv = await cds.connect.to('BridgeManagementService')
+    const _srv = await cds.connect.to('BridgeManagementService')
     const res = await asManager([{ ID: 999999, conditionRating: 3 }])
     expect(res.failed).toBe(1)
     expect(res.updated).toBe(0)
@@ -62,7 +62,7 @@ describe('bulk operations integration (OPS-T3)', () => {
   // form to invalid `when ? = true` SQL on HANA and 500s draftEdit. Verified live on HANA.
 
   test('massEditBridges rejects an out-of-range condition rating', async () => {
-    const srv = await cds.connect.to('BridgeManagementService')
+    const _srv = await cds.connect.to('BridgeManagementService')
     const db = await cds.connect.to('db')
     await db.run(INSERT.into('bridge.management.Bridges').entries({ ID: ID + 1, bridgeId: 'BRG-TEST-OPS2', bridgeName: 'T2', state: 'NSW' }))
     const res = await asManager([{ ID: ID + 1, conditionRating: 99 }])

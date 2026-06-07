@@ -22,10 +22,10 @@
   var NUMERIC_FIELDS = INTEGER_FIELDS.concat(DECIMAL_FIELDS);
 
   function hasFieldToken(input, field) {
-    var control = null;
+    var control;
     try {
       control = window.sap && sap.ui && sap.ui.getCore && sap.ui.getCore().byId(input.id.replace(/-inner$/, ""));
-    } catch (error) {
+    } catch (_error) {
       control = null;
     }
     var binding = control && control.getBinding && (control.getBinding("value") || control.getBinding("selectedKey"));

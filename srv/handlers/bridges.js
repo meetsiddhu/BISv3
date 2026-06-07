@@ -1,5 +1,4 @@
 const cds = require('@sap/cds')
-const LOG = cds.log('bms-bridges')
 const { CONDITION_LABELS, deriveCondition, labelToTfNSW, labelToLegacy } = require('../lib/condition-rating')
 
 function registerBridgeHandlers (srv, { logAudit }) {

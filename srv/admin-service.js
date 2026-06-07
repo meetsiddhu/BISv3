@@ -1292,7 +1292,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   // ── Configurable Attributes — integrity guards ───────────────────────────
 
-  const { AttributeDefinitions, AttributeAllowedValues, AttributeValues } = this.entities
+  const { AttributeDefinitions, AttributeAllowedValues } = this.entities
 
   // Block DELETE on AttributeDefinition if any values exist for its internalKey
   this.before('DELETE', AttributeDefinitions, async (req) => {
@@ -1300,7 +1300,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     if (!id) return
     const defn = await SELECT.one.from(AttributeDefinitions).where({ ID: id })
     if (!defn) return
-    const db = await cds.connect.to('db')
     const used = await SELECT.one.from('bridge.management.AttributeValues')
       .where({ attributeKey: defn.internalKey })
     if (used) {
@@ -1313,7 +1312,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     if (!req.data?.dataType || !req.data?.ID) return
     const existing = await SELECT.one.from(AttributeDefinitions).where({ ID: req.data.ID })
     if (!existing || existing.dataType === req.data.dataType) return
-    const db = await cds.connect.to('db')
     const used = await SELECT.one.from('bridge.management.AttributeValues')
       .where({ attributeKey: existing.internalKey })
     if (used) {
@@ -1326,7 +1324,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     if (!req.data?.internalKey || !req.data?.ID) return
     const existing = await SELECT.one.from(AttributeDefinitions).where({ ID: req.data.ID })
     if (!existing || existing.internalKey === req.data.internalKey) return
-    const db = await cds.connect.to('db')
     const used = await SELECT.one.from('bridge.management.AttributeValues')
       .where({ attributeKey: existing.internalKey })
     if (used) {
@@ -1342,7 +1339,6 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     if (!av) return
     const defn = await SELECT.one.from(AttributeDefinitions).where({ ID: av.attribute_ID })
     if (!defn) return
-    const db = await cds.connect.to('db')
     const used = await SELECT.one.from('bridge.management.AttributeValues')
       .where({ attributeKey: defn.internalKey, valueText: av.value })
     if (used) {

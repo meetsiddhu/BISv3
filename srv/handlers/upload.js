@@ -5,7 +5,6 @@ const { validateGeoJson } = require('../lib/geo')
 
 const ALLOWED_EXTENSIONS     = ['.xlsx', '.csv', '.xls']
 const MAX_FILE_SIZE_BYTES    = 50 * 1024 * 1024
-const MAX_DECOMPRESSED_BYTES = 200 * 1024 * 1024
 const MAX_ROWS               = Number(process.env.MAX_UPLOAD_ROWS) || 50000 // CONFIG-T3
 
 const BRIDGE_DOWNLOAD_HEADERS = [
@@ -67,7 +66,7 @@ const parseBoolean = rawValue => rawValue === 'true' || rawValue === 'TRUE' || r
         : null
 const parseDate    = rawValue => (rawValue && rawValue.trim()) ? rawValue.trim() : null
 
-module.exports = function registerUploadHandlers (srv, { logAudit }) {
+module.exports = function registerUploadHandlers (srv) {
 
     // ── massUploadBridges ────────────────────────────────────────────────────
     srv.on('massUploadBridges', async req => {

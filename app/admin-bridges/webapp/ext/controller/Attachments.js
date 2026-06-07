@@ -76,7 +76,7 @@ sap.ui.define([
     if (!text) return {};
     try {
       return JSON.parse(text);
-    } catch (error) {
+    } catch (_error) {
       return {
         error: {
           message: text

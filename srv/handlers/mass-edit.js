@@ -1,5 +1,4 @@
 const cds = require('@sap/cds')
-const LOG = cds.log('bms-mass-edit')
 
 const { deriveCondition } = require('../lib/condition-rating')
 const { writeChangeLogs, diffRecords } = require('../audit-log')
@@ -7,7 +6,7 @@ const { writeChangeLogs, diffRecords } = require('../audit-log')
 const EDITABLE_GRID_FIELDS = ['condition', 'conditionRating', 'postingStatus', 'loadRating',
                                'hmlApproved', 'bDoubleApproved', 'freightRoute']
 
-module.exports = function registerMassEditHandlers (srv, { logAudit, validateEnum }) {
+module.exports = function registerMassEditHandlers (srv) {
 
     srv.on('massEditBridges', async req => {
         const { rows } = req.data

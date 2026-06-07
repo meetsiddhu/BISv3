@@ -24,7 +24,7 @@
     var _bundle = null;
     function T(sKey, sFallback) {
         try { return (_bundle && _bundle.getText) ? _bundle.getText(sKey) : sFallback; }
-        catch (e) { return sFallback; }
+        catch (_e) { return sFallback; }
     }
     function loadBundle(cb) {
         if (_bundle || !(window.sap && sap.ui && sap.ui.require)) { cb(); return; }
@@ -34,9 +34,9 @@
                     ResourceBundle.create({ url: APP_PATH + "/i18n/i18n.properties", async: true })
                         .then(function (b) { _bundle = b; cb(); })
                         .catch(function () { cb(); });
-                } catch (e) { cb(); }
+                } catch (_e) { cb(); }
             });
-        } catch (e) { cb(); }
+        } catch (_e) { cb(); }
     }
 
     // ── Structure builder ───────────────────────────────────────────────────
@@ -166,7 +166,7 @@
     function parseGeo(raw) {
         if (!raw) return null;
         try { var g = typeof raw === "string" ? JSON.parse(raw) : raw; return (g && g.type) ? g : null; }
-        catch (e) { return null; }
+        catch (_e) { return null; }
     }
 
     // ── Map drawing ─────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@
         if (noEl) noEl.style.display = "none";
         if (canv) canv.style.display = "block";
         loadLeaflet(function () {
-            if (_map) { try { _map.remove(); } catch (error) {} _map = null; }
+            if (_map) { try { _map.remove(); } catch (_error) {} _map = null; }
             var map = window.L.map(canv, { zoomControl: true, scrollWheelZoom: false });
             window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
@@ -213,7 +213,7 @@
                     }).addTo(map);
                     var gb = gj.getBounds();
                     if (gb && gb.isValid()) fitBounds = gb;
-                } catch (e) { /* fall back to point */ }
+                } catch (_e) { /* fall back to point */ }
             }
             if (hasPoint) {
                 window.L.circleMarker([lat, lng],
@@ -279,7 +279,7 @@
                     var bridgeCoordinates = bridgeLocation.latitude + ", " + bridgeLocation.longitude;
                     if (navigator.clipboard) {
                         navigator.clipboard.writeText(bridgeCoordinates).then(function () {
-                            try { sap.m.MessageToast.show(T("gisCopied", "Copied:") + " " + bridgeCoordinates); } catch (error) {}
+                            try { sap.m.MessageToast.show(T("gisCopied", "Copied:") + " " + bridgeCoordinates); } catch (_error) {}
                         });
                     }
                 }

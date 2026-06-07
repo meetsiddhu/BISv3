@@ -17,7 +17,6 @@ const mountAttributesApi = require('./attributes-api')
 const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-log')
 
 const { getConfig, getConfigInt, getCrsEpsg, getStorageSrid } = require('./system-config')
-const { validateGeoJson } = require('./lib/geo')
 const demoHandler = require('./demo-handler')
 // ARCH-T4: pure compute helpers extracted from this file into testable modules.
 const { parseBbox, zoomToCellSize, haversineDistanceKm, DEFAULT_ZOOM_CELLS } = require('./lib/geo-compute')

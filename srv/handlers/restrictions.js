@@ -1,5 +1,4 @@
 const cds = require('@sap/cds')
-const LOG = cds.log('bms-restrictions')
 
 const deriveTemporaryFlag = (req) => {
     if (req.data.restrictionCategory) {

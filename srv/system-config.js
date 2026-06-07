@@ -23,7 +23,7 @@ function getConfigInt(key, fallback = 0) {
   })
 }
 
-function getConfigBool(key, fallback = false) {
+function getConfigBool(key, _fallback = false) {
   return getConfig(key).then(value => value === 'true' || value === '1' || value === 'yes')
 }
 

@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 const LOG  = cds.log('bms-common')
 
-module.exports = function registerCommonHelpers (srv) {
+module.exports = function registerCommonHelpers (_srv) {
 
     const getBridge = async (bridgeID, db) =>
         db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: bridgeID }))
@@ -34,7 +34,7 @@ module.exports = function registerCommonHelpers (srv) {
         }
     }
 
-    const updateBridgePostingStatus = async (bridgeID, db, req) => {
+    const updateBridgePostingStatus = async (bridgeID, db, _req) => {
         const activeRestrictions = await db.run(
             SELECT.from('bridge.management.Restrictions')
                   .where({ bridge_ID: bridgeID, restrictionStatus: 'Active', active: true })

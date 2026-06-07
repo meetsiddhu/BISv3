@@ -579,7 +579,7 @@ sap.ui.define([
         const nav = sap && sap.ushell && sap.ushell.Container &&
           sap.ushell.Container.getService("CrossApplicationNavigation");
         if (nav) { nav.toExternal({ target: { shellHash: hash } }); return; }
-      } catch (navigationError) { /* fall through */ }
+      } catch (_navigationError) { /* fall through */ }
       window.location.href = hash;
     },
 
@@ -653,7 +653,7 @@ sap.ui.define([
         this._applyFilters();
         this._checkUrlParams();
       } catch (error) {
-        console.error("[MapView] _loadData failed:", error);
+        // User-facing error is surfaced via MessageBox below (no console needed).
         MessageBox.error(this._text("mapError") + "\n" + (error && error.message ? error.message : ""));
       } finally {
         model.setProperty("/busy", false);
@@ -847,7 +847,7 @@ sap.ui.define([
           nav.toExternal({ target: { shellHash: hash } });
           return;
         }
-      } catch (navigationError) { /* fall through */ }
+      } catch (_navigationError) { /* fall through */ }
       window.open(hash, "_blank");
     },
 
@@ -1383,7 +1383,7 @@ sap.ui.define([
         let geo;
         try {
           geo = typeof bridge.geoJson === "string" ? JSON.parse(bridge.geoJson) : bridge.geoJson;
-        } catch (e) {
+        } catch (_e) {
           return; // skip invalid GeoJSON, never break the map
         }
         if (!geo || (!geo.type)) return;
@@ -1403,7 +1403,7 @@ sap.ui.define([
           gj.addTo(this._geometryLayer);
           const b = gj.getBounds();
           if (b && b.isValid()) { combined = combined ? combined.extend(b) : window.L.latLngBounds(b.getSouthWest(), b.getNorthEast()); }
-        } catch (e) { /* ignore a single bad geometry */ }
+        } catch (_e) { /* ignore a single bad geometry */ }
       }.bind(this));
       return combined;
     },
@@ -1662,11 +1662,11 @@ sap.ui.define([
 
       try {
         add(sap.ui.require.toUrl("BridgeManagement/mapview/" + cleanPath));
-      } catch (error) {}
+      } catch (_error) {}
 
       try {
         add(this.getOwnerComponent().getManifestObject().resolveUri(cleanPath));
-      } catch (error) {}
+      } catch (_error) {}
 
       add("/map-view/webapp/" + cleanPath);
       add(cleanPath);
@@ -1681,7 +1681,7 @@ sap.ui.define([
         var bundle = model.getResourceBundle();
         if (!bundle || typeof bundle.getText !== "function") return key;
         return bundle.getText(key);
-      } catch (textBundleError) {
+      } catch (_textBundleError) {
         return key;
       }
     },
