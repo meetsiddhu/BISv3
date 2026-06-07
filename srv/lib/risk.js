@@ -55,6 +55,27 @@ function deriveRisk (b, weights) {
   return { consequence, likelihood, score, priority: band.name }
 }
 
+// RISK-4: monetised exposure. A TRANSPARENT linear proxy maps the 1-5 likelihood to an
+// annual failure-probability — this is a planning heuristic, NOT an actuarial model
+// (documented + assumption-flagged in docs/risk-model/METHODOLOGY.md).
+const LIKELIHOOD_TO_ANNUAL_PROB = { 1: 0.01, 2: 0.03, 3: 0.08, 4: 0.18, 5: 0.35 }
+function expectedValueAud (likelihood, likelyFailureCostAud) {
+  const cost = Number(likelyFailureCostAud)
+  if (!Number.isFinite(cost) || cost <= 0) return null
+  const p = LIKELIHOOD_TO_ANNUAL_PROB[likelihood] || 0
+  return Math.round(p * cost * 100) / 100
+}
+
+// RISK-2: advisory remaining-useful-life. Legacy condition 1-10 (10=best); years until
+// the asset degrades to worst (1) at the assumed rate (points/year). Assumption-based —
+// surfaced for planning, deliberately NOT folded into the core score (no false precision).
+function estimatedRulYears (conditionRating, degradationRatePerYear) {
+  const c = Number(conditionRating), r = Number(degradationRatePerYear)
+  if (!Number.isFinite(c) || !Number.isFinite(r) || r <= 0) return null
+  const years = (c - 1) / r
+  return years > 0 ? Math.round(years * 10) / 10 : 0
+}
+
 // Build a weights map from RiskConfig rows ({factor, weight, active}).
 function weightsFromConfig (rows) {
   const w = {}
@@ -64,4 +85,4 @@ function weightsFromConfig (rows) {
   return w
 }
 
-module.exports = { deriveRisk, clampRisk, weightsFromConfig, RISK_BANDS, DEFAULT_WEIGHTS }
+module.exports = { deriveRisk, clampRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, RISK_BANDS, DEFAULT_WEIGHTS, LIKELIHOOD_TO_ANNUAL_PROB }

@@ -1,5 +1,5 @@
-code,name,minScore,maxScore,colour,sortOrder
-VeryHigh,Very High,60,100,#BB0000,1
-High,High,36,59.99,#E76500,2
-Medium,Medium,16,35.99,#E9730C,3
-Low,Low,0,15.99,#107E3E,4
+code,name,minScore,maxScore,colour,sortOrder,rationale
+VeryHigh,Very High,60,100,#BB0000,1,High consequence and high likelihood (raw cxl >= 15) — immediate inspection/intervention. Calibrate against TfNSW manual outcomes.
+High,High,36,59.99,#E76500,2,Elevated on at least one axis (raw 9-14) — schedule intervention within the review cycle.
+Medium,Medium,16,35.99,#E9730C,3,Routine monitoring (raw 4-8) — address at next planned cycle.
+Low,Low,0,15.99,#107E3E,4,Within tolerance (raw 1-3) — no special action.

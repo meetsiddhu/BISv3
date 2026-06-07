@@ -382,6 +382,10 @@ service AdminService {
           nextInspectionDue,
           inspectionOverdue,
           ( case inspectionOverdue when true then 1 else 3 end ) as overdueCriticality : Integer,
+          // ISO 55000 capital-planning columns (RISK-2/4) — decision-support.
+          estimatedRulYears,
+          likelyFailureCostAud,
+          expectedValueAud,
           status
     };
 

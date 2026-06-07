@@ -1,4 +1,4 @@
-const { deriveRisk, weightsFromConfig, RISK_BANDS } = require('../srv/lib/risk')
+const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, RISK_BANDS } = require('../srv/lib/risk')
 
 describe('risk prioritisation engine', () => {
   test('high consequence + poor condition -> Very High', () => {
@@ -80,6 +80,21 @@ describe('risk prioritisation engine', () => {
   test('mode weighting defaults to no-op when unconfigured (backward compatible)', () => {
     const b = { importanceLevel: 3, transportMode: 'Rail', conditionRating: 6, structuralAdequacyRating: 6 }
     expect(deriveRisk(b)).toEqual(deriveRisk(b, {}))
+  })
+
+  test('expected value = probability proxy x failure cost (RISK-4)', () => {
+    expect(expectedValueAud(5, 1000000)).toBe(350000) // 0.35 x 1,000,000
+    expect(expectedValueAud(1, 1000000)).toBe(10000)  // 0.01 x 1,000,000
+    expect(expectedValueAud(3, 0)).toBeNull()
+    expect(expectedValueAud(3, null)).toBeNull()
+  })
+
+  test('estimated RUL = condition headroom / degradation rate (RISK-2)', () => {
+    expect(estimatedRulYears(9, 1)).toBe(8)     // (9-1)/1
+    expect(estimatedRulYears(5, 0.5)).toBe(8)   // (5-1)/0.5
+    expect(estimatedRulYears(1, 1)).toBe(0)     // worst already
+    expect(estimatedRulYears(8, 0)).toBeNull()  // no rate -> no estimate
+    expect(estimatedRulYears(8, null)).toBeNull()
   })
 
   test('weightsFromConfig ignores inactive rows', () => {

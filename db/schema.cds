@@ -40,6 +40,14 @@ entity Bridges : managed {
       riskOverrideReason : String(255);
       riskAssessedAt     : Timestamp;
       riskAssessedBy     : String(111);
+      // ── ISO 55000 capital-planning extension (RISK-2/RISK-4) ──
+      // Monetised exposure + RUL. All optional + assumption-flagged; the core score is
+      // unchanged. expectedValueAud + estimatedRulYears are derived decision-support.
+      likelyFailureCostAud : Decimal(15,2);   // estimated consequence cost of failure
+      mitigationCostAud    : Decimal(15,2);   // estimated cost to remediate
+      riskReductionPct     : Integer @assert.range: [0, 100];
+      expectedValueAud     : Decimal(15,2);   // derived: failure-probability x likely cost
+      estimatedRulYears    : Decimal(5,1);    // derived advisory RUL (assumption-based)
       assetClassStrategy : Association to AssetClassStrategy;  // governing strategy
       latitude     : Decimal(15,6) @assert.range: [-90, 90];
       longitude    : Decimal(15,6) @assert.range: [-180, 180];
@@ -372,6 +380,9 @@ entity AssetClassStrategy : cuid, managed {
   interventionThreshold    : Integer @assert.range: [1, 10];  // condition at/below which action triggers
   reviewCycleMonths        : Integer;
   description              : LargeString;
+  // RISK-2: assumed condition-degradation rate (legacy points/year) for the RUL estimate.
+  // Explicitly an ASSUMPTION — surfaced as advisory, not baked into the core score.
+  degradationRatePerYear   : Decimal(4,2);
   // Complement-EAM: the SAP EAM maintenance plan this engineering strategy maps to.
   // EAM executes the schedule; this app holds the bridge-engineering policy + feeds it.
   eamMaintenancePlan       : String(40);
@@ -392,6 +403,7 @@ entity RiskBand {
   maxScore  : Decimal(6,2);
   colour    : String(20);    // semantic colour for charts
   sortOrder : Integer default 0;
+  rationale : LargeString;   // RISK-3: documented justification for the threshold (auditable)
 }
 
 entity States : sap.common.CodeList {

@@ -16,16 +16,15 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   ]
 
   // ── Risk prioritisation engine (Phase 2/4) — see srv/lib/risk.js (unit-tested) ──
-  const { deriveRisk, weightsFromConfig } = require('./lib/risk')
+  const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears } = require('./lib/risk')
   const { nextInspectionDue, isOverdue } = require('./lib/inspection')
 
-  // Cache of strategyId -> inspectionIntervalMonths (refreshed alongside risk weights).
-  const getStrategyInterval = async (stratId) => {
+  // Load the governing strategy (interval + degradation rate) for a bridge.
+  const getStrategy = async (stratId) => {
     if (!stratId) return null
     const db = await cds.connect.to('db')
-    const s = await db.run(SELECT.one.from('bridge.management.AssetClassStrategy')
-      .columns('inspectionIntervalMonths').where({ ID: stratId }))
-    return s ? s.inspectionIntervalMonths : null
+    return db.run(SELECT.one.from('bridge.management.AssetClassStrategy')
+      .columns('inspectionIntervalMonths', 'degradationRatePerYear').where({ ID: stratId }))
   }
 
   // Load active RiskConfig weights (config-driven scoring; rule 4). Cached per
@@ -384,13 +383,14 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     req.data.riskAssessedAt  = new Date().toISOString()
     req.data.riskAssessedBy  = req.user?.id || 'system'
 
-    // Gap A / INSPECT-1/2: derive the inspection-due signal from the linked strategy.
-    if (req.data.assetClassStrategy_ID !== undefined || req.data.lastInspectionDate !== undefined) {
-      const interval = await getStrategyInterval(req.data.assetClassStrategy_ID)
-      const due = nextInspectionDue(req.data.lastInspectionDate, interval)
-      req.data.nextInspectionDue = due
-      req.data.inspectionOverdue = isOverdue(due)
-    }
+    // Gap A / INSPECT-1/2 + RISK-2/4: strategy-driven inspection-due signal, advisory RUL,
+    // and monetised expected value (all decision-support; the core score stays unchanged).
+    const strat = await getStrategy(req.data.assetClassStrategy_ID)
+    const due = nextInspectionDue(req.data.lastInspectionDate, strat && strat.inspectionIntervalMonths)
+    req.data.nextInspectionDue = due
+    req.data.inspectionOverdue = isOverdue(due)
+    req.data.estimatedRulYears = estimatedRulYears(req.data.conditionRating, strat && strat.degradationRatePerYear)
+    req.data.expectedValueAud  = expectedValueAud(r.likelihood, req.data.likelyFailureCostAud)
   })
 
   // Refinement (R1/R5): a bridge's transport mode must match its network's mode, so a
@@ -415,19 +415,22 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
       .columns('ID', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
                'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence',
-               'riskLikelihood', 'lastInspectionDate', 'assetClassStrategy_ID'))
-    // Strategy interval map (one query) for inspection-due recompute.
+               'riskLikelihood', 'lastInspectionDate', 'assetClassStrategy_ID', 'likelyFailureCostAud'))
+    // Strategy map (one query) for inspection-due + RUL recompute.
     const strategies = await db.run(SELECT.from('bridge.management.AssetClassStrategy')
-      .columns('ID', 'inspectionIntervalMonths'))
-    const intervalById = new Map(strategies.map(s => [s.ID, s.inspectionIntervalMonths]))
+      .columns('ID', 'inspectionIntervalMonths', 'degradationRatePerYear'))
+    const stratById = new Map(strategies.map(s => [s.ID, s]))
     let n = 0
     for (const b of bridges) {
       const r = deriveRisk(b, weights)
-      const due = nextInspectionDue(b.lastInspectionDate, intervalById.get(b.assetClassStrategy_ID))
+      const strat = stratById.get(b.assetClassStrategy_ID)
+      const due = nextInspectionDue(b.lastInspectionDate, strat && strat.inspectionIntervalMonths)
       await db.run(UPDATE('bridge.management.Bridges').set({
         riskConsequence: r.consequence, riskLikelihood: r.likelihood,
         riskScore: r.score, riskPriority: r.priority,
         nextInspectionDue: due, inspectionOverdue: isOverdue(due),
+        estimatedRulYears: estimatedRulYears(b.conditionRating, strat && strat.degradationRatePerYear),
+        expectedValueAud: expectedValueAud(r.likelihood, b.likelyFailureCostAud),
         riskAssessedAt: new Date().toISOString(), riskAssessedBy: req.user?.id || 'system'
       }).where({ ID: b.ID }))
       n++
