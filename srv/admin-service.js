@@ -418,6 +418,16 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // Rail bridge can't be filed under a road network and corrupt the cross-modal view.
   this.before('SAVE', Bridges, async (req) => {
     const d = req.data
+    // ISO-AUDIT-002: an engineer override of the calculated risk must record a reason —
+    // ISO 55001 governance (overrides are auditable + justified, not silent).
+    if (d.riskOverride === true && (!d.riskOverrideReason || !String(d.riskOverrideReason).trim())) {
+      req.error({
+        code:    'RISK_OVERRIDE_REASON_REQUIRED',
+        message: 'A reason is required when overriding the calculated risk.',
+        target:  'riskOverrideReason',
+        status:  400
+      })
+    }
     if (d.network && d.transportMode) {
       const db = await cds.connect.to('db')
       const net = await db.run(SELECT.one.from('bridge.management.Networks')
@@ -443,15 +453,20 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     _riskWeights = null // force a reload so freshly-edited weights take effect
     const weights = await getRiskWeights()
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
-      .columns('ID', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
+      .columns('ID', 'bridgeId', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
                'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence',
-               'riskLikelihood', 'lastInspectionDate', 'assetClassStrategy_ID', 'likelyFailureCostAud',
-               'mitigationCostAud', 'riskReductionPct'))
+               'riskLikelihood', 'riskScore', 'riskPriority', 'lastInspectionDate', 'assetClassStrategy_ID',
+               'likelyFailureCostAud', 'mitigationCostAud', 'riskReductionPct'))
     // Strategy map (one query) for inspection-due + RUL recompute.
     const strategies = await db.run(SELECT.from('bridge.management.AssetClassStrategy')
       .columns('ID', 'inspectionIntervalMonths', 'degradationRatePerYear'))
     const stratById = new Map(strategies.map(s => [s.ID, s]))
-    let n = 0
+    // ISO-AUDIT-001: rule-3 audit trail for the mass risk mutation. One batchId ties the
+    // whole recalc together; source 'Calibration' is in audit-log's durable bulkSources
+    // (fail-loud on a write miss).
+    const batchId = cds.utils.uuid()
+    const changedBy = req.user?.id || 'system'
+    let n = 0, audited = 0
     for (const b of bridges) {
       const r = deriveRisk(b, weights)
       const strat = stratById.get(b.assetClassStrategy_ID)
@@ -464,11 +479,25 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         estimatedRulYears: estimatedRulYears(b.conditionRating, strat && strat.degradationRatePerYear),
         expectedValueAud: ev,
         benefitCostRatio: benefitCostRatio(ev, b.mitigationCostAud, b.riskReductionPct),
-        riskAssessedAt: new Date().toISOString(), riskAssessedBy: req.user?.id || 'system'
+        riskAssessedAt: new Date().toISOString(), riskAssessedBy: changedBy
       }).where({ ID: b.ID }))
       n++
+      // Audit only bridges whose score/band/consequence/likelihood actually changed, so the
+      // recalc is fully traceable without flooding ChangeLog with no-op rows.
+      const changes = []
+      if (Number(b.riskScore) !== Number(r.score)) changes.push({ fieldName: 'riskScore', oldValue: String(b.riskScore ?? ''), newValue: String(r.score) })
+      if ((b.riskPriority || '') !== r.priority) changes.push({ fieldName: 'riskPriority', oldValue: b.riskPriority || '', newValue: r.priority })
+      if (Number(b.riskConsequence) !== Number(r.consequence)) changes.push({ fieldName: 'riskConsequence', oldValue: String(b.riskConsequence ?? ''), newValue: String(r.consequence) })
+      if (Number(b.riskLikelihood) !== Number(r.likelihood)) changes.push({ fieldName: 'riskLikelihood', oldValue: String(b.riskLikelihood ?? ''), newValue: String(r.likelihood) })
+      if (changes.length) {
+        await writeChangeLogs(db, {
+          objectType: 'Bridge', objectId: b.ID, objectName: b.bridgeId || b.ID,
+          source: 'Calibration', batchId, changedBy, changes
+        })
+        audited++
+      }
     }
-    return `Recalculated risk + inspection-due for ${n} bridges.`
+    return `Recalculated risk + inspection-due for ${n} bridges (${audited} changed, audited).`
   })
   const TYPE_UNIT_MAP = {
     'Speed Restriction': ['km/h'],
@@ -718,13 +747,25 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   this.on('deactivate', Bridges, async (req) => {
     const { ID } = req.params[0]
     const db = await cds.connect.to('db')
+    const old = await fetchCurrentRecord(db, 'bridge.management.Bridges', { ID }) // OPS-1: capture prior state for audit
     await db.run(UPDATE('bridge.management.Bridges').set({ status: 'Inactive' }).where({ ID }))
+    await writeChangeLogs(db, {
+      objectType: 'Bridge', objectId: ID, objectName: old?.bridgeId || ID,
+      source: 'OData', batchId: cds.utils.uuid(), changedBy: req.user?.id || 'system',
+      changes: [{ fieldName: 'status', oldValue: old?.status || 'Active', newValue: 'Inactive' }]
+    })
     return db.run(SELECT.one.from('bridge.management.Bridges').where({ ID }))
   })
   this.on('reactivate', Bridges, async (req) => {
     const { ID } = req.params[0]
     const db = await cds.connect.to('db')
+    const old = await fetchCurrentRecord(db, 'bridge.management.Bridges', { ID }) // OPS-1
     await db.run(UPDATE('bridge.management.Bridges').set({ status: 'Active' }).where({ ID }))
+    await writeChangeLogs(db, {
+      objectType: 'Bridge', objectId: ID, objectName: old?.bridgeId || ID,
+      source: 'OData', batchId: cds.utils.uuid(), changedBy: req.user?.id || 'system',
+      changes: [{ fieldName: 'status', oldValue: old?.status || 'Inactive', newValue: 'Active' }]
+    })
     return db.run(SELECT.one.from('bridge.management.Bridges').where({ ID }))
   })
 
@@ -736,13 +777,31 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   this.on('deactivate', Restrictions, async (req) => {
     const { ID } = req.params[0]
     const db = await cds.connect.to('db')
+    const old = await fetchCurrentRecord(db, 'bridge.management.Restrictions', { ID }) // OPS-1
     await db.run(UPDATE('bridge.management.Restrictions').set({ active: false, restrictionStatus: 'Retired' }).where({ ID }))
+    await writeChangeLogs(db, {
+      objectType: 'Restriction', objectId: ID, objectName: old?.restrictionRef || ID,
+      source: 'OData', batchId: cds.utils.uuid(), changedBy: req.user?.id || 'system',
+      changes: [
+        { fieldName: 'active',            oldValue: String(old?.active ?? true),  newValue: 'false' },
+        { fieldName: 'restrictionStatus', oldValue: old?.restrictionStatus || '',  newValue: 'Retired' }
+      ]
+    })
     return db.run(SELECT.one.from('bridge.management.Restrictions').where({ ID }))
   })
   this.on('reactivate', Restrictions, async (req) => {
     const { ID } = req.params[0]
     const db = await cds.connect.to('db')
+    const old = await fetchCurrentRecord(db, 'bridge.management.Restrictions', { ID }) // OPS-1
     await db.run(UPDATE('bridge.management.Restrictions').set({ active: true, restrictionStatus: 'Active' }).where({ ID }))
+    await writeChangeLogs(db, {
+      objectType: 'Restriction', objectId: ID, objectName: old?.restrictionRef || ID,
+      source: 'OData', batchId: cds.utils.uuid(), changedBy: req.user?.id || 'system',
+      changes: [
+        { fieldName: 'active',            oldValue: String(old?.active ?? false),        newValue: 'true' },
+        { fieldName: 'restrictionStatus', oldValue: old?.restrictionStatus || 'Retired', newValue: 'Active' }
+      ]
+    })
     return db.run(SELECT.one.from('bridge.management.Restrictions').where({ ID }))
   })
 

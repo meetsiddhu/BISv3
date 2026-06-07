@@ -89,6 +89,13 @@ describe('risk prioritisation engine', () => {
     expect(expectedValueAud(3, null)).toBeNull()
   })
 
+  test('expectedValueAud returns null (not 0) for out-of-range likelihood (P2-001)', () => {
+    expect(expectedValueAud(0, 1000000)).toBeNull()   // below band 1
+    expect(expectedValueAud(6, 1000000)).toBeNull()   // above band 5
+    expect(expectedValueAud(NaN, 1000000)).toBeNull()
+    expect(expectedValueAud(null, 1000000)).toBeNull()
+  })
+
   test('estimated RUL = condition headroom / degradation rate (RISK-2)', () => {
     expect(estimatedRulYears(9, 1)).toBe(8)     // (9-1)/1
     expect(estimatedRulYears(5, 0.5)).toBe(8)   // (5-1)/0.5
@@ -121,5 +128,29 @@ describe('risk prioritisation engine', () => {
     ])
     expect(w.consequence_importance).toBe(2)
     expect(w.consequence_priority).toBeUndefined()
+  })
+
+  test('weightsFromConfig skips non-finite weights — no NaN leak (RISK P0-001)', () => {
+    const w = weightsFromConfig([
+      { factor: 'consequence_importance', weight: 'oops', active: true }, // non-numeric
+      { factor: 'consequence_priority', weight: '', active: true },        // empty
+      { factor: 'likelihood_condition', weight: 1.5, active: true }
+    ])
+    expect(w.consequence_importance).toBeUndefined() // skipped, falls back to default
+    expect(w.consequence_priority).toBeUndefined()
+    expect(w.likelihood_condition).toBe(1.5)
+  })
+
+  test('deriveRisk never emits NaN even if a malformed weight reaches it (RISK P0-001)', () => {
+    const b = { importanceLevel: 4, highPriorityAsset: true, conditionRating: 2, structuralAdequacyRating: 2 }
+    // A non-finite weight passed directly (bypassing weightsFromConfig's guard) must be
+    // sanitised to the default, so the score stays a finite number.
+    const r = deriveRisk(b, { consequence_importance: NaN, likelihood_condition: undefined })
+    expect(Number.isFinite(r.score)).toBe(true)
+    expect(Number.isFinite(r.consequence)).toBe(true)
+    expect(Number.isFinite(r.likelihood)).toBe(true)
+    expect(r.priority).toBeTruthy()
+    // Equivalent to using all defaults, since both bad weights fall back to their defaults.
+    expect(r).toEqual(deriveRisk(b))
   })
 })

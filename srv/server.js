@@ -507,17 +507,15 @@ async function saveMassEditBridges(updates, { user } = {}) {
         }
       }
     }
+    // SEC-003: write the audit trail INSIDE the transaction (via tx) so a failed audit
+    // rolls back the whole edit — rule 3 (ChangeLog durability on bulk mutations).
+    // writeChangeLogs throws for bulk sources ('MassEdit'), so any miss aborts + rolls
+    // back rather than committing un-audited data.
+    for (const entry of auditEntries) await writeChangeLogs(tx, entry)
     await tx.commit()
   } catch (error) {
     await tx.rollback(error)
     throw error
-  }
-
-  // Phase 3 — fire audit-log writes in the background so they never delay the HTTP
-  // response.  writeChangeLogs already suppresses its own errors via try/catch.
-  if (auditEntries.length) {
-    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
-      .catch(err => LOG.error('Audit log write failed (bridges):', err.message))
   }
 
   return { updated }
@@ -712,16 +710,12 @@ async function saveMassEditDropdownValues(updates, { user } = {}) {
         }
       }
     }
+    // SEC-003: audit inside the transaction so a failed write rolls back the edit (rule 3).
+    for (const entry of auditEntries) await writeChangeLogs(tx, entry)
     await tx.commit()
   } catch (error) {
     await tx.rollback(error)
     throw error
-  }
-
-  // Phase 3 — background audit writes (fire-and-forget; writeChangeLogs suppresses errors).
-  if (auditEntries.length) {
-    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
-      .catch(err => LOG.error('Audit log write failed (dropdowns):', err.message))
   }
 
   return { updated }
@@ -778,16 +772,12 @@ async function saveMassEditRecords(updates, config, { user } = {}) {
         }
       }
     }
+    // SEC-003: audit inside the transaction so a failed write rolls back the edit (rule 3).
+    for (const entry of auditEntries) await writeChangeLogs(tx, entry)
     await tx.commit()
   } catch (error) {
     await tx.rollback(error)
     throw error
-  }
-
-  // Phase 3 — background audit writes (fire-and-forget; writeChangeLogs suppresses errors).
-  if (auditEntries.length) {
-    Promise.all(auditEntries.map(entry => writeChangeLogs(db, entry)))
-      .catch(err => LOG.error(`Audit log write failed (${config.label.toLowerCase()}):`, err.message))
   }
 
   return { updated }
@@ -1475,9 +1465,11 @@ cds.on('bootstrap', (app) => {
     }
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
       const csrfToken = req.headers['x-csrf-token']
-      // SEC-2: enforce CSRF in EVERY environment (staging/test handle real data).
-      // Only an explicit opt-out (CSRF_PROTECTION_DISABLED=true) bypasses it.
-      if (!csrfToken && process.env.CSRF_PROTECTION_DISABLED !== 'true') {
+      // SEC-2 / SEC-005: enforce CSRF in EVERY environment (staging/test handle real
+      // data). The opt-out (CSRF_PROTECTION_DISABLED=true) is honoured ONLY outside
+      // production — in prod (NODE_ENV=production, as CF sets) CSRF can never be disabled.
+      const csrfDisabled = process.env.CSRF_PROTECTION_DISABLED === 'true' && process.env.NODE_ENV !== 'production'
+      if (!csrfToken && !csrfDisabled) {
         return res.status(403).json({ error: 'CSRF token required', code: 'CSRF_MISSING' })
       }
     }
@@ -1597,7 +1589,7 @@ cds.on('bootstrap', (app) => {
     }
   })
 
-  app.use('/mass-upload/api', requiresAuthentication, validateCsrfToken, router)
+  app.use('/mass-upload/api', requiresAuthentication, requiresScope('manage'), validateCsrfToken, router) // SEC-001: bulk mutation needs 'manage'
 
   // Dashboard analytics API
   const dashboardRouter = express.Router()
@@ -1939,8 +1931,8 @@ cds.on('bootstrap', (app) => {
     }
   })
 
-  app.use('/mass-edit/api', requiresAuthentication, validateCsrfToken, massEditRouter)
-  mountAttributesApi(app, requiresAuthentication, validateCsrfToken)
+  app.use('/mass-edit/api', requiresAuthentication, requiresScope('manage'), validateCsrfToken, massEditRouter) // SEC-001: bulk mutation needs 'manage'
+  mountAttributesApi(app, requiresAuthentication, validateCsrfToken, requiresScope('manage')) // SEC-002: scope-guard attribute mutations
 
   // ── Audit Report API ─────────────────────────────────────────────────────
   const auditRouter = express.Router()

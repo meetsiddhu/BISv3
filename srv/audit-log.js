@@ -60,7 +60,7 @@ async function writeChangeLogs(db, { objectType, objectId, objectName, source, b
     // for bulk/API paths (a 50k upload could leave no trail), so surface the error and
     // let the caller abort. Single interactive UI edits tolerate + warn so a transient
     // audit hiccup doesn't block an engineer's save.
-    const bulkSources = ['MassUpload', 'MassEdit', 'EAMSync', 'API', 'Import']
+    const bulkSources = ['MassUpload', 'MassEdit', 'EAMSync', 'API', 'Import', 'Calibration']
     if (bulkSources.includes(source)) {
       LOG.error(`Audit write failed for bulk operation (source=${source}); failing the operation:`, error.message)
       throw error

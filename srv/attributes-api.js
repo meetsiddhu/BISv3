@@ -246,7 +246,7 @@ async function buildAttributeColumns(db, objectType) {
 
 // ── Router ────────────────────────────────────────────────────────────────────
 
-module.exports = function mountAttributesApi(app, requiresAuthentication, validateCsrfToken) {
+module.exports = function mountAttributesApi(app, requiresAuthentication, validateCsrfToken, requiresScope) {
   const router = express.Router()
   router.use(express.json({ limit: '10mb' }))
 
@@ -658,6 +658,11 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
   const csrfMiddleware = typeof validateCsrfToken === 'function'
     ? validateCsrfToken
     : (_req, _res, next) => next()
+  // SEC-002: scope guard for mutating attribute config/values. requiresScope lets GET
+  // through (reads stay open to any authenticated user); POST/import require the scope.
+  const scopeMiddleware = typeof requiresScope === 'function'
+    ? requiresScope
+    : (_req, _res, next) => next()
 
-  app.use('/attributes/api', authMiddleware, csrfMiddleware, router)
+  app.use('/attributes/api', authMiddleware, scopeMiddleware, csrfMiddleware, router)
 }
