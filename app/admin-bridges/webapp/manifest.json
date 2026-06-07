@@ -8,9 +8,9 @@
     "i18n": {
       "bundleUrl": "i18n/i18n.properties",
       "supportedLocales": [
-        "en"
+        ""
       ],
-      "fallbackLocale": "en"
+      "fallbackLocale": ""
     },
     "applicationVersion": {
       "version": "1.0.7"
@@ -224,9 +224,9 @@
         "uri": "i18n/i18n.properties",
         "settings": {
           "supportedLocales": [
-            "en"
+            ""
           ],
-          "fallbackLocale": "en"
+          "fallbackLocale": ""
         }
       },
       "appConfig": {

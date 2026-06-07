@@ -59,7 +59,7 @@
 | FE-001 | P1 | map-view i18n | ✅ | ~60 strings externalised |
 | FE-002 | P1 | coordinate bar aria-live | ✅ | role=status aria-live |
 | FE-003 | P1 | legend contrast/a11y | ✅ | decorative dots aria-hidden |
-| FE-005 | P2 | empty supportedLocales/fallbackLocale | ✅ | en across all 8 manifests |
+| FE-005 | P2 | "empty" supportedLocales/fallbackLocale | ↩️ reverted | FALSE POSITIVE — the apps ship a single base `i18n.properties` (no `i18n_*.properties`), for which `supportedLocales:[""]` (the `""`/base locale) is the **correct** SAP config. Setting `["en"]` made UI5 request a non-existent `i18n_en.properties` AND excluded the base bundle → component-load failure on all apps. Reverted to `[""]`/`""`. True multi-locale support is a future task (add locale files first). |
 | FE-009 | P3 | version mismatch | ✅ | map-view bumped; per-app strategy documented |
 | FE-006/007/008 | P2 | GIS help fragment / GISConfig draft / layer aria | ◑📄 | deferred (GISConfig draft = high regression risk; documented) |
 

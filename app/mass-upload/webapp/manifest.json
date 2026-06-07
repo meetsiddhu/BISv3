@@ -58,9 +58,9 @@
         "uri": "i18n/i18n.properties",
         "settings": {
           "supportedLocales": [
-            "en"
+            ""
           ],
-          "fallbackLocale": "en"
+          "fallbackLocale": ""
         }
       }
     },

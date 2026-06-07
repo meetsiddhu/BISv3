@@ -37,7 +37,7 @@
       "libs": { "sap.m": {}, "sap.ui.core": {}, "sap.ui.layout": {}, "sap.f": {} }
     },
     "models": {
-      "i18n": { "type": "sap.ui.model.resource.ResourceModel", "uri": "i18n/i18n.properties", "settings": { "supportedLocales": ["en"], "fallbackLocale": "en" } }
+      "i18n": { "type": "sap.ui.model.resource.ResourceModel", "uri": "i18n/i18n.properties", "settings": { "supportedLocales": [""], "fallbackLocale": "" } }
     },
     "rootView": {
       "viewName": "BridgeManagement.attributesadmin.view.AttributesAdmin",
