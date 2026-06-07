@@ -2664,7 +2664,7 @@ cds.on('served', async () => {
   })
 
   servedApp.get('/launchpad/config', (req, res) => {
-    let isAdmin = false
+    let isAdmin   // assigned in every branch below (incl. catch), so no initialiser needed
     try {
       const user = req.user
       if (user && typeof user.is === 'function') {

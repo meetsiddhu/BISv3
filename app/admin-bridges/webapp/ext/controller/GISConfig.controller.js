@@ -136,6 +136,7 @@ sap.ui.define([
     },
 
     onToggleRefLayerActive: function (oEvent) {
+      var self = this;
       var src = oEvent.getSource();
       var ctx = src.getBindingContext("refLayers") || src.getParent().getBindingContext("refLayers");
       var row  = ctx.getObject();
@@ -147,6 +148,7 @@ sap.ui.define([
     },
 
     onToggleRefLayerDefault: function (oEvent) {
+      var self = this;
       var src = oEvent.getSource();
       var ctx = src.getBindingContext("refLayers") || src.getParent().getBindingContext("refLayers");
       var row = ctx.getObject();
