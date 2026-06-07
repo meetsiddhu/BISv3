@@ -191,6 +191,9 @@ entity Restrictions : cuid, managed {
                on children.parent = $self;
 }
 
+// COMP-008: BridgeRestrictions are MASTERED IN BIS (engineering restriction record).
+// EAM sync is UNIDIRECTIONAL (BIS -> EAM push of the notification reference); BIS does not
+// pull restriction master data from EAM. eamLastSyncAt records the last push timestamp.
 entity BridgeRestrictions : cuid, managed {
   bridge              : Association to Bridges;
   restrictionRef      : String(40);
