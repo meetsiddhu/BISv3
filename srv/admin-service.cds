@@ -13,10 +13,10 @@ service AdminService {
   entity Bridges as projection on my.Bridges {
     *,
     virtual hasCapacity : Boolean,
-    // FE_UX-1: read-only criticality so the object-page risk fields colour like the report.
-    // SEARCHED case (not simple `when 'literal'`): the draft engine mis-translates the
-    // simple form to invalid `when ? = true` SQL and 500s draftEdit. (Regression fix.)
-    ( case when riskPriority = 'Very High' then 1 when riskPriority = 'High' then 1 when riskPriority = 'Medium' then 2 when riskPriority = 'Low' then 3 else 0 end ) as riskCriticality : Integer
+    // FE_UX-1: object-page risk criticality. VIRTUAL (computed in an after-READ handler),
+    // NOT a calculated SQL column — a calculated CASE on a draft-enabled entity is
+    // mis-translated by the CAP draft engine to invalid SQL and 500s draftEdit.
+    virtual riskCriticality : Integer
   } actions {
     action deactivate() returns Bridges;
     action reactivate() returns Bridges;

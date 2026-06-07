@@ -428,6 +428,15 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     }
   })
 
+  // FE_UX-1: compute the virtual riskCriticality on read (draft-safe — not in SQL).
+  const RISK_CRITICALITY = { 'Very High': 1, 'High': 1, 'Medium': 2, 'Low': 3 }
+  this.after('READ', Bridges, (rows) => {
+    if (!rows) return
+    for (const r of (Array.isArray(rows) ? rows : [rows])) {
+      if (r && r.riskPriority !== undefined) r.riskCriticality = RISK_CRITICALITY[r.riskPriority] ?? 0
+    }
+  })
+
   // Backfill / refresh risk for all bridges (admin action).
   this.on('recalcRisk', async (req) => {
     const db = await cds.connect.to('db')
