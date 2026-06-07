@@ -44,3 +44,28 @@ constrained by a stale component-preload cache (see Constraints).
   (re-established via a `$metadata` round-trip).
 - **Multi-user role test:** testing as separate view/manage users needs those logins;
   gating is verified in code + the admin-access check above.
+
+---
+
+## UAT addendum — v3.9.7 (A-tier + critical regression fix), live on HANA
+
+A live end-to-end UAT against the deployed app (authoritative, OData):
+
+| Scenario | Evidence | Result |
+|---|---|---|
+| **Create / Edit** (draftEdit → patch → activate) | 201 → 200 → 200 on Bridge 1007 | ✅ PASS |
+| **Risk monetisation (RISK-T4)** | likelihood 4 → EV $900,000 (= 0.18 × $5,000,000); ROI 1.44 (= $900k × 80% ÷ $500k) | ✅ correct |
+| **Config-governed probability (RISK-T2)** | prob_4 = 0.18 from RiskConfig drives EV | ✅ |
+| **Virtual riskCriticality (FE_UX-1)** | 'Very High' → 1, draft-safe (not in SQL) | ✅ |
+| **EAM enum validation (EAM-T4)** | invalid eamSyncStatus → HTTP 400 | ✅ rejected |
+| **recalcRisk admin action** | 200, register re-scored | ✅ |
+
+### Critical regression found & fixed during this UAT
+The live UAT surfaced a **create/edit outage** (draftEdit → HTTP 500, `sql syntax error near "="`).
+Root cause: the `riskCriticality` **calculated SQL column** on the *draft-enabled* Bridges
+projection (added v3.7.0 for the object-page colour) is mis-translated by the CAP draft
+engine to invalid HANA SQL (`case riskPriority when ? = true then ?`) — for ANY CASE form.
+Fix (v3.9.7): made `riskCriticality` a **virtual element** computed in a `this.after('READ')`
+handler (like `hasCapacity`), so it never enters the draft SQL. Create/edit restored;
+object-page colour retained. This is exactly the kind of HANA-vs-SQLite, draft-only defect
+that unit tests on SQLite cannot catch — found only by live UAT.
