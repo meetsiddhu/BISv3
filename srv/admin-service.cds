@@ -223,16 +223,18 @@ service AdminService {
   @restrict: [{ grant: '*', to: 'admin' }]
   entity AttributeObjectTypeConfig as projection on my.AttributeObjectTypeConfig;
 
-  @restrict: [{ grant: '*', to: 'admin' }]
+  // EAM-T5: EAM integration config is operated by the dedicated 'integration' scope
+  // (separate from app admin) or admin.
+  @restrict: [{ grant: '*', to: ['admin','integration'] }]
   entity EAMCodeMapping as projection on my.EAMCodeMapping;
 
   // EAM-2: admin-configurable BIS<->EAM field mapping (no hardcoded maps in sync code).
-  @restrict: [{ grant: '*', to: 'admin' }]
+  @restrict: [{ grant: '*', to: ['admin','integration'] }]
   entity EAMFieldMapping as projection on my.EAMFieldMapping;
 
-  // EAM-3: append-only EAM sync audit trail — read-only, admin.
+  // EAM-3: append-only EAM sync audit trail — read-only, admin/integration.
   @readonly
-  @restrict: [{ grant: 'READ', to: 'admin' }]
+  @restrict: [{ grant: 'READ', to: ['admin','integration'] }]
   entity EAMSyncLog as projection on my.EAMSyncLog;
 
   // INSPECT-4 / EAM-4: bridge element hierarchy + element-type codelist.
@@ -393,6 +395,8 @@ service AdminService {
           estimatedRulYears,
           likelyFailureCostAud,
           expectedValueAud,
+          benefitCostRatio,
+          mitigationCostAud,
           status
     };
 

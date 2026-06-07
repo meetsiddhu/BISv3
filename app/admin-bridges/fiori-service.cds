@@ -1554,7 +1554,8 @@ annotate AdminService.BridgeRiskReport with @(
     { Value: nextInspectionDue,        Label: 'Next Due', Criticality: overdueCriticality },
     { Value: inspectionOverdue,        Label: 'Overdue', Criticality: overdueCriticality },
     { Value: estimatedRulYears,        Label: 'Est. RUL (yrs)' },
-    { Value: expectedValueAud,         Label: 'Expected Value (AUD)' }
+    { Value: expectedValueAud,         Label: 'Expected Value (AUD)' },
+    { Value: benefitCostRatio,         Label: 'Benefit-Cost (ROI)' }
   ]
 );
 annotate AdminService.BridgeRiskReport with {
@@ -1566,7 +1567,8 @@ annotate AdminService.BridgeRiskReport with {
   strategyName @title:'Strategy'; inspectionIntervalMonths @title:'Interval (mo)';
   nextInspectionDue @title:'Next Due'; inspectionOverdue @title:'Overdue';
   estimatedRulYears @title:'Est. RUL (yrs)'; likelyFailureCostAud @title:'Likely Failure Cost (AUD)';
-  expectedValueAud @title:'Expected Value (AUD)';
+  expectedValueAud @title:'Expected Value (AUD)'; benefitCostRatio @title:'Benefit-Cost (ROI)';
+  mitigationCostAud @title:'Mitigation Cost (AUD)';
   riskCriticality @UI.Hidden; overdueCriticality @UI.Hidden;
 };
 

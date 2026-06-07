@@ -47,6 +47,7 @@ entity Bridges : managed {
       mitigationCostAud    : Decimal(15,2);   // estimated cost to remediate
       riskReductionPct     : Integer @assert.range: [0, 100];
       expectedValueAud     : Decimal(15,2);   // derived: failure-probability x likely cost
+      benefitCostRatio     : Decimal(8,2);    // RISK-T4 derived: (EV x reduction%) / mitigation cost — invest when > 1
       estimatedRulYears    : Decimal(5,1);    // derived advisory RUL (assumption-based)
       assetClassStrategy : Association to AssetClassStrategy;  // governing strategy
       latitude     : Decimal(15,6) @assert.range: [-90, 90];

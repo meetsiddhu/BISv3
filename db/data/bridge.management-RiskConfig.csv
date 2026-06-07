@@ -8,3 +8,8 @@ mode_Rail,Rail bridge network criticality bump,1,true
 mode_LightRail,Light-rail bridge network criticality bump,1,true
 mode_Road,Road bridge mode bump,0,true
 mode_Pedestrian,Pedestrian/active-transport mode bump,0,true
+prob_1,Annual failure probability for likelihood band 1,0.01,true
+prob_2,Annual failure probability for likelihood band 2,0.03,true
+prob_3,Annual failure probability for likelihood band 3,0.08,true
+prob_4,Annual failure probability for likelihood band 4,0.18,true
+prob_5,Annual failure probability for likelihood band 5,0.35,true

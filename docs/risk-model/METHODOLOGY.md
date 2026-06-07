@@ -65,6 +65,14 @@ columns in the Bridge Risk worklist.
   failure-probability per likelihood band). With `mitigationCostAud` and
   `riskReductionPct`, this supports an indicative "spend now vs. expected loss" comparison.
 
+- **Benefit-cost ratio (ROI)** (`benefitCostRatio`, RISK-T4) = `(expectedValueAud ×
+  riskReductionPct%) ÷ mitigationCostAud`. A value **> 1** means the proposed mitigation
+  pays for itself in annualised expected-loss terms; it gives the worklist an ordinal
+  "fund first" signal alongside raw risk. Surfaced in the Bridge Risk report.
+- **Config-governed probability (RISK-T2):** the likelihood→probability proxy is now
+  seeded as `RiskConfig` factors `prob_1..prob_5` (default 0.01/0.03/0.08/0.18/0.35), so
+  the assumption is admin-tunable and auditable rather than a code literal.
+
 Any use of these for a funding decision must state the assumptions (degradation rate,
 probability proxy) explicitly.
 

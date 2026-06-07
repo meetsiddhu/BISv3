@@ -1,4 +1,4 @@
-const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, RISK_BANDS } = require('../srv/lib/risk')
+const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig, RISK_BANDS } = require('../srv/lib/risk')
 
 describe('risk prioritisation engine', () => {
   test('high consequence + poor condition -> Very High', () => {
@@ -95,6 +95,23 @@ describe('risk prioritisation engine', () => {
     expect(estimatedRulYears(1, 1)).toBe(0)     // worst already
     expect(estimatedRulYears(8, 0)).toBeNull()  // no rate -> no estimate
     expect(estimatedRulYears(8, null)).toBeNull()
+  })
+
+  test('benefit-cost ratio = (EV x reduction%) / mitigation cost (RISK-T4)', () => {
+    // EV 100k, reduction 80%, mitigation 40k -> 80k/40k = 2.0
+    expect(benefitCostRatio(100000, 40000, 80)).toBe(2)
+    // reduction defaults to 100% when not given
+    expect(benefitCostRatio(50000, 50000, undefined)).toBe(1)
+    expect(benefitCostRatio(100000, 0, 80)).toBeNull()   // no mitigation cost
+    expect(benefitCostRatio(null, 40000, 80)).toBeNull()
+  })
+
+  test('config probability map overrides the default proxy (RISK-T2)', () => {
+    const m = probMapFromConfig({ prob_1: 0.02, prob_5: 0.5 })
+    expect(m[1]).toBe(0.02)
+    expect(m[5]).toBe(0.5)
+    expect(expectedValueAud(5, 1000000, m)).toBe(500000)  // uses config 0.5, not default 0.35
+    expect(probMapFromConfig({})).toBeNull()              // no prob_ factors -> default proxy
   })
 
   test('weightsFromConfig ignores inactive rows', () => {

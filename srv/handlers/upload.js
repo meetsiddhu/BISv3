@@ -6,7 +6,7 @@ const { validateGeoJson } = require('../lib/geo')
 const ALLOWED_EXTENSIONS     = ['.xlsx', '.csv', '.xls']
 const MAX_FILE_SIZE_BYTES    = 50 * 1024 * 1024
 const MAX_DECOMPRESSED_BYTES = 200 * 1024 * 1024
-const MAX_ROWS               = 50000
+const MAX_ROWS               = Number(process.env.MAX_UPLOAD_ROWS) || 50000 // CONFIG-T3
 
 const BRIDGE_DOWNLOAD_HEADERS = [
     'bridgeId', 'bridgeName', 'state', 'region', 'lga',

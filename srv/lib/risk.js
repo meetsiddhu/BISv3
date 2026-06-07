@@ -59,11 +59,32 @@ function deriveRisk (b, weights) {
 // annual failure-probability — this is a planning heuristic, NOT an actuarial model
 // (documented + assumption-flagged in docs/risk-model/METHODOLOGY.md).
 const LIKELIHOOD_TO_ANNUAL_PROB = { 1: 0.01, 2: 0.03, 3: 0.08, 4: 0.18, 5: 0.35 }
-function expectedValueAud (likelihood, likelyFailureCostAud) {
+// RISK-T2: the probability proxy is config-governable — pass a probMap (e.g. from
+// RiskConfig factors prob_1..prob_5); falls back to the documented default.
+function expectedValueAud (likelihood, likelyFailureCostAud, probMap) {
   const cost = Number(likelyFailureCostAud)
   if (!Number.isFinite(cost) || cost <= 0) return null
-  const p = LIKELIHOOD_TO_ANNUAL_PROB[likelihood] || 0
+  const p = (probMap && probMap[likelihood] != null) ? Number(probMap[likelihood]) : (LIKELIHOOD_TO_ANNUAL_PROB[likelihood] || 0)
   return Math.round(p * cost * 100) / 100
+}
+
+// RISK-T4: benefit-cost (ROI) of mitigation. benefit = expected value avoided
+// (= EV x riskReduction%); ratio = benefit / mitigation cost. > 1 => the spend pays
+// for itself in annualised expected-loss terms. Decision-support; assumption-flagged.
+function benefitCostRatio (expectedValue, mitigationCostAud, riskReductionPct) {
+  if (expectedValue == null || mitigationCostAud == null) return null
+  const ev = Number(expectedValue), cost = Number(mitigationCostAud)
+  const red = Number(riskReductionPct)
+  if (!Number.isFinite(ev) || !Number.isFinite(cost) || cost <= 0) return null
+  const reduction = Number.isFinite(red) ? Math.max(0, Math.min(100, red)) / 100 : 1
+  return Math.round((ev * reduction / cost) * 100) / 100
+}
+
+// Build a probability map {1..5} from RiskConfig factors prob_1..prob_5 (active rows).
+function probMapFromConfig (weights) {
+  const m = {}
+  for (let i = 1; i <= 5; i++) { const v = weights && weights['prob_' + i]; if (v != null && Number.isFinite(Number(v))) m[i] = Number(v) }
+  return Object.keys(m).length ? m : null
 }
 
 // RISK-2: advisory remaining-useful-life. Legacy condition 1-10 (10=best); years until
@@ -85,4 +106,4 @@ function weightsFromConfig (rows) {
   return w
 }
 
-module.exports = { deriveRisk, clampRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, RISK_BANDS, DEFAULT_WEIGHTS, LIKELIHOOD_TO_ANNUAL_PROB }
+module.exports = { deriveRisk, clampRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig, RISK_BANDS, DEFAULT_WEIGHTS, LIKELIHOOD_TO_ANNUAL_PROB }

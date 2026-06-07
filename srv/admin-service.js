@@ -16,7 +16,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   ]
 
   // ── Risk prioritisation engine (Phase 2/4) — see srv/lib/risk.js (unit-tested) ──
-  const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears } = require('./lib/risk')
+  const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig } = require('./lib/risk')
   const { nextInspectionDue, isOverdue } = require('./lib/inspection')
 
   // Load the governing strategy (interval + degradation rate) for a bridge.
@@ -375,7 +375,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   // Compute risk score/priority on every bridge save (Phase 2; mode-aware via Gap B).
   this.before('SAVE', Bridges, async (req) => {
-    const r = deriveRisk(req.data, await getRiskWeights())
+    const weights = await getRiskWeights()
+    const r = deriveRisk(req.data, weights)
     req.data.riskConsequence = r.consequence
     req.data.riskLikelihood  = r.likelihood
     req.data.riskScore       = r.score
@@ -390,19 +391,28 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     req.data.nextInspectionDue = due
     req.data.inspectionOverdue = isOverdue(due)
     req.data.estimatedRulYears = estimatedRulYears(req.data.conditionRating, strat && strat.degradationRatePerYear)
-    req.data.expectedValueAud  = expectedValueAud(r.likelihood, req.data.likelyFailureCostAud)
+    const ev = expectedValueAud(r.likelihood, req.data.likelyFailureCostAud, probMapFromConfig(weights))
+    req.data.expectedValueAud  = ev
+    req.data.benefitCostRatio  = benefitCostRatio(ev, req.data.mitigationCostAud, req.data.riskReductionPct)
   })
 
-  // EAM-R4: validate EAM reference enums so the integration layer never sees junk.
+  // EAM-T4 (extends EAM-R4): validate EAM reference enums on EVERY EAM-bearing entity so
+  // the integration layer never sees junk values. eamSyncStatus is on all of them;
+  // mode/objectType only on Bridges (the check is field-conditional, so one validator
+  // safely covers them all).
   const EAM_SYNC_STATUS = ['NOT_SYNCED', 'SYNCED', 'PENDING', 'ERROR']
   const EAM_SYNC_MODE   = ['STANDALONE', 'PUSH', 'PULL', 'BIDIRECTIONAL']
   const EAM_OBJECT_TYPE = ['FLOC', 'EQUIPMENT', 'BOTH']
-  this.before('SAVE', Bridges, (req) => {
+  const validateEamEnums = (req) => {
     const d = req.data
     if (d.eamSyncStatus && !EAM_SYNC_STATUS.includes(d.eamSyncStatus)) req.error(400, `eamSyncStatus must be one of ${EAM_SYNC_STATUS.join(', ')}.`)
     if (d.eamSyncMode && !EAM_SYNC_MODE.includes(d.eamSyncMode)) req.error(400, `eamSyncMode must be one of ${EAM_SYNC_MODE.join(', ')}.`)
     if (d.eamObjectType && !EAM_OBJECT_TYPE.includes(d.eamObjectType)) req.error(400, `eamObjectType must be one of ${EAM_OBJECT_TYPE.join(', ')}.`)
-  })
+  }
+  for (const ent of [Bridges, BridgeRestrictions, BridgeCapacities, 'BridgeInspections', BridgeDefects]) {
+    this.before('SAVE', ent, validateEamEnums)
+    this.before(['CREATE', 'UPDATE'], ent, validateEamEnums)
+  }
 
   // Refinement (R1/R5): a bridge's transport mode must match its network's mode, so a
   // Rail bridge can't be filed under a road network and corrupt the cross-modal view.
@@ -426,7 +436,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
       .columns('ID', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
                'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence',
-               'riskLikelihood', 'lastInspectionDate', 'assetClassStrategy_ID', 'likelyFailureCostAud'))
+               'riskLikelihood', 'lastInspectionDate', 'assetClassStrategy_ID', 'likelyFailureCostAud',
+               'mitigationCostAud', 'riskReductionPct'))
     // Strategy map (one query) for inspection-due + RUL recompute.
     const strategies = await db.run(SELECT.from('bridge.management.AssetClassStrategy')
       .columns('ID', 'inspectionIntervalMonths', 'degradationRatePerYear'))
@@ -436,12 +447,14 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       const r = deriveRisk(b, weights)
       const strat = stratById.get(b.assetClassStrategy_ID)
       const due = nextInspectionDue(b.lastInspectionDate, strat && strat.inspectionIntervalMonths)
+      const ev = expectedValueAud(r.likelihood, b.likelyFailureCostAud, probMapFromConfig(weights))
       await db.run(UPDATE('bridge.management.Bridges').set({
         riskConsequence: r.consequence, riskLikelihood: r.likelihood,
         riskScore: r.score, riskPriority: r.priority,
         nextInspectionDue: due, inspectionOverdue: isOverdue(due),
         estimatedRulYears: estimatedRulYears(b.conditionRating, strat && strat.degradationRatePerYear),
-        expectedValueAud: expectedValueAud(r.likelihood, b.likelyFailureCostAud),
+        expectedValueAud: ev,
+        benefitCostRatio: benefitCostRatio(ev, b.mitigationCostAud, b.riskReductionPct),
         riskAssessedAt: new Date().toISOString(), riskAssessedBy: req.user?.id || 'system'
       }).where({ ID: b.ID }))
       n++

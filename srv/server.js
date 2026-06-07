@@ -1584,7 +1584,7 @@ cds.on('bootstrap', (app) => {
 
   const router = express.Router()
 
-  router.use(express.json({ limit: '70mb' })) // configurable via SystemConfig.massUploadMaxMb
+  router.use(express.json({ limit: process.env.UPLOAD_JSON_LIMIT || '70mb' })) // CONFIG-T1: deploy-time configurable
 
   router.get('/datasets', (_req, res) => {
     res.json({ datasets: getDatasets() })
@@ -1875,7 +1875,7 @@ cds.on('bootstrap', (app) => {
   app.use('/map/api', requiresAuthentication, mapRouter)
 
   const massEditRouter = express.Router()
-  massEditRouter.use(express.json({ limit: '5mb' }))
+  massEditRouter.use(express.json({ limit: process.env.MASS_EDIT_JSON_LIMIT || '5mb' })) // CONFIG-T1
 
   massEditRouter.get('/lookups', async (_req, res) => {
     try {
@@ -2448,7 +2448,7 @@ cds.on('bootstrap', (app) => {
 
   // ── Admin Bridges attachment API ─────────────────────────────────────────
   const adminBridgeRouter = express.Router()
-  adminBridgeRouter.use(express.json({ limit: '10mb' }))
+  adminBridgeRouter.use(express.json({ limit: process.env.ADMIN_BRIDGE_JSON_LIMIT || '10mb' })) // CONFIG-T1
 
   adminBridgeRouter.get('/bridges/:bridgeId/attachments', async (req, res) => {
     try {
@@ -2549,7 +2549,7 @@ cds.on('bootstrap', (app) => {
 
   // ── BNAC Integration Config ─────────────────────────────────────────────
   const bnacRouter = express.Router()
-  bnacRouter.use(express.json({ limit: '10mb' }))
+  bnacRouter.use(express.json({ limit: process.env.BNAC_JSON_LIMIT || '10mb' })) // CONFIG-T1
 
   // GET all environments
   bnacRouter.get('/environments', async (_req, res) => {

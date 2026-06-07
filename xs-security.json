@@ -14,6 +14,10 @@
     {
       "name": "$XSAPPNAME.view",
       "description": "Read-only access to bridges and restrictions"
+    },
+    {
+      "name": "$XSAPPNAME.integration",
+      "description": "Operate the SAP S/4 EAM integration (field/code mapping, sync log) — separate from app admin (EAM-T5)"
     }
   ],
   "attributes": [],
@@ -24,6 +28,15 @@
       "scope-references": [
         "$XSAPPNAME.admin",
         "$XSAPPNAME.manage",
+        "$XSAPPNAME.view",
+        "$XSAPPNAME.integration"
+      ]
+    },
+    {
+      "name": "BMS_INTEGRATION",
+      "description": "EAM integration operator — manage BIS<->EAM mappings + read the sync log",
+      "scope-references": [
+        "$XSAPPNAME.integration",
         "$XSAPPNAME.view"
       ]
     },
@@ -63,6 +76,13 @@
       "description": "Read-only access to bridges and restrictions",
       "role-template-references": [
         "$XSAPPNAME.BMS_VIEWER"
+      ]
+    },
+    {
+      "name": "BMS Integration Operator",
+      "description": "Operate the SAP S/4 EAM integration mappings + sync log",
+      "role-template-references": [
+        "$XSAPPNAME.BMS_INTEGRATION"
       ]
     }
   ]

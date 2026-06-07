@@ -1,6 +1,6 @@
 _schema-version: 3.3.0
 ID: BridgeManagement
-version: 3.9.4
+version: 3.9.5
 description: "Bridge Management System — NSW standalone"
 parameters:
   enable-parallel-deployments: true
@@ -235,6 +235,10 @@ resources:
             description: "Read-only access"
             role-template-references:
               - "$XSAPPNAME.BMS_VIEWER"
+          - name: "BMS Integration Operator (${org}-${space})"
+            description: "EAM integration operator (EAM-T5)"
+            role-template-references:
+              - "$XSAPPNAME.BMS_INTEGRATION"
     requires:
       - name: app-api
 
