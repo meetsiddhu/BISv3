@@ -68,6 +68,27 @@ columns in the Bridge Risk worklist.
 Any use of these for a funding decision must state the assumptions (degradation rate,
 probability proxy) explicitly.
 
+## 3a. Likelihood→probability derivation & sensitivity (RISK-R4)
+
+The `LIKELIHOOD_TO_ANNUAL_PROB` map `{1:0.01, 2:0.03, 3:0.08, 4:0.18, 5:0.35}` is a
+**deliberately conservative, monotonic geometric-ish progression** chosen so each
+likelihood band roughly ~doubles the annual failure probability of the one below it,
+anchored at a 1% floor (band 1) and a 35% ceiling (band 5). It is a **planning proxy, not
+an actuarial hazard rate** — calibrate against NSW/TfNSW historical defect-to-failure data
+before any funding decision.
+
+**Sensitivity:** expected value scales linearly with both the probability proxy and
+`likelyFailureCostAud`, so a ±1 likelihood-band error moves EV by roughly the band ratio
+(e.g. band 3→4 ≈ 2.25×). Decision-makers should therefore treat EV rankings as **ordinal**
+(which assets to fund first), not as precise dollar forecasts, and run a band-up/band-down
+what-if before committing capital. The proxy is intended to be overridable: any future
+`RiskConfig` factor `prob_<band>` can replace these constants without code change.
+
+## 3b. Band calibration governance (RISK-R3)
+Each `RiskBand` row carries `rationale`, `reviewedBy`, `reviewedAt` and `reviewSource` so
+the threshold's justification, sign-off owner, review date and evidence reference are
+auditable. Re-calibration is an admin edit + `recalcRisk`, captured in the ChangeLog.
+
 ## 4. Governance
 - All weights, bands and rationale are config-driven (`RiskConfig`, `RiskBand`) — no
   hardcoded thresholds in code (CLAUDE.md rule 4). The engine lives in `srv/lib/risk.js`

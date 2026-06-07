@@ -450,6 +450,9 @@ entity RiskBand {
   colour    : String(20);    // semantic colour for charts
   sortOrder : Integer default 0;
   rationale : LargeString;   // RISK-3: documented justification for the threshold (auditable)
+  reviewedBy   : String(111); // RISK-R3: calibration sign-off (who approved this threshold)
+  reviewedAt   : Date;        // RISK-R3: last calibration/review date
+  reviewSource : String(255); // RISK-R3: evidence reference (NSW manual / failure-data study)
 }
 
 entity States : sap.common.CodeList {
