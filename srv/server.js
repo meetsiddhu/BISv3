@@ -1317,13 +1317,14 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
   // GEOLOCATION backfill, which made the previous HANA ST_Distance path silently return
   // nothing when the spatial column was unpopulated. The spherical approximation is more
   // than adequate for "bridges within X km" search.
+  // Tagged-template where: CDS QL binds the ${} values safely (the prior fluent
+  // .where('latitude >=', minLat).and(...) form produced an empty result set on HANA).
+  // minLat/maxLat/minLon/maxLon are finite Numbers derived from the validated inputs.
   const candidateQuery = SELECT.from('bridge.management.Bridges')
     .columns('ID', 'bridgeId', 'bridgeName', 'state', 'latitude', 'longitude',
       'postingStatus', 'conditionRating', 'structureType', 'route', 'region',
       'clearanceHeight', 'spanLength', 'nhvrAssessed')
-    .where('latitude >=', minLat).and('latitude <=', maxLat)
-    .and('longitude >=', minLon).and('longitude <=', maxLon)
-    .and('latitude is not null').and('longitude is not null');
+    .where`latitude >= ${minLat} and latitude <= ${maxLat} and longitude >= ${minLon} and longitude <= ${maxLon} and latitude is not null and longitude is not null`;
   const candidates = await db.run(candidateQuery);
   const bridges = candidates
     .map(b => ({
