@@ -1311,48 +1311,27 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
   const minLat = latN - latDelta, maxLat = latN + latDelta;
   const minLon = lngN - lngDelta, maxLon = lngN + lngDelta;
 
-  let bridges;
-  if (isHanaDb()) {
-    // HANA: ST_Distance for exact spherical distance.
-    // CONFIG-1: the comparison-point SRID is config-driven and identical to the SRID
-    // the geoLocation column was backfilled with (getStorageSrid), so they never
-    // mismatch. All user-supplied values are bound as parameterised placeholders.
-    const srid = await getStorageSrid();
-    // GIS fix: CDS 'plain' naming -> HANA columns are UPPERCASE (the WHERE/backfill already
-    // use "LATITUDE"/"GEOLOCATION"). The SELECT previously used camelCase quoted names
-    // ("bridgeId", "geoLocation") which don't exist -> 'invalid column name' 500. Use the
-    // real uppercase columns + camelCase aliases so result keys stay camelCase downstream.
-    bridges = await db.run(`
-      SELECT "ID","BRIDGEID" AS "bridgeId","BRIDGENAME" AS "bridgeName","STATE" AS "state",
-             "LATITUDE" AS "latitude","LONGITUDE" AS "longitude",
-             "POSTINGSTATUS" AS "postingStatus","CONDITIONRATING" AS "conditionRating",
-             "STRUCTURETYPE" AS "structureType","ROUTE" AS "route","REGION" AS "region",
-             "CLEARANCEHEIGHT" AS "clearanceHeight","SPANLENGTH" AS "spanLength","NHVRASSESSED" AS "nhvrAssessed",
-             "GEOLOCATION".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 AS "distanceKm"
-      FROM "BRIDGE_MANAGEMENT_BRIDGES"
-      WHERE "LATITUDE" BETWEEN ? AND ?
-        AND "LONGITUDE" BETWEEN ? AND ?
-        AND "LATITUDE" IS NOT NULL AND "LONGITUDE" IS NOT NULL
-        AND "GEOLOCATION".ST_Distance(NEW ST_Point(?, ?, ?), 'meter') / 1000 <= ?
-      ORDER BY "distanceKm"
-    `, [lngN, latN, srid, minLat, maxLat, minLon, maxLon, lngN, latN, srid, radN]);
-  } else {
-    // SQLite: haversine post-filter
-    const candidateQuery = SELECT.from('bridge.management.Bridges')
-      .columns('ID', 'bridgeId', 'bridgeName', 'state', 'latitude', 'longitude',
-        'postingStatus', 'conditionRating', 'structureType', 'route', 'region',
-        'clearanceHeight', 'spanLength', 'nhvrAssessed')
-      .where('latitude >=', minLat).and('latitude <=', maxLat)
-      .and('longitude >=', minLon).and('longitude <=', maxLon);
-    const candidates = await db.run(candidateQuery);
-    bridges = candidates
-      .map(b => ({
-        ...b,
-        distanceKm: haversineDistanceKm(latN, lngN, Number(b.latitude), Number(b.longitude), earthRadiusKm)
-      }))
-      .filter(b => b.distanceKm <= radN)
-      .sort((nearerBridge, fartherBridge) => nearerBridge.distanceKm - fartherBridge.distanceKm);
-  }
+  // Unified DB-agnostic proximity: a CDS-QL bounding-box pre-filter (abstracts HANA's
+  // uppercase column naming, so no raw-SQL casing pitfalls) + a haversine post-filter
+  // (extracted + unit-tested). This deliberately does NOT depend on the ST_GEOMETRY
+  // GEOLOCATION backfill, which made the previous HANA ST_Distance path silently return
+  // nothing when the spatial column was unpopulated. The spherical approximation is more
+  // than adequate for "bridges within X km" search.
+  const candidateQuery = SELECT.from('bridge.management.Bridges')
+    .columns('ID', 'bridgeId', 'bridgeName', 'state', 'latitude', 'longitude',
+      'postingStatus', 'conditionRating', 'structureType', 'route', 'region',
+      'clearanceHeight', 'spanLength', 'nhvrAssessed')
+    .where('latitude >=', minLat).and('latitude <=', maxLat)
+    .and('longitude >=', minLon).and('longitude <=', maxLon)
+    .and('latitude is not null').and('longitude is not null');
+  const candidates = await db.run(candidateQuery);
+  const bridges = candidates
+    .map(b => ({
+      ...b,
+      distanceKm: haversineDistanceKm(latN, lngN, Number(b.latitude), Number(b.longitude), earthRadiusKm)
+    }))
+    .filter(b => b.distanceKm <= radN)
+    .sort((nearerBridge, fartherBridge) => nearerBridge.distanceKm - fartherBridge.distanceKm);
 
   return (bridges || []).map(b => ({
     ID: b.ID,
