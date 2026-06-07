@@ -22,6 +22,7 @@ const demoHandler = require('./demo-handler')
 // ARCH-T4: pure compute helpers extracted from this file into testable modules.
 const { parseBbox, zoomToCellSize, haversineDistanceKm, DEFAULT_ZOOM_CELLS } = require('./lib/geo-compute')
 const { buildBridgesCsv, buildRestrictionsCsv } = require('./lib/csv-export')
+const { normalizeMassEditValue: _normalizeMassEditValue } = require('./lib/mass-edit')
 
 const { SELECT, INSERT, UPDATE, DELETE } = cds.ql
 
@@ -307,50 +308,10 @@ const MASS_EDIT_LOOKUP_OPTION_MAP = [
   ['vehicleClasses', 'VehicleClasses']
 ]
 
+// P1-001/P2-001: the pure coercion logic now lives in srv/lib/mass-edit.js (unit-tested).
+// This wrapper preserves the default field-type map + required-field set for all call sites.
 function normalizeMassEditValue(field, value, fieldTypes = MASS_EDIT_FIELD_TYPES) {
-  const type = fieldTypes[field]
-  if (!type) {
-    throw new Error(`Unsupported mass edit field: ${field}`)
-  }
-
-  if (value === undefined) {
-    return undefined
-  }
-
-  if (value === '') {
-    value = null
-  }
-
-  if (MASS_EDIT_REQUIRED_FIELDS.has(field) && (value === null || value === undefined)) {
-    throw new Error(`${field} cannot be empty`)
-  }
-
-  switch (type) {
-    case 'string':
-      return value == null ? null : String(value).trim()
-    case 'integer':
-      if (value == null) return null
-      if (typeof value === 'number' && Number.isInteger(value)) return value
-      if (/^-?\d+$/.test(String(value).trim())) return Number.parseInt(value, 10)
-      throw new Error(`${field} must be a whole number`)
-    case 'decimal':
-      if (value == null) return null
-      if (typeof value === 'number' && Number.isFinite(value)) return value
-      if (/^-?\d+(\.\d+)?$/.test(String(value).trim())) return Number.parseFloat(value)
-      throw new Error(`${field} must be a number`)
-    case 'boolean':
-      if (value == null) return false
-      if (typeof value === 'boolean') return value
-      if (value === 'true' || value === 'X' || value === 1 || value === '1') return true
-      if (value === 'false' || value === 0 || value === '0') return false
-      throw new Error(`${field} must be true or false`)
-    case 'date':
-      if (value == null) return null
-      if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value)
-      throw new Error(`${field} must be in YYYY-MM-DD format`)
-    default:
-      return value
-  }
+  return _normalizeMassEditValue(field, value, fieldTypes, MASS_EDIT_REQUIRED_FIELDS)
 }
 
 function isHanaDb() {
@@ -1186,97 +1147,46 @@ async function loadClusters({ bbox, zoom = 6 } = {}) {
     };
   }
 
-  // Grid-based clustering via SQL aggregation
-  // Works on both HANA and SQLite
-  let query;
-  // cellSize is a server-computed number (not user input) — safe to interpolate
-  // All user-supplied bbox values are bound as parameterised placeholders
-  let queryParams = [];
+  // P2-003: DB-agnostic grid clustering. Select the points via CDS QL (tagged-template
+  // `where` binds bbox values safely) and aggregate into grid cells in JS — no raw
+  // HANA/SQLite SQL and no UPPERCASE column-name quoting drift.
+  const cols = ['latitude', 'longitude', 'conditionRating', 'postingStatus'];
+  let q;
   if (bboxParsed) {
     const { minLat, maxLat, minLon, maxLon } = bboxParsed;
-    if (isHanaDb()) {
-      query = `
-        SELECT
-          ROUND("LATITUDE" / ${cellSize}) * ${cellSize} AS "gridLat",
-          ROUND("LONGITUDE" / ${cellSize}) * ${cellSize} AS "gridLon",
-          COUNT(*) AS "cnt",
-          AVG("CONDITIONRATING") AS "avgCondition",
-          SUM(CASE WHEN "POSTINGSTATUS" = 'Closed' THEN 1 ELSE 0 END) AS "closedCount",
-          SUM(CASE WHEN "POSTINGSTATUS" IN ('Restricted','Under Review') THEN 1 ELSE 0 END) AS "restrictedCount"
-        FROM "BRIDGE_MANAGEMENT_BRIDGES"
-        WHERE "LATITUDE" BETWEEN ? AND ?
-          AND "LONGITUDE" BETWEEN ? AND ?
-          AND "LATITUDE" IS NOT NULL AND "LONGITUDE" IS NOT NULL
-        GROUP BY ROUND("LATITUDE" / ${cellSize}), ROUND("LONGITUDE" / ${cellSize})
-      `;
-      queryParams = [minLat, maxLat, minLon, maxLon];
-    } else {
-      query = `
-        SELECT
-          ROUND(latitude / ${cellSize}) * ${cellSize} AS gridLat,
-          ROUND(longitude / ${cellSize}) * ${cellSize} AS gridLon,
-          COUNT(*) AS cnt,
-          AVG(conditionRating) AS avgCondition,
-          SUM(CASE WHEN postingStatus = 'Closed' THEN 1 ELSE 0 END) AS closedCount,
-          SUM(CASE WHEN postingStatus IN ('Restricted','Under Review') THEN 1 ELSE 0 END) AS restrictedCount
-        FROM bridge_management_Bridges
-        WHERE latitude BETWEEN ? AND ?
-          AND longitude BETWEEN ? AND ?
-          AND latitude IS NOT NULL AND longitude IS NOT NULL
-        GROUP BY ROUND(latitude / ${cellSize}), ROUND(longitude / ${cellSize})
-      `;
-      queryParams = [minLat, maxLat, minLon, maxLon];
-    }
+    q = SELECT.from('bridge.management.Bridges').columns(...cols)
+      .where`latitude >= ${minLat} and latitude <= ${maxLat} and longitude >= ${minLon} and longitude <= ${maxLon} and latitude is not null and longitude is not null`;
   } else {
-    if (isHanaDb()) {
-      query = `
-        SELECT
-          ROUND("LATITUDE" / ${cellSize}) * ${cellSize} AS "gridLat",
-          ROUND("LONGITUDE" / ${cellSize}) * ${cellSize} AS "gridLon",
-          COUNT(*) AS "cnt",
-          AVG("CONDITIONRATING") AS "avgCondition",
-          SUM(CASE WHEN "POSTINGSTATUS" = 'Closed' THEN 1 ELSE 0 END) AS "closedCount",
-          SUM(CASE WHEN "POSTINGSTATUS" IN ('Restricted','Under Review') THEN 1 ELSE 0 END) AS "restrictedCount"
-        FROM "BRIDGE_MANAGEMENT_BRIDGES"
-        WHERE "LATITUDE" IS NOT NULL AND "LONGITUDE" IS NOT NULL
-        GROUP BY ROUND("LATITUDE" / ${cellSize}), ROUND("LONGITUDE" / ${cellSize})
-      `;
-    } else {
-      query = `
-        SELECT
-          ROUND(latitude / ${cellSize}) * ${cellSize} AS gridLat,
-          ROUND(longitude / ${cellSize}) * ${cellSize} AS gridLon,
-          COUNT(*) AS cnt,
-          AVG(conditionRating) AS avgCondition,
-          SUM(CASE WHEN postingStatus = 'Closed' THEN 1 ELSE 0 END) AS closedCount,
-          SUM(CASE WHEN postingStatus IN ('Restricted','Under Review') THEN 1 ELSE 0 END) AS restrictedCount
-        FROM bridge_management_Bridges
-        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-        GROUP BY ROUND(latitude / ${cellSize}), ROUND(longitude / ${cellSize})
-      `;
-    }
+    q = SELECT.from('bridge.management.Bridges').columns(...cols)
+      .where`latitude is not null and longitude is not null`;
   }
-
-  const rows = await db.run(query, queryParams);
+  const points = await db.run(q);
+  const cells = new Map();
+  for (const p of (points || [])) {
+    const lat = Number(p.latitude), lng = Number(p.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    const gridLat = Math.round(lat / cellSize) * cellSize;
+    const gridLon = Math.round(lng / cellSize) * cellSize;
+    const key = gridLat + '|' + gridLon;
+    let c = cells.get(key);
+    if (!c) { c = { lat: gridLat, lng: gridLon, count: 0, condSum: 0, condCnt: 0, closedCount: 0, restrictedCount: 0 }; cells.set(key, c); }
+    c.count++;
+    const cr = Number(p.conditionRating);
+    if (p.conditionRating != null && Number.isFinite(cr)) { c.condSum += cr; c.condCnt++; }
+    if (p.postingStatus === 'Closed') c.closedCount++;
+    else if (p.postingStatus === 'Restricted' || p.postingStatus === 'Under Review') c.restrictedCount++;
+  }
   return {
     type: 'clusters',
     cellSize,
-    features: (rows || []).map(row => {
-      const lat = Number(row.gridLat || row['gridLat']);
-      const lng = Number(row.gridLon || row['gridLon']);
-      const cnt = Number(row.cnt || row['cnt'] || 0);
-      const avg = row.avgCondition || row['avgCondition'];
-      const closed = Number(row.closedCount || row['closedCount'] || 0);
-      const restricted = Number(row.restrictedCount || row['restrictedCount'] || 0);
-      return {
-        lat,
-        lng,
-        count: cnt,
-        avgCondition: avg != null ? Math.round(Number(avg) * 10) / 10 : null,
-        closedCount: closed,
-        restrictedCount: restricted
-      };
-    }).filter(f => Number.isFinite(f.lat) && Number.isFinite(f.lng))
+    features: Array.from(cells.values()).map(c => ({
+      lat: c.lat,
+      lng: c.lng,
+      count: c.count,
+      avgCondition: c.condCnt ? Math.round((c.condSum / c.condCnt) * 10) / 10 : null,
+      closedCount: c.closedCount,
+      restrictedCount: c.restrictedCount
+    })).filter(f => Number.isFinite(f.lat) && Number.isFinite(f.lng))
   };
 }
 
