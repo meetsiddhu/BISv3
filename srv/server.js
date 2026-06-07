@@ -19,6 +19,9 @@ const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-lo
 const { getConfig, getConfigInt, getCrsEpsg, getStorageSrid } = require('./system-config')
 const { validateGeoJson } = require('./lib/geo')
 const demoHandler = require('./demo-handler')
+// ARCH-T4: pure compute helpers extracted from this file into testable modules.
+const { parseBbox, zoomToCellSize, haversineDistanceKm, DEFAULT_ZOOM_CELLS } = require('./lib/geo-compute')
+const { buildBridgesCsv, buildRestrictionsCsv } = require('./lib/csv-export')
 
 const { SELECT, INSERT, UPDATE, DELETE } = cds.ql
 
@@ -348,15 +351,6 @@ function normalizeMassEditValue(field, value, fieldTypes = MASS_EDIT_FIELD_TYPES
     default:
       return value
   }
-}
-
-function parseBbox(bbox) {
-  if (!bbox) return null;
-  const parts = String(bbox).split(',').map(Number);
-  if (parts.length !== 4 || parts.some(isNaN)) return null;
-  const [minLon, minLat, maxLon, maxLat] = parts;
-  if (minLon >= maxLon || minLat >= maxLat) return null;
-  return { minLon, minLat, maxLon, maxLat };
 }
 
 function isHanaDb() {
@@ -1177,63 +1171,8 @@ async function loadMapRestrictions({ bbox } = {}) {
     });
 }
 
-function buildBridgesCsv(bridges, customAttributeColumns = [], customFieldValuesByObjectId = new Map()) {
-  const BRIDGE_EXPORT_FIELDS = ['ID','bridgeId','bridgeName','state','latitude','longitude','postingStatus',
-    'conditionRating','yearBuilt','structureType','route','region','clearanceHeight','spanLength',
-    'assetOwner','nhvrAssessed','freightRoute','overMassRoute','hmlApproved','bDoubleApproved'];
-  const customFieldHeaders = customAttributeColumns.map(customFieldColumn => customFieldColumn.label);
-  const header = [...BRIDGE_EXPORT_FIELDS, ...customFieldHeaders].join(',');
-  const rows = bridges.map(bridge => {
-    const bridgeCustomFields = customFieldValuesByObjectId.get(String(bridge.ID)) || new Map();
-    const bridgeExportCells = BRIDGE_EXPORT_FIELDS.map(bridgePropertyName => {
-      const bridgeProperty = bridge[bridgePropertyName];
-      if (bridgeProperty == null) return '';
-      const csvCellText = String(bridgeProperty);
-      return csvCellText.includes(',') || csvCellText.includes('"') ? '"' + csvCellText.replace(/"/g,'""') + '"' : csvCellText;
-    });
-    const customFieldCells = customAttributeColumns.map(customFieldColumn => {
-      const customFieldEntry = bridgeCustomFields.get(customFieldColumn.key) || '';
-      const csvCellText = String(customFieldEntry);
-      return csvCellText.includes(',') || csvCellText.includes('"') ? '"' + csvCellText.replace(/"/g,'""') + '"' : csvCellText;
-    });
-    return [...bridgeExportCells, ...customFieldCells].join(',');
-  });
-  return header + '\n' + rows.join('\n');
-}
-
-function buildRestrictionsCsv(restrictions, customAttributeColumns = [], customFieldValuesByObjectId = new Map()) {
-  const RESTRICTION_EXPORT_FIELDS = ['ID','restrictionRef','bridgeRef','bridgeName','state','restrictionType',
-    'restrictionCategory','restrictionValue','restrictionUnit','restrictionStatus',
-    'grossMassLimit','axleMassLimit','heightLimit','widthLimit','lengthLimit','speedLimit',
-    'permitRequired','escortRequired','effectiveFrom','effectiveTo','approvedBy','direction'];
-  const customFieldHeaders = customAttributeColumns.map(customFieldColumn => customFieldColumn.label);
-  const header = [...RESTRICTION_EXPORT_FIELDS, ...customFieldHeaders].join(',');
-  const rows = restrictions.map(restriction => {
-    const restrictionCustomFields = customFieldValuesByObjectId.get(String(restriction.ID)) || new Map();
-    const restrictionExportCells = RESTRICTION_EXPORT_FIELDS.map(restrictionPropertyName => {
-      const restrictionProperty = restriction[restrictionPropertyName];
-      if (restrictionProperty == null) return '';
-      const csvCellText = String(restrictionProperty);
-      return csvCellText.includes(',') || csvCellText.includes('"') ? '"' + csvCellText.replace(/"/g,'""') + '"' : csvCellText;
-    });
-    const customFieldCells = customAttributeColumns.map(customFieldColumn => {
-      const customFieldEntry = restrictionCustomFields.get(customFieldColumn.key) || '';
-      const csvCellText = String(customFieldEntry);
-      return csvCellText.includes(',') || csvCellText.includes('"') ? '"' + csvCellText.replace(/"/g,'""') + '"' : csvCellText;
-    });
-    return [...restrictionExportCells, ...customFieldCells].join(',');
-  });
-  return header + '\n' + rows.join('\n');
-}
-
-// CONFIG-R3: zoom→grid-cell mapping is config-driven. [maxZoom, cellSizeDeg] pairs;
-// override via SystemConfig key GIS_CLUSTER_ZOOM_CELLS (JSON). Beyond the last pair,
-// individual points are returned (null).
-const DEFAULT_ZOOM_CELLS = [[4, 2.0], [5, 1.0], [6, 0.5], [7, 0.25], [8, 0.1]];
-function zoomToCellSize(zoom, cells = DEFAULT_ZOOM_CELLS) {
-  for (const pair of cells) { if (zoom <= pair[0]) return pair[1]; }
-  return null;
-}
+// CONFIG-R3: zoom→grid-cell mapping is config-driven (DEFAULT_ZOOM_CELLS + zoomToCellSize
+// live in ./lib/geo-compute). Override via SystemConfig key GIS_CLUSTER_ZOOM_CELLS (JSON).
 async function getZoomCells() {
   try { const raw = await getConfig('GIS_CLUSTER_ZOOM_CELLS'); const c = raw ? JSON.parse(raw) : null; return Array.isArray(c) ? c : DEFAULT_ZOOM_CELLS; }
   catch { return DEFAULT_ZOOM_CELLS; }
@@ -1353,16 +1292,6 @@ async function loadClusters({ bbox, zoom = 6 } = {}) {
       };
     }).filter(f => Number.isFinite(f.lat) && Number.isFinite(f.lng))
   };
-}
-
-function haversineDistanceKm(lat1, lng1, lat2, lng2, earthRadiusKm = 6371) {
-  // CONFIG-4: radius is config-driven (default 6371 km mean). HANA defers to ST_Distance
-  // which respects the CRS; this SQLite fallback is intentionally a spherical approximation.
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const haversineTerm = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversineTerm), Math.sqrt(1 - haversineTerm));
 }
 
 async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
