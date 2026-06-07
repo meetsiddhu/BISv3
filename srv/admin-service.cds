@@ -235,6 +235,13 @@ service AdminService {
   @restrict: [{ grant: 'READ', to: 'admin' }]
   entity EAMSyncLog as projection on my.EAMSyncLog;
 
+  // INSPECT-4 / EAM-4: bridge element hierarchy + element-type codelist.
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'manage' }]
+  entity BridgeElements as projection on my.BridgeElements;
+  @readonly
+  @restrict: [{ grant: 'READ', to: 'view' }]
+  entity ElementTypes as projection on my.ElementTypes;
+
   // ── Risk & Asset-Class Strategy governance (Phase 4) ──
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
   entity AssetClassStrategy as projection on my.AssetClassStrategy;

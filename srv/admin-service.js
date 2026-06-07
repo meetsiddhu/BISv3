@@ -494,6 +494,28 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   this.before(['CREATE', 'UPDATE'], BridgeCapacities, validateBridgeLinkedEntity('BridgeCapacities'))
   this.before(['CREATE', 'UPDATE'], BridgeInspections, validateBridgeLinkedEntity('BridgeInspections'))
   this.before(['CREATE', 'UPDATE'], BridgeDefects, validateBridgeLinkedEntity('BridgeDefects'))
+
+  // INSPECT-3: enforce the defect state machine. Open -> InProgress/Completed/Cancelled;
+  // InProgress -> OnHold/Completed/Cancelled; OnHold -> InProgress/Cancelled; terminal
+  // states are immutable. The remediation WORK itself lives in SAP EAM (we link out).
+  const DEFECT_TRANSITIONS = {
+    Open:       ['InProgress', 'Completed', 'Cancelled'],
+    InProgress: ['OnHold', 'Completed', 'Cancelled'],
+    OnHold:     ['InProgress', 'Cancelled'],
+    Completed:  [],
+    Cancelled:  []
+  }
+  this.before('UPDATE', BridgeDefects, async (req) => {
+    if (req.data.status === undefined) return
+    const key = req.params[req.params.length - 1]
+    const db = await cds.connect.to('db')
+    const current = await db.run(SELECT.one.from('bridge.management.BridgeDefects')
+      .columns('status').where({ ID: key.ID || key }))
+    const from = current && current.status, to = req.data.status
+    if (from && to && from !== to && !(DEFECT_TRANSITIONS[from] || []).includes(to)) {
+      req.error(409, `Invalid defect status transition '${from}' -> '${to}'.`)
+    }
+  })
   this.before('CREATE', Restrictions, req => validateEntityFields('Restrictions', req))
   this.before('UPDATE', Restrictions, async req => {
     await validateRequiredFieldsWithExisting(Restrictions, 'Restrictions', req)

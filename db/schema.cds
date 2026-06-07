@@ -308,11 +308,41 @@ entity BridgeDefects : cuid, managed {
   urgency             : Integer @assert.range: [1, 4];
   defectDescription   : LargeString;
   location            : String(255);
-  elementAffected     : String(111);
+  elementAffected     : String(111);                  // legacy free-text (kept, additive)
+  element             : Association to BridgeElements; // INSPECT-4: structured element link
   recommendedAction   : LargeString;
-  status              : String(20) default 'Open';
+  status              : String(20) default 'Open';     // Open | InProgress | Completed | Cancelled
   targetCompletionDate: Date;
+  // INSPECT-3 (complement-EAM): the defect's remediation WORK lives in SAP EAM. We hold
+  // the engineering defect + its EAM notification/order linkage; EAM executes the work.
+  eamNotificationId   : String(12);
+  eamWorkOrderId      : String(12);
+  eamSyncStatus       : String(20) default 'NOT_SYNCED';
   active              : Boolean default true;
+}
+
+// NSW Level-2 element types (INSPECT-4 / EAM-4 OTEIL). Codelist.
+entity ElementTypes {
+  key code : String(20);   // DECK | PIER | ABUTMENT | BEARING | JOINT | GIRDER | RAILING | PAVEMENT | DRAINAGE
+  name     : String(60);
+  category : String(20);   // structural | functional | mechanical
+  eamOteil : String(20);   // EAM object-part (OTEIL) classification code
+  isActive : Boolean default true;
+}
+
+// Bridge element decomposition (INSPECT-4 / EAM-4). Supports element-level Level-2
+// condition and maps to EAM equipment object-parts. Self-referencing hierarchy.
+entity BridgeElements : cuid, managed {
+  bridge          : Association to Bridges;
+  parent          : Association to BridgeElements;
+  children        : Composition of many BridgeElements on children.parent = $self;
+  elementCode     : String(40);   // e.g. PIER_1, BEARING_N
+  elementType     : String(20);   // -> ElementTypes.code
+  description     : String(255);
+  material        : String(60);
+  conditionRating : Integer @assert.range: [1, 10];   // legacy 1-10 (10=best)
+  eamEquipId      : String(40);   // EAM equipment id for this object-part
+  active          : Boolean default true;
 }
 
 entity BridgeDocuments : cuid, managed {

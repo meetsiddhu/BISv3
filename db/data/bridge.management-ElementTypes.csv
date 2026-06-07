@@ -1,0 +1,11 @@
+code,name,category,eamOteil,isActive
+DECK,Deck,structural,OT-DECK,true
+GIRDER,Girder/Beam,structural,OT-GIRD,true
+PIER,Pier/Column,structural,OT-PIER,true
+ABUTMENT,Abutment,structural,OT-ABUT,true
+BEARING,Bearing,mechanical,OT-BEAR,true
+JOINT,Expansion Joint,mechanical,OT-JONT,true
+RAILING,Railing/Barrier,functional,OT-RAIL,true
+PAVEMENT,Deck Pavement,functional,OT-PAVE,true
+DRAINAGE,Drainage,functional,OT-DRAN,true
+FOUNDATION,Foundation,structural,OT-FOUN,true
