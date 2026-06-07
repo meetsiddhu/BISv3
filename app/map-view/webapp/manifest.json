@@ -7,7 +7,7 @@
     "description": "{{appDescription}}",
     "i18n": "i18n/i18n.properties",
     "applicationVersion": {
-      "version": "1.0.3"
+      "version": "1.0.4"
     },
     "crossNavigation": {
       "inbounds": {
@@ -51,9 +51,9 @@
         "uri": "i18n/i18n.properties",
         "settings": {
           "supportedLocales": [
-            ""
+            "en"
           ],
-          "fallbackLocale": ""
+          "fallbackLocale": "en"
         }
       }
     },

@@ -34,22 +34,22 @@
             <!-- Demo Mode Banner -->
             <MessageStrip
               id="demoBanner"
-              text="🎯  DEMO MODE: Showing 30 real NSW bridges from the Transport for NSW public dataset. Data is for demonstration only."
+              text="{i18n>demoModeBanner}"
               type="Warning"
               showIcon="true"
               showCloseButton="false"
               visible="{view>/demoModeActive}"
               class="sapUiTinyMarginBottom" />
 
-            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="Base Map">
+            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="{i18n>baseMap}">
               <content>
                 <VBox class="nhvrFilterSection nhvrBasemapSection">
                   <!-- Streets group -->
-                  <Text text="STREETS" class="nhvrBasemapGroupLabel" />
+                  <Text text="{i18n>groupStreets}" class="nhvrBasemapGroupLabel" />
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrBasemapRow">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://map" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="OpenStreetMap" class="nhvrLayerLabel" />
+                      <Text text="{i18n>bmOpenStreetMap}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
                       selected="{= ${view>/basemap} === 'osm' || ${view>/basemap} === 'street' }">
@@ -59,7 +59,7 @@
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrBasemapRow">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://journey-arrive" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="Esri Street" class="nhvrLayerLabel" />
+                      <Text text="{i18n>bmEsriStreet}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
                       selected="{= ${view>/basemap} === 'esriStreet' }">
@@ -69,7 +69,7 @@
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrBasemapRow">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://map-2" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="Google Maps" class="nhvrLayerLabel" />
+                      <Text text="{i18n>bmGoogleMaps}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
                       selected="{= ${view>/basemap} === 'google' }">
@@ -77,11 +77,11 @@
                     </RadioButton>
                   </HBox>
                   <!-- Imagery group -->
-                  <Text text="IMAGERY" class="nhvrBasemapGroupLabel" />
+                  <Text text="{i18n>groupImagery}" class="nhvrBasemapGroupLabel" />
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrBasemapRow">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://globe" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="Esri Satellite" class="nhvrLayerLabel" />
+                      <Text text="{i18n>bmEsriSatellite}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
                       selected="{= ${view>/basemap} === 'esriSatellite' || ${view>/basemap} === 'satellite' }">
@@ -91,7 +91,7 @@
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrBasemapRow">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://world" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="Google Satellite" class="nhvrLayerLabel" />
+                      <Text text="{i18n>bmGoogleSatellite}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
                       selected="{= ${view>/basemap} === 'googleSat' }">
@@ -99,11 +99,11 @@
                     </RadioButton>
                   </HBox>
                   <!-- Terrain / Other group -->
-                  <Text text="TERRAIN &amp; OTHER" class="nhvrBasemapGroupLabel" />
+                  <Text text="{i18n>groupTerrainOther}" class="nhvrBasemapGroupLabel" />
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrBasemapRow">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://mountain" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="Esri Topo" class="nhvrLayerLabel" />
+                      <Text text="{i18n>bmEsriTopo}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
                       selected="{= ${view>/basemap} === 'esriTopo' }">
@@ -113,7 +113,7 @@
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrBasemapRow">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://pushpin-on" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="HERE Maps" class="nhvrLayerLabel" />
+                      <Text text="{i18n>bmHereMaps}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
                       selected="{= ${view>/basemap} === 'here' }">
@@ -124,14 +124,14 @@
               </content>
             </Panel>
 
-            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="Reference Layers">
+            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="{i18n>referenceLayers}">
               <content>
                 <VBox class="nhvrFilterSection">
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow"
                         visible="{view>/features/showStateBoundaries}">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://world" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="State &amp; Territory Boundaries" class="nhvrLayerLabel" />
+                      <Text text="{i18n>refStateBoundaries}" class="nhvrLayerLabel" />
                     </HBox>
                     <Switch state="{view>/layers/refLayers/stateBoundaries}" change=".onToggleRefLayer">
                       <customData><core:CustomData key="layerKey" value="stateBoundaries" /></customData>
@@ -141,18 +141,18 @@
                         visible="{view>/features/showLgaBoundaries}">
                     <HBox alignItems="Center">
                       <core:Icon src="sap-icon://geographic-bubble-chart" size="0.875rem" class="nhvrLayerIcon" />
-                      <Text text="LGA Boundaries (ABS ASGS)" class="nhvrLayerLabel" />
+                      <Text text="{i18n>refLgaBoundaries}" class="nhvrLayerLabel" />
                     </HBox>
                     <Switch state="{view>/layers/refLayers/lgaBoundaries}" change=".onToggleRefLayer">
                       <customData><core:CustomData key="layerKey" value="lgaBoundaries" /></customData>
                     </Switch>
                   </HBox>
-                  <Text text="Source: ABS ASGS 2021" class="nhvrLayerHint sapUiTinyMarginTop"
+                  <Text text="{i18n>refSourceAbs}" class="nhvrLayerHint sapUiTinyMarginTop"
                         visible="{= ${view>/features/showStateBoundaries} || ${view>/features/showLgaBoundaries} }" />
 
                   <!-- Dynamic reference layers loaded from GIS Config admin -->
                   <VBox visible="{= ${view>/dynRefGroups}.length > 0 }">
-                    <Text text="ADDITIONAL LAYERS" class="nhvrBasemapGroupLabel sapUiSmallMarginTop" />
+                    <Text text="{i18n>additionalLayers}" class="nhvrBasemapGroupLabel sapUiSmallMarginTop" />
                     <List items="{view>/dynRefGroups}" showSeparators="None" backgroundDesign="Transparent">
                       <items>
                         <CustomListItem>
@@ -182,7 +182,7 @@
               </content>
             </Panel>
 
-            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="Business Layers">
+            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="{i18n>businessLayers}">
               <content>
                 <VBox class="nhvrFilterSection">
                   <!-- Bridges Layer -->
@@ -191,21 +191,21 @@
                       <HBox alignItems="Center">
                         <CheckBox selected="{view>/layers/bridges/visible}" select=".onToggleBridgeLayer" />
                         <core:Icon src="sap-icon://map-2" size="1rem" class="nhvrLayerIcon" />
-                        <Title text="Bridges" level="H6" class="nhvrLayerGroupTitle" />
+                        <Title text="{i18n>layerBridges}" level="H6" class="nhvrLayerGroupTitle" />
                       </HBox>
                       <Text text="{view>/layers/bridges/count} bridges" class="nhvrLayerCount" />
                     </HBox>
                     <VBox class="nhvrLayerSubOptions" visible="{view>/layers/bridges/visible}">
-                      <Text text="Display options" class="nhvrSubOptionsHeader" />
+                      <Text text="{i18n>displayOptions}" class="nhvrSubOptionsHeader" />
                       <VBox class="nhvrSubOptionsBody">
                         <CheckBox text="{i18n>clusterMarkers}" selected="{view>/layers/bridges/cluster}" select=".onToggleBridgeCluster" class="nhvrLayerSubOption" />
                         <CheckBox text="{i18n>showLabels}" selected="{view>/layers/bridges/showLabels}" select=".onToggleBridgeLabels" class="nhvrLayerSubOption" />
                         <HBox alignItems="Center" class="nhvrLayerSubOption nhvrColorByRow">
-                          <Label text="Color by:" class="nhvrLayerSubLabel" />
+                          <Label text="{i18n>colorByLabel}" class="nhvrLayerSubLabel" />
                           <SegmentedButton selectedKey="{view>/layers/bridges/colorBy}" selectionChange=".onBridgeColorByChange" class="nhvrLayerColorBy">
                             <items>
-                              <SegmentedButtonItem key="condition" text="Condition" />
-                              <SegmentedButtonItem key="status" text="Status" />
+                              <SegmentedButtonItem key="condition" text="{i18n>segCondition}" />
+                              <SegmentedButtonItem key="status" text="{i18n>segStatus}" />
                             </items>
                           </SegmentedButton>
                         </HBox>
@@ -219,12 +219,12 @@
                       <HBox alignItems="Center">
                         <CheckBox selected="{view>/layers/restrictions/visible}" select=".onToggleRestrictionLayer" />
                         <core:Icon src="sap-icon://warning" size="1rem" class="nhvrLayerIcon nhvrLayerIconWarning" />
-                        <Title text="Restrictions" level="H6" class="nhvrLayerGroupTitle" />
+                        <Title text="{i18n>layerRestrictions}" level="H6" class="nhvrLayerGroupTitle" />
                       </HBox>
                       <Text text="{view>/layers/restrictions/count} active" class="nhvrLayerCount" />
                     </HBox>
                     <VBox class="nhvrLayerSubOptions" visible="{view>/layers/restrictions/visible}">
-                      <Text text="Active restrictions shown at bridge locations." class="nhvrLayerHint" />
+                      <Text text="{i18n>restrictionsAtBridges}" class="nhvrLayerHint" />
                     </VBox>
                   </VBox>
 
@@ -233,7 +233,7 @@
                     <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerGroupHeader">
                       <HBox alignItems="Center">
                         <core:Icon src="sap-icon://map-3" size="1rem" class="nhvrLayerIcon" />
-                        <Title text="Terrain Hillshade" level="H6" class="nhvrLayerGroupTitle" />
+                        <Title text="{i18n>layerTerrainHillshade}" level="H6" class="nhvrLayerGroupTitle" />
                       </HBox>
                       <Switch state="{view>/layers/showHillshade}" change=".onToggleHillshadeLayer" />
                     </HBox>
@@ -279,10 +279,10 @@
               </content>
             </Panel>
 
-            <Panel class="nhvrSidebarPanel" expandable="true" expanded="false" headerText="Legend &amp; Symbology">
+            <Panel class="nhvrSidebarPanel" expandable="true" expanded="false" headerText="{i18n>legendSymbology}">
               <content>
                 <VBox class="nhvrFilterSection">
-                  <Label text="Color by" class="nhvrFilterLabel" />
+                  <Label text="{i18n>featureColorBy}" class="nhvrFilterLabel" />
                   <SegmentedButton selectedKey="{view>/colorBy}" selectionChange=".onSymbologyChange" width="100%" class="nhvrSymbologyButton">
                     <items>
                       <SegmentedButtonItem key="status" text="{i18n>colorByStatus}" icon="sap-icon://status-positive" />
@@ -292,30 +292,30 @@
 
                   <VBox class="nhvrLegendItems" visible="{= ${view>/colorBy} === 'status' }">
                     <HBox alignItems="Center" class="nhvrLegendRow">
-                      <core:HTML content="&lt;span class='nhvrLegendDot' style='background:#2563eb'&gt;&lt;/span&gt;" />
+                      <core:HTML content="&lt;span aria-hidden='true' class='nhvrLegendDot' style='background:#2563eb'&gt;&lt;/span&gt;" />
                       <Text text="{i18n>statusUnrestricted}" class="nhvrLegendText" />
                     </HBox>
                     <HBox alignItems="Center" class="nhvrLegendRow">
-                      <core:HTML content="&lt;span class='nhvrLegendDot' style='background:#f59e0b'&gt;&lt;/span&gt;" />
+                      <core:HTML content="&lt;span aria-hidden='true' class='nhvrLegendDot' style='background:#f59e0b'&gt;&lt;/span&gt;" />
                       <Text text="{i18n>statusRestricted}" class="nhvrLegendText" />
                     </HBox>
                     <HBox alignItems="Center" class="nhvrLegendRow">
-                      <core:HTML content="&lt;span class='nhvrLegendDot' style='background:#ef4444'&gt;&lt;/span&gt;" />
+                      <core:HTML content="&lt;span aria-hidden='true' class='nhvrLegendDot' style='background:#ef4444'&gt;&lt;/span&gt;" />
                       <Text text="{i18n>statusClosed}" class="nhvrLegendText" />
                     </HBox>
                   </VBox>
 
                   <VBox class="nhvrLegendItems" visible="{= ${view>/colorBy} === 'condition' }">
                     <HBox alignItems="Center" class="nhvrLegendRow">
-                      <core:HTML content="&lt;span class='nhvrLegendDot' style='background:#16a34a'&gt;&lt;/span&gt;" />
+                      <core:HTML content="&lt;span aria-hidden='true' class='nhvrLegendDot' style='background:#16a34a'&gt;&lt;/span&gt;" />
                       <Text text="{i18n>conditionGood}" class="nhvrLegendText" />
                     </HBox>
                     <HBox alignItems="Center" class="nhvrLegendRow">
-                      <core:HTML content="&lt;span class='nhvrLegendDot' style='background:#f59e0b'&gt;&lt;/span&gt;" />
+                      <core:HTML content="&lt;span aria-hidden='true' class='nhvrLegendDot' style='background:#f59e0b'&gt;&lt;/span&gt;" />
                       <Text text="{i18n>conditionFair}" class="nhvrLegendText" />
                     </HBox>
                     <HBox alignItems="Center" class="nhvrLegendRow">
-                      <core:HTML content="&lt;span class='nhvrLegendDot' style='background:#ef4444'&gt;&lt;/span&gt;" />
+                      <core:HTML content="&lt;span aria-hidden='true' class='nhvrLegendDot' style='background:#ef4444'&gt;&lt;/span&gt;" />
                       <Text text="{i18n>conditionPoor}" class="nhvrLegendText" />
                     </HBox>
                   </VBox>
@@ -327,9 +327,9 @@
             <Panel class="nhvrSidebarPanel" expandable="true" expanded="false">
               <headerToolbar>
                 <OverflowToolbar>
-                  <Title text="GIS Tools" level="H6" class="nhvrPanelToolbarTitle" />
+                  <Title text="{i18n>gisTools}" level="H6" class="nhvrPanelToolbarTitle" />
                   <ToolbarSpacer />
-                  <Button icon="sap-icon://information" tooltip="How GIS Tools work" press=".onGisToolsHelp"
+                  <Button icon="sap-icon://information" tooltip="{i18n>gisToolsHelp}" press=".onGisToolsHelp"
                           type="Transparent" class="nhvrInfoBtn" />
                 </OverflowToolbar>
               </headerToolbar>
@@ -340,9 +340,9 @@
                     <VBox class="nhvrGisToolLabel">
                       <HBox alignItems="Center">
                         <core:Icon src="sap-icon://temperature" size="0.875rem" class="nhvrLayerIcon" />
-                        <Text text="Heat Map" class="nhvrLayerLabel" />
+                        <Text text="{i18n>heatmap}" class="nhvrLayerLabel" />
                       </HBox>
-                      <Text text="Density overlay by condition rating" class="nhvrGisToolHint" />
+                      <Text text="{i18n>heatmapHint}" class="nhvrGisToolHint" />
                     </VBox>
                     <Switch state="{view>/heatmapActive}" change=".onToggleHeatmap" />
                   </HBox>
@@ -351,9 +351,9 @@
                     <VBox class="nhvrGisToolLabel">
                       <HBox alignItems="Center">
                         <core:Icon src="sap-icon://alert" size="0.875rem" class="nhvrLayerIcon nhvrLayerIconWarning" />
-                        <Text text="Condition Alerts" class="nhvrLayerLabel" />
+                        <Text text="{i18n>conditionAlerts}" class="nhvrLayerLabel" />
                       </HBox>
-                      <Text text="Highlights bridges below alert threshold" class="nhvrGisToolHint" />
+                      <Text text="{i18n>conditionAlertsHint}" class="nhvrGisToolHint" />
                     </VBox>
                     <Switch state="{view>/conditionAlertsActive}" change=".onToggleConditionAlerts" />
                   </HBox>
@@ -362,9 +362,9 @@
                     <VBox class="nhvrGisToolLabel">
                       <HBox alignItems="Center">
                         <core:Icon src="sap-icon://map-3" size="0.875rem" class="nhvrLayerIcon" />
-                        <Text text="Mini Map" class="nhvrLayerLabel" />
+                        <Text text="{i18n>minimapLabel}" class="nhvrLayerLabel" />
                       </HBox>
-                      <Text text="Overview inset map (bottom-right)" class="nhvrGisToolHint" />
+                      <Text text="{i18n>minimapHint}" class="nhvrGisToolHint" />
                     </VBox>
                     <Switch state="{view>/minimapActive}" change=".onToggleMinimap" />
                   </HBox>
@@ -373,9 +373,9 @@
                     <VBox class="nhvrGisToolLabel">
                       <HBox alignItems="Center">
                         <core:Icon src="sap-icon://show" size="0.875rem" class="nhvrLayerIcon" />
-                        <Text text="Viewport Loading" class="nhvrLayerLabel" />
+                        <Text text="{i18n>viewportLoading}" class="nhvrLayerLabel" />
                       </HBox>
-                      <Text text="Load only bridges in the current view" class="nhvrGisToolHint" />
+                      <Text text="{i18n>viewportHint}" class="nhvrGisToolHint" />
                     </VBox>
                     <Switch state="{view>/viewportMode}" change=".onToggleViewportMode" />
                   </HBox>
@@ -384,21 +384,21 @@
             </Panel>
 
             <!-- Proximity Analysis -->
-            <Panel class="nhvrSidebarPanel" expandable="true" expanded="false" headerText="Proximity Analysis"
+            <Panel class="nhvrSidebarPanel" expandable="true" expanded="false" headerText="{i18n>proximityAnalysis}"
                    visible="{view>/features/proximity}">
               <content>
                 <VBox class="nhvrFilterSection">
-                  <Text text="Find bridges within a radius of a point." class="nhvrLayerHint sapUiSmallMarginBottom" />
-                  <Label text="Latitude" class="nhvrFilterLabel" />
+                  <Text text="{i18n>proximityIntro}" class="nhvrLayerHint sapUiSmallMarginBottom" />
+                  <Label text="{i18n>latitude}" class="nhvrFilterLabel" />
                   <Input id="proxLat" value="{view>/proximity/lat}" placeholder="-33.8688" width="100%" />
-                  <Label text="Longitude" class="nhvrFilterLabel nhvrFilterLabelTop" />
+                  <Label text="{i18n>longitude}" class="nhvrFilterLabel nhvrFilterLabelTop" />
                   <Input id="proxLng" value="{view>/proximity/lng}" placeholder="151.2093" width="100%" />
-                  <Label text="Radius (km)" class="nhvrFilterLabel nhvrFilterLabelTop" />
+                  <Label text="{i18n>radiusKm}" class="nhvrFilterLabel nhvrFilterLabelTop" />
                   <StepInput id="proxRadius" value="{view>/proximity/radius}" min="1" max="500" step="5" width="100%" />
                   <HBox justifyContent="SpaceBetween" class="nhvrFilterActions">
-                    <Button text="Clear" icon="sap-icon://clear-filter" press=".onClearProximity"
+                    <Button text="{i18n>proximityClear}" icon="sap-icon://clear-filter" press=".onClearProximity"
                             enabled="{view>/proximity/active}" />
-                    <Button text="Find Bridges" icon="sap-icon://locate-me" type="Emphasized"
+                    <Button text="{i18n>proximityFind}" icon="sap-icon://locate-me" type="Emphasized"
                             press=".onRunProximity" busy="{view>/proximity/loading}" />
                   </HBox>
                   <ObjectStatus
@@ -411,7 +411,7 @@
             </Panel>
 
             <!-- Time Slider -->
-            <Panel class="nhvrSidebarPanel" expandable="true" expanded="false" headerText="Time Slider (Year Built)"
+            <Panel class="nhvrSidebarPanel" expandable="true" expanded="false" headerText="{i18n>timeSlider}"
                    visible="{view>/features/timeSlider}">
               <content>
                 <VBox class="nhvrFilterSection">
@@ -436,39 +436,39 @@
             </Panel>
 
             <!-- Statistics Panel -->
-            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="Statistics"
+            <Panel class="nhvrSidebarPanel" expandable="true" expanded="true" headerText="{i18n>statsPanel}"
                    visible="{view>/features/statsPanel}">
               <content>
                 <VBox class="nhvrFilterSection">
                   <HBox class="nhvrStatsRow">
                     <VBox class="nhvrStatCard">
                       <ObjectNumber number="{view>/stats/total}" emphasized="true" />
-                      <Text text="Visible" class="nhvrStatLabel" />
+                      <Text text="{i18n>statVisible}" class="nhvrStatLabel" />
                     </VBox>
                     <VBox class="nhvrStatCard">
                       <ObjectNumber number="{view>/stats/avgCondition}" emphasized="true" state="Success" />
-                      <Text text="Avg Condition" class="nhvrStatLabel" />
+                      <Text text="{i18n>statAvgCondition}" class="nhvrStatLabel" />
                     </VBox>
                   </HBox>
                   <HBox class="nhvrStatsRow">
                     <VBox class="nhvrStatCard">
                       <ObjectNumber number="{view>/stats/poor}" emphasized="true" state="Error" />
-                      <Text text="Poor Condition" class="nhvrStatLabel" />
+                      <Text text="{i18n>statPoor}" class="nhvrStatLabel" />
                     </VBox>
                     <VBox class="nhvrStatCard">
                       <ObjectNumber number="{view>/stats/restricted}" emphasized="true" state="Warning" />
-                      <Text text="Restricted" class="nhvrStatLabel" />
+                      <Text text="{i18n>statRestricted}" class="nhvrStatLabel" />
                     </VBox>
                     <VBox class="nhvrStatCard">
                       <ObjectNumber number="{view>/stats/closed}" emphasized="true" state="Error" />
-                      <Text text="Closed" class="nhvrStatLabel" />
+                      <Text text="{i18n>statClosed}" class="nhvrStatLabel" />
                     </VBox>
                   </HBox>
                 </VBox>
               </content>
             </Panel>
 
-            <Panel class="nhvrSidebarPanel nhvrSelectionPanel" expandable="false" headerText="Spatial Selection" visible="{view>/selectionActive}">
+            <Panel class="nhvrSidebarPanel nhvrSelectionPanel" expandable="false" headerText="{i18n>spatialSelection}" visible="{view>/selectionActive}">
               <content>
                 <VBox class="nhvrFilterSection">
                   <ObjectStatus text="{view>/selectionLabel}" state="Information" inverted="true" />
@@ -515,12 +515,12 @@
                   </Menu>
                 </menu>
               </MenuButton>
-              <Button text="Spatial Select" icon="sap-icon://map-2" press=".onToggleDrawToolbar" type="{= ${view>/drawToolbarVisible} ? 'Emphasized' : 'Default' }" />
+              <Button text="{i18n>spatialSelect}" icon="sap-icon://map-2" press=".onToggleDrawToolbar" type="{= ${view>/drawToolbarVisible} ? 'Emphasized' : 'Default' }" />
               <ToggleButton text="{i18n>layoutList}" icon="sap-icon://list" pressed="{view>/showList}" press=".onToggleSplitView" type="Transparent" />
               <Button icon="sap-icon://full-screen" tooltip="{i18n>centerMap}" press=".onZoomAll" type="Transparent" />
-              <Button icon="sap-icon://resize" tooltip="Zoom to selection" press=".onZoomSelected" enabled="{view>/selectionActive}" type="Transparent" />
+              <Button icon="sap-icon://resize" tooltip="{i18n>zoomToSelection}" press=".onZoomSelected" enabled="{view>/selectionActive}" type="Transparent" />
               <Button icon="sap-icon://refresh" tooltip="{i18n>refresh}" press=".onRefresh" type="Transparent" />
-              <Button icon="sap-icon://information" tooltip="How map controls work" press=".onMapControlsHelp" type="Transparent" class="nhvrInfoBtn" />
+              <Button icon="sap-icon://information" tooltip="{i18n>mapControlsHelp}" press=".onMapControlsHelp" type="Transparent" class="nhvrInfoBtn" />
             </contentRight>
           </Bar>
         </customHeader>
@@ -528,21 +528,21 @@
         <content>
           <VBox id="mapBodyBox" height="100%" class="nhvrMapBody">
             <Toolbar visible="{view>/drawToolbarVisible}" design="Solid" class="nhvrDrawToolbar">
-              <Text text="Draw a spatial selection on the map" />
+              <Text text="{i18n>drawSelectionPrompt}" />
               <ToolbarSpacer />
               <Button text="{i18n>drawPolygon}" icon="sap-icon://map-2" press=".onDrawPolygon" />
               <Button text="{i18n>drawRectangle}" icon="sap-icon://border" press=".onDrawRectangle" />
               <Button text="{i18n>drawCircle}" icon="sap-icon://circle-task" press=".onDrawCircle" />
               <Button text="{i18n>clearSelection}" icon="sap-icon://eraser" press=".onClearSelection" />
               <ToolbarSeparator />
-              <Button icon="sap-icon://decline" tooltip="Close draw tools" press=".onCloseDrawToolbar" type="Transparent" />
+              <Button icon="sap-icon://decline" tooltip="{i18n>closeDrawTools}" press=".onCloseDrawToolbar" type="Transparent" />
             </Toolbar>
 
             <VBox class="nhvrMapHostShell">
               <VBox id="mapHost" class="bridgeMapCanvas" />
             </VBox>
 
-            <Toolbar design="Transparent" height="28px" visible="{= !!${view>/coordinateText} }" class="nhvrCoordinateBar">
+            <Toolbar id="coordinateBar" design="Transparent" height="28px" visible="{= !!${view>/coordinateText} }" class="nhvrCoordinateBar">
               <ToolbarSpacer />
               <Text text="{view>/coordinateText}" class="nhvrCoordinateText" />
               <Text text="{view>/mgaCoords/text}"
@@ -552,10 +552,10 @@
 
             <VBox visible="{view>/showList}" class="nhvrListPanel">
               <Toolbar class="nhvrVariantBar">
-                <Text text="View:" class="nhvrVariantLabel" />
+                <Text text="{i18n>viewLabel}" class="nhvrVariantLabel" />
                 <Select width="10rem" selectedKey="standard">
                   <items>
-                    <core:Item key="standard" text="Standard" />
+                    <core:Item key="standard" text="{i18n>standardView}" />
                   </items>
                 </Select>
                 <ToolbarSpacer />
@@ -636,38 +636,38 @@
               </statuses>
             </ObjectHeader>
             <VBox class="nhvrFeatureSection">
-              <Label text="Coordinates" class="nhvrFeatureSectionTitle" />
+              <Label text="{i18n>coordinatesLabel}" class="nhvrFeatureSectionTitle" />
               <Text text="{view>/selectedFeature/data/coordinateText}" />
             </VBox>
             <VBox class="nhvrFeatureSection">
-              <Label text="Physical" class="nhvrFeatureSectionTitle" />
+              <Label text="{i18n>physical}" class="nhvrFeatureSectionTitle" />
               <HBox class="nhvrFeatureMetrics">
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Condition" />
+                  <Label text="{i18n>condition}" />
                   <ObjectStatus text="{view>/selectedFeature/data/metricRating}" state="{view>/selectedFeature/data/conditionState}" />
                 </VBox>
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Clearance" />
+                  <Label text="{i18n>clearanceLabel}" />
                   <Text text="{view>/selectedFeature/data/metricClearance}" />
                 </VBox>
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Year Built" />
+                  <Label text="{i18n>yearBuiltLabel}" />
                   <Text text="{view>/selectedFeature/data/metricYear}" />
                 </VBox>
               </HBox>
               <HBox class="nhvrFeatureMetrics">
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Structure Type" />
+                  <Label text="{i18n>structureTypeLabel}" />
                   <Text text="{view>/selectedFeature/data/structureType}" />
                 </VBox>
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Span Length" />
+                  <Label text="{i18n>spanLengthLabel}" />
                   <Text text="{view>/selectedFeature/data/spanLengthText}" />
                 </VBox>
               </HBox>
             </VBox>
             <VBox class="nhvrFeatureSection" visible="{= ${view>/selectedFeature/data/restrictions/length} > 0 }">
-              <Label text="Active Restrictions" class="nhvrFeatureSectionTitle" />
+              <Label text="{i18n>activeRestrictionsLabel}" class="nhvrFeatureSectionTitle" />
               <List items="{view>/selectedFeature/data/restrictions}" showSeparators="None">
                 <items>
                   <CustomListItem>
@@ -680,9 +680,9 @@
               </List>
             </VBox>
             <VBox class="nhvrFeatureActions">
-              <Button text="Open in Bridge Register" icon="sap-icon://open-command-field"
+              <Button text="{i18n>openInBridgeRegister}" icon="sap-icon://open-command-field"
                       type="Emphasized" press=".onOpenInBridgeRegister" width="100%" />
-              <Button text="Zoom to Bridge" icon="sap-icon://zoom-in"
+              <Button text="{i18n>zoomToBridge}" icon="sap-icon://zoom-in"
                       press=".onZoomToSelected" width="100%" class="sapUiTinyMarginTop" />
             </VBox>
           </VBox>
@@ -698,39 +698,39 @@
               </statuses>
             </ObjectHeader>
             <VBox class="nhvrFeatureSection">
-              <Label text="Bridge" class="nhvrFeatureSectionTitle" />
+              <Label text="{i18n>bridgeLabel}" class="nhvrFeatureSectionTitle" />
               <Text text="{view>/selectedFeature/data/bridgeName}" />
               <Text text="{view>/selectedFeature/data/bridgeId}" class="nhvrSubText" />
             </VBox>
             <VBox class="nhvrFeatureSection">
-              <Label text="Restriction Limits" class="nhvrFeatureSectionTitle" />
+              <Label text="{i18n>restrictionLimits}" class="nhvrFeatureSectionTitle" />
               <HBox class="nhvrFeatureMetrics" visible="{= !!${view>/selectedFeature/data/grossMassLimit} }">
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Gross Mass" />
+                  <Label text="{i18n>grossMass}" />
                   <Text text="{view>/selectedFeature/data/grossMassLimit} t" />
                 </VBox>
               </HBox>
               <HBox class="nhvrFeatureMetrics" visible="{= !!${view>/selectedFeature/data/heightLimit} }">
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Height Limit" />
+                  <Label text="{i18n>heightLimit}" />
                   <Text text="{view>/selectedFeature/data/heightLimit} m" />
                 </VBox>
               </HBox>
               <HBox class="nhvrFeatureMetrics" visible="{= !!${view>/selectedFeature/data/speedLimit} }">
                 <VBox class="nhvrFeatureMetric">
-                  <Label text="Speed Limit" />
+                  <Label text="{i18n>speedLimit}" />
                   <Text text="{view>/selectedFeature/data/speedLimit} km/h" />
                 </VBox>
               </HBox>
             </VBox>
             <VBox class="nhvrFeatureSection">
-              <CheckBox text="Permit Required" selected="{view>/selectedFeature/data/permitRequired}" enabled="false" />
-              <CheckBox text="Escort Required" selected="{view>/selectedFeature/data/escortRequired}" enabled="false" />
+              <CheckBox text="{i18n>permitRequired}" selected="{view>/selectedFeature/data/permitRequired}" enabled="false" />
+              <CheckBox text="{i18n>escortRequired}" selected="{view>/selectedFeature/data/escortRequired}" enabled="false" />
             </VBox>
             <VBox class="nhvrFeatureActions">
-              <Button text="View Bridge on Map" icon="sap-icon://map-2"
+              <Button text="{i18n>viewBridgeOnMap}" icon="sap-icon://map-2"
                       type="Emphasized" press=".onViewBridgeFromRestriction" width="100%" />
-              <Button text="Open in Bridge Register" icon="sap-icon://open-command-field"
+              <Button text="{i18n>openInBridgeRegister}" icon="sap-icon://open-command-field"
                       press=".onOpenInBridgeRegister" width="100%" class="sapUiTinyMarginTop" />
             </VBox>
           </VBox>

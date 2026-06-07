@@ -243,6 +243,24 @@ sap.ui.define([
     },
 
     onAfterRendering: function () {
+      // FE-002 (WCAG 4.1.3): mark the live coordinate bar as a polite status region so
+      // screen readers announce Lat/Lng updates without moving focus. Re-applied on every
+      // render of the bar (it re-renders when coordinateText changes).
+      var oCoordBar = this.byId("coordinateBar");
+      if (oCoordBar && !oCoordBar._a11yBound) {
+        oCoordBar._a11yBound = true;
+        oCoordBar.addEventDelegate({
+          onAfterRendering: function () {
+            var dom = oCoordBar.getDomRef();
+            if (dom) {
+              dom.setAttribute("role", "status");
+              dom.setAttribute("aria-live", "polite");
+              dom.setAttribute("aria-atomic", "true");
+              dom.setAttribute("aria-label", "Current map coordinates");
+            }
+          }
+        });
+      }
       this._leafletReady
         .then(function () {
           this._scheduleMapInit();
