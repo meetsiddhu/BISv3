@@ -144,6 +144,9 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
     this.before('CREATE', Assessments, async (req) => {
       if (!(await isEnabled())) return req.reject(403, 'The Bridge Prioritisation module is currently disabled.')
       const d = req.data
+      // A prioritisation run MUST reference a bridge — this guarantees the federated facts +
+      // override-reason enforcement below can never be skipped via a degenerate bridge-less POST.
+      if (d.bridge_ID == null) return req.reject(400, 'A prioritisation run must reference a bridge.')
       const cfg = await activeConfig()
       const inputs = {
         dimSafety: d.dimSafety, dimNetwork: d.dimNetwork, dimFinancial: d.dimFinancial,
@@ -158,6 +161,9 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         priorityScore: out.priorityScore, band: out.band,
         configVersion: cfg.version, formulaVersion: out.formulaVersion,
         paramSnapshot: JSON.stringify(cfg),
+        // Freeze the rubric wording used at assess time, so a reproduced past run shows exactly what
+        // each dimension level MEANT then (not just the number) — full audit reproducibility.
+        rubricSnapshot: JSON.stringify(engine.rubricSnapshot(inputs, cfg.rubrics)),
         assessedBy: req.user?.id || 'system', assessedAt: new Date().toISOString(),
         active: true
       })

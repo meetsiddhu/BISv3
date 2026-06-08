@@ -86,7 +86,10 @@ sap.ui.define([
         self.getView().getModel("v").setProperty("/methodologyOwner", self._cfg.methodologyOwner);
         self.getView().getModel("v").setProperty("/configVersion", self._cfg.version);
         self._recompute();
-      }).catch(function () { /* defaults stand */ });
+      }).catch(function (_e) {
+        // surface (don't swallow) — the engine defaults still apply, but the user should know
+        MessageToast.show("Live config unavailable — showing default methodology weights.");
+      });
     },
 
     _loadBridges: function () {
@@ -102,20 +105,23 @@ sap.ui.define([
       });
     },
 
+    // Decorate a raw Assessment row with display fields (shared by the worklist + run history).
+    _decorate: function (a) {
+      return Object.assign({}, a, {
+        bandState: BAND_STATE[a.band] || "None",
+        confidence: (a.inputsAvailable != null ? a.inputsAvailable + " of " + a.inputsTotal : "—") + (a.conditionAsAtMonths != null ? " · " + a.conditionAsAtMonths + " mo" : ""),
+        assessedAtText: a.assessedAt ? String(a.assessedAt).slice(0, 10) : "",
+        critTier: (a.criticality != null ? Number(a.criticality).toFixed(1) : "—") + " · tier " + (a.tier != null ? a.tier : "—"),
+        residualText: (a.residual != null ? a.residual + " / " + (this._cfg ? this._cfg.maxResidual : 25) : "—")
+      });
+    },
+
     _loadWorklist: function () {
       var self = this;
       var tbl = this.byId("wlTable"); if (tbl) { tbl.setBusy(true); }
       this.getView().getModel("wl").setProperty("/error", null);
       this._get("/Assessments?$filter=active eq true&$orderby=priorityScore desc&$top=500").then(function (d) {
-        var rows = (d.value || []).map(function (a) {
-          return Object.assign({}, a, {
-            bandState: BAND_STATE[a.band] || "None",
-            confidence: (a.inputsAvailable != null ? a.inputsAvailable + " of " + a.inputsTotal : "—") + (a.conditionAsAtMonths != null ? " · " + a.conditionAsAtMonths + " mo" : ""),
-            assessedAtText: a.assessedAt ? String(a.assessedAt).slice(0, 10) : "",
-            critTier: (a.criticality != null ? Number(a.criticality).toFixed(1) : "—") + " · tier " + (a.tier != null ? a.tier : "—"),
-            residualText: (a.residual != null ? a.residual + " / " + (this._cfg ? this._cfg.maxResidual : 25) : "—")
-          });
-        }, this);
+        var rows = (d.value || []).map(function (a) { return self._decorate(a); });
         self.getView().getModel("wl").setProperty("/rows", rows);
         self._buildReports(rows);
         if (tbl) { tbl.setBusy(false); }
@@ -299,34 +305,75 @@ sap.ui.define([
     // (the auditor/engineer view — reproduces a single ranking decision).
     onOpenRun: function (oEvent) {
       var ctx = oEvent.getSource().getBindingContext("wl"); if (!ctx) return;
-      var r = ctx.getObject();
+      this._openRunDialog(ctx.getObject());
+    },
+
+    // Render one run's FROZEN detail (works for active OR superseded runs — full auditability).
+    _openRunDialog: function (r) {
+      var self = this;
       var snap; try { snap = JSON.parse(r.paramSnapshot); } catch (_e) { snap = null; }
+      var rub; try { rub = JSON.parse(r.rubricSnapshot); } catch (_e) { rub = null; }
       var L = function (k, val) { return new sap.m.HBox({ justifyContent: "SpaceBetween" }).addItem(new sap.m.Label({ text: k })).addItem(new sap.m.Text({ text: String(val == null ? "—" : val) })); };
       var dims = "S " + r.dimSafety + " · N " + r.dimNetwork + " · F " + r.dimFinancial + " · E " + r.dimEnvironmental + " · R " + r.dimReputational;
       var methodology = snap
         ? "criticality weights " + (snap.dimWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; priority " + (snap.priorityWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; bands " + (snap.bandThresholds || []).map(function (b) { return b.code + "≥" + b.min; }).join(", ")
         : "snapshot unavailable";
+      var items = [
+        new sap.m.ObjectStatus({ text: r.band + " · score " + r.priorityScore + (r.active === false ? " · SUPERSEDED" : ""), state: r.bandState, inverted: true }).addStyleClass("sapUiTinyMarginBottom"),
+        L("Criticality dimensions (1-5)", dims),
+        L("Criticality · tier", r.critTier),
+        L("Likelihood", r.likelihood + (r.likelihoodOverridden ? " (override of " + r.likelihoodDerived + ")" : " (derived)")),
+        L("Override reason", r.likelihoodOverrideReason || (r.likelihoodOverridden ? "(missing)" : "n/a")),
+        L("Residual", r.residualText),
+        L("Strategy", r.strategy),
+        L("Active restriction (flag)", r.restrictionFlag ? "Yes — treatment, not a score input" : "No"),
+        L("Likely failure / mitigation $", (r.likelyFailureCostAud != null ? "$" + r.likelyFailureCostAud : "—") + " / " + (r.mitigationCostAud != null ? "$" + r.mitigationCostAud : "—")),
+        L("Confidence", r.confidence),
+        L("Assessed by · at", (r.assessedBy || "—") + " · " + r.assessedAtText),
+        L("Methodology", r.formulaVersion + " / config " + r.configVersion)
+      ];
+      // FROZEN rubric wording used at assess time (gap: reproduced runs must show what a level MEANT).
+      if (rub) {
+        items.push(new sap.m.Title({ text: "Scoring rubric used (frozen)", level: "H6" }).addStyleClass("sapUiSmallMarginTop"));
+        [["dimSafety", "Safety"], ["dimNetwork", "Network"], ["dimFinancial", "Financial"], ["dimEnvironmental", "Environmental"], ["dimReputational", "Reputational"]].forEach(function (d) {
+          var e = rub[d[0]]; if (e) items.push(new sap.m.Text({ text: d[1] + " " + e.level + " — " + e.text }).addStyleClass("sapUiContentLabelColor"));
+        });
+      }
+      items.push(new sap.m.Text({ text: methodology, wrapping: true }).addStyleClass("sapUiSmallMarginTop sapUiContentLabelColor"));
       var dlg = new sap.m.Dialog({
-        title: "Run detail — " + (r.bridgeName || r.bridgeRef), contentWidth: "520px",
-        content: [new sap.m.VBox({ class: "sapUiContentPadding", items: [
-          new sap.m.ObjectStatus({ text: r.band + " · score " + r.priorityScore, state: r.bandState, inverted: true }).addStyleClass("sapUiTinyMarginBottom"),
-          L("Criticality dimensions (1-5)", dims),
-          L("Criticality · tier", r.critTier),
-          L("Likelihood", r.likelihood + (r.likelihoodOverridden ? " (override of " + r.likelihoodDerived + ")" : " (derived)")),
-          L("Override reason", r.likelihoodOverrideReason || (r.likelihoodOverridden ? "(missing)" : "n/a")),
-          L("Residual", r.residualText),
-          L("Strategy", r.strategy),
-          L("Active restriction (flag)", r.restrictionFlag ? "Yes — treatment, not a score input" : "No"),
-          L("Likely failure / mitigation $", (r.likelyFailureCostAud != null ? "$" + r.likelyFailureCostAud : "—") + " / " + (r.mitigationCostAud != null ? "$" + r.mitigationCostAud : "—")),
-          L("Confidence", r.confidence),
-          L("Assessed by · at", (r.assessedBy || "—") + " · " + r.assessedAtText),
-          L("Methodology", r.formulaVersion + " / config " + r.configVersion),
-          new sap.m.Text({ text: methodology, wrapping: true }).addStyleClass("sapUiTinyMarginTop sapUiContentLabelColor")
-        ]})],
-        beginButton: new sap.m.Button({ text: "Close", press: function () { dlg.close(); } }),
+        title: "Run detail — " + (r.bridgeName || r.bridgeRef), contentWidth: "540px",
+        content: [new sap.m.VBox({ items: items }).addStyleClass("sapUiContentPadding")],
+        buttons: [
+          new sap.m.Button({ text: "Run history", icon: "sap-icon://history", press: function () { dlg.close(); self.onShowHistory(r.bridgeRef, r.bridgeName); } }),
+          new sap.m.Button({ text: "Close", type: "Emphasized", press: function () { dlg.close(); } })
+        ],
         afterClose: function () { dlg.destroy(); }
       });
       dlg.open();
+    },
+
+    // BL2: list ALL runs (active + superseded) for a bridge — each openable to its frozen detail.
+    onShowHistory: function (bridgeRef, bridgeName) {
+      var self = this;
+      this._get("/Assessments?$filter=bridgeRef eq '" + String(bridgeRef).replace(/'/g, "''") + "'&$orderby=assessedAt desc&$top=200").then(function (d) {
+        var rows = (d.value || []).map(function (a) { return self._decorate(a); });
+        var list = new sap.m.List({ noDataText: "No runs for this bridge." });
+        rows.forEach(function (r) {
+          list.addItem(new sap.m.StandardListItem({
+            title: r.assessedAtText + (r.active === false ? " · superseded" : " · current"),
+            description: "Score " + r.priorityScore + " · " + (r.assessedBy || "—"),
+            info: r.band, infoState: r.bandState, type: "Active",
+            press: function () { hist.close(); self._openRunDialog(r); }
+          }));
+        });
+        var hist = new sap.m.Dialog({
+          title: "Run history — " + (bridgeName || bridgeRef), contentWidth: "480px",
+          content: [list],
+          beginButton: new sap.m.Button({ text: "Close", press: function () { hist.close(); } }),
+          afterClose: function () { hist.destroy(); }
+        });
+        hist.open();
+      }).catch(function (e) { MessageToast.show("Could not load run history: " + (e && e.message ? e.message : "service error")); });
     },
 
     onWorklistPress: function (oEvent) {

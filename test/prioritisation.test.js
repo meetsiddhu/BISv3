@@ -82,4 +82,16 @@ describe('prioritisation engine — wireframe fidelity', () => {
     expect(p.deriveLikelihood(10, 10)).toBe(1)
     expect(p.deriveLikelihood(null, null)).toBe(3)
   })
+
+  test('rubricSnapshot freezes the chosen-level wording; config rubrics override the defaults', () => {
+    const def = p.rubricSnapshot({ dimSafety: 5, dimNetwork: 3, dimFinancial: 1, dimEnvironmental: 2, dimReputational: 4 }, null)
+    expect(def.dimSafety.level).toBe(5)
+    expect(def.dimSafety.text).toMatch(/fatalities/i)
+    expect(def.dimFinancial.level).toBe(1)
+    // config override
+    const custom = JSON.stringify({ dimSafety: { 5: 'CUSTOM CATASTROPHIC' } })
+    const snap = p.rubricSnapshot({ dimSafety: 5 }, custom)
+    expect(snap.dimSafety.text).toBe('CUSTOM CATASTROPHIC')
+    expect(snap.dimNetwork.text).toBeTruthy() // falls back to default for un-overridden dims
+  })
 })

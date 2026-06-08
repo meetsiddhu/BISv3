@@ -43,12 +43,18 @@ describe('FLP sandbox config consistency', () => {
 
   // Council gap #2: the served fiori-apps.html carries an inline tileConfig fallback. It MUST
   // equal the authoritative fioriSandboxConfig.json so the launchpad can never silently diverge.
-  test('fiori-apps.html inline tileConfig is byte-equal to the authoritative fioriSandboxConfig.json', () => {
+  test('fiori-apps.html inline tileConfig matches the authoritative fioriSandboxConfig.json (order + content)', () => {
     const html = fs.readFileSync(path.join(root, 'app/router/fiori-apps.html'), 'utf8')
     const m = html.match(/var tileConfig = (\{[\s\S]*?\});\s*\n\s*window\['sap-ushell-config'\]/)
     expect(m).toBeTruthy()
-    const inline = JSON.stringify(JSON.parse(m[1]))
-    const served = JSON.stringify(JSON.parse(fs.readFileSync(b, 'utf8')))
-    expect(inline).toBe(served)
+    const inlineObj = JSON.parse(m[1])
+    const servedObj = JSON.parse(fs.readFileSync(b, 'utf8'))
+    // (a) serialized equality catches key-ORDER drift (insertion order is preserved by parse->stringify)
+    expect(JSON.stringify(inlineObj)).toBe(JSON.stringify(servedObj))
+    // (b) canonical (recursively key-sorted) equality catches CONTENT drift regardless of order
+    const canon = (v) => Array.isArray(v) ? v.map(canon)
+      : (v && typeof v === 'object') ? Object.keys(v).sort().reduce((o, k) => { o[k] = canon(v[k]); return o }, {})
+        : v
+    expect(JSON.stringify(canon(inlineObj))).toBe(JSON.stringify(canon(servedObj)))
   })
 })

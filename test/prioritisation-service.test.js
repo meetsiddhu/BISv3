@@ -106,6 +106,22 @@ describe('PrioritisationService', () => {
     expect(row.likelihoodOverrideReason).toMatch(/inspection/)
   })
 
+  test('run FREEZES the rubric wording for the chosen dimension levels (audit reproducibility)', async () => {
+    const created = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs())))) // dimSafety:5
+    const id = created.ID || (created[0] && created[0].ID)
+    const db = await cds.connect.to('db')
+    const row = await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: id }))
+    const rub = JSON.parse(row.rubricSnapshot)
+    expect(rub.dimSafety.level).toBe(5)
+    expect(rub.dimSafety.text).toMatch(/fatalities/i) // the frozen "Multiple fatalities credible" anchor
+    expect(rub.dimReputational.text).toBeTruthy()
+  })
+
+  test('a run WITHOUT a bridge is rejected (cannot bypass federated facts / override gate)', async () => {
+    await expect(asManager((tx) => tx.run(INSERT.into(ASSESS).entries(baseInputs())))) // no bridge_ID
+      .rejects.toThrow(/must reference a bridge/i)
+  })
+
   test('run captures the bridge $ cost snapshot (reproducible exec exposure)', async () => {
     const created = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
     const id = created.ID || (created[0] && created[0].ID)

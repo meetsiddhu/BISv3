@@ -70,7 +70,8 @@ function resolveConfig (raw) {
       Renew: num(c.urgencyRenew, D.urgencyRenew), Maintain: num(c.urgencyMaintain, D.urgencyMaintain),
       Monitor: num(c.urgencyMonitor, D.urgencyMonitor), Decommission: num(c.urgencyDecommission, D.urgencyDecommission)
     },
-    bandThresholds: ladder
+    bandThresholds: ladder,
+    rubrics: c.rubrics || null // raw rubrics JSON (string|object|null) — resolved via rubricsFor()
   }
 }
 
@@ -141,7 +142,37 @@ function formulaText (inputs, out, cfg) {
   )
 }
 
+// Rubric anchors per criticality dimension per 1-5 level (single source of truth; the UI mirrors
+// these, and PrioritisationConfig.rubrics overrides per version). Used to FREEZE the scoring
+// guidance wording into each run so a reproduced past run shows what "Safety = 4" meant then.
+const DEFAULT_RUBRICS = Object.freeze({
+  dimSafety: { 1: 'Negligible safety consequence', 2: 'Minor injury possible', 3: 'Serious injury credible', 4: 'Single fatality credible', 5: 'Multiple fatalities credible' },
+  dimNetwork: { 1: 'No network disruption', 2: 'Local detour, minutes', 3: 'Sub-network impact, hours', 4: 'Key corridor severed, days', 5: 'Strategic corridor lost, weeks+' },
+  dimFinancial: { 1: 'Trivial cost', 2: 'Minor repair budget', 3: 'Material capital cost', 4: 'Major capital + indirect cost', 5: 'Severe whole-of-life / liability cost' },
+  dimEnvironmental: { 1: 'No environmental effect', 2: 'Contained, reversible', 3: 'Local, remediable', 4: 'Significant, prolonged', 5: 'Severe / protected-area harm' },
+  dimReputational: { 1: 'No public interest', 2: 'Local complaint', 3: 'Regional media', 4: 'State media / ministerial', 5: 'National / inquiry-level' }
+})
+
+// Resolve the active rubric map (config.rubrics JSON overrides the defaults).
+function rubricsFor (raw) {
+  let r
+  try { r = typeof raw === 'string' ? JSON.parse(raw) : raw } catch (_e) { r = null }
+  if (!r || typeof r !== 'object') return DEFAULT_RUBRICS
+  const out = {}
+  for (const k of Object.keys(DEFAULT_RUBRICS)) out[k] = (r[k] && typeof r[k] === 'object') ? r[k] : DEFAULT_RUBRICS[k]
+  return out
+}
+
+// Freeze the chosen-level rubric wording for one assessment's dimensions.
+function rubricSnapshot (dims, raw) {
+  const r = rubricsFor(raw)
+  const lvl = (k) => Math.min(5, Math.max(1, Math.round(num(dims[k], 3))))
+  const out = {}
+  for (const k of Object.keys(DEFAULT_RUBRICS)) { const L = lvl(k); out[k] = { level: L, text: r[k][L] || r[k][String(L)] || '' } }
+  return out
+}
+
 module.exports = {
   derivePriority, resolveConfig, tierOf, bandOf, normalise, deriveLikelihood, formulaText, num,
-  DEFAULT_CONFIG, FORMULA_VERSION
+  rubricsFor, rubricSnapshot, DEFAULT_RUBRICS, DEFAULT_CONFIG, FORMULA_VERSION
 }

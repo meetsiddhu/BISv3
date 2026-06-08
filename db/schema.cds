@@ -815,6 +815,7 @@ entity PrioritisationAssessment : cuid, managed {
   configVersion            : String(20);
   formulaVersion           : String(20);
   paramSnapshot            : LargeString;            // JSON of the exact params used
+  rubricSnapshot           : LargeString;            // frozen rubric wording for the chosen dim levels
   assessedBy               : String(111);
   assessedAt               : Timestamp;
   // ── Lifecycle ──

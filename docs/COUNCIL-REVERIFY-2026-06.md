@@ -98,3 +98,35 @@ top-1%" correctness residuals. Both are now closed:
 Remaining backlog is polish/by-design only (freeze rubric wording into the run + PDF; open
 superseded historical runs from the worklist; byte-vs-semantic FLP guard; explicit ariaLabel vs
 tooltip on matrix cells). Verify: 18 suites / 168 tests; eslint 0/0; deployed v3.9.32.
+
+---
+
+## Backlog closure — v3.9.33 (audit-completeness polish + by-design decisions)
+
+The re-review's remaining backlog (all non-blocking) is now closed or formally accepted:
+
+**Closed:**
+- **Freeze rubric wording into each run** — `PrioritisationAssessment.rubricSnapshot` stores the
+  chosen-level anchor text at assess time (engine `rubricSnapshot()`, config-overridable via
+  `PrioritisationConfig.rubrics`); the run-detail dialog shows the frozen "Scoring rubric used". A
+  reproduced past run now shows what each level MEANT, not just the number. +2 tests.
+- **Open superseded historical runs** — the run-detail dialog has a "Run history" action listing ALL
+  runs for the bridge (active + superseded, by `assessedAt`), each openable to its own frozen detail.
+  The auditor can reproduce any past ranking, not only the current one.
+- **Defensive override enforcement** — a run without a `bridge_ID` is now rejected (400), so the
+  federated-facts + mandatory-override-reason gate can never be skipped via a degenerate POST. +test.
+- **Config-load + bridge-load errors surfaced** — `_loadConfig` and `_loadBridges` now toast on
+  failure instead of swallowing.
+- **FLP guard strengthened** — the test now asserts BOTH serialized (key-order) and canonical
+  (recursively key-sorted) equality between the inline tileConfig and the authoritative JSON.
+
+**Accepted as by-design (recorded decisions, no change):**
+- `reportPdf` is gated at READ tier (any `view` user can export) — matches the read-tier export design;
+  the document contains only already-readable figures. Revisit only if export must be role-restricted.
+- The exec top-decile KPI uses `mitigationCostAud` (the cost to FIX), not `likelyFailureCostAud` — the
+  defensible "what will it cost to fund the worst ones" funding number. Both are snapshotted per run.
+- Matrix cells convey their full meaning via `tooltip` (the accessible name on `sap.m.Button`) plus the
+  always-visible residual number and the non-colour severity legend — WCAG-adequate without an extra
+  InvisibleText.
+
+Verify: 18 suites / 171 tests; eslint 0/0; cds build + --production clean. Deployed v3.9.33.
