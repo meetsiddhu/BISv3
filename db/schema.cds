@@ -813,3 +813,27 @@ entity PrioritisationAssessment : cuid, managed {
   supersededBy             : Association to PrioritisationAssessment;
   active                   : Boolean default true;
 }
+
+// EAM-outbound work request (bounded, additive). When an assessment is approved, an
+// inspection/intervention WORK REQUEST is raised TO SAP EAM. This is a LOCAL outbound record
+// (the queue + audit of the intended push) — it NEVER writes EAM master data (clean-core; EAM
+// is the system of record). In STANDALONE mode it stays QUEUED; a future integration worker
+// drains the queue and POSTs to EAM, stamping externalRef with the returned notification id.
+entity EamWorkRequest : cuid, managed {
+  assessment      : Association to PrioritisationAssessment;
+  bridge          : Association to Bridges;
+  bridgeRef       : String(40);
+  bridgeName      : String(111);
+  priorityBand    : String(10);
+  priorityScore   : Decimal(6,2);
+  requestType     : String(20) default 'Inspection';   // Inspection | Intervention | Review
+  targetEamSystem : String(40);                         // from config (SystemConfig / bridge.eamSystem)
+  eamObjectRef    : String(80);                         // FLOC/equipment the request targets (read from bridge)
+  status          : String(20) default 'QUEUED';        // QUEUED | SENT | ACKNOWLEDGED | FAILED | CANCELLED
+  payload         : LargeString;                        // JSON snapshot pushed (immutable record of intent)
+  externalRef     : String(80);                         // EAM notification id once acknowledged
+  notes           : String(500);
+  raisedBy        : String(111);
+  raisedAt        : Timestamp;
+  active          : Boolean default true;               // soft-delete
+}

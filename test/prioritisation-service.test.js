@@ -78,6 +78,21 @@ describe('PrioritisationService', () => {
     expect(typeof facts.restrictionFlag).toBe('boolean')
   })
 
+  test('raiseWorkRequest creates a QUEUED outbound record + ChangeLog, and never writes EAM', async () => {
+    const created = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
+    const id = created.ID || (created[0] && created[0].ID)
+    const srv = await cds.connect.to('PrioritisationService')
+    const wr = await srv.tx({ user: new cds.User({ id: 'mgr', roles: ['view', 'manage'] }) },
+      (tx) => tx.send({ event: 'raiseWorkRequest', entity: 'Assessments', params: [{ ID: id }], data: { requestType: 'Inspection', notes: 'urgent' } }))
+    expect(wr).toBeTruthy()
+    expect(wr.status).toBe('QUEUED') // never auto-sent; EAM untouched in standalone
+    expect(wr.requestType).toBe('Inspection')
+    expect(wr.payload).toMatch(/BIS-Prioritisation/)
+    const db = await cds.connect.to('db')
+    const logs = await db.run(SELECT.from('bridge.management.ChangeLog').where({ objectType: 'EamWorkRequest' }))
+    expect(logs.length).toBeGreaterThan(0)
+  })
+
   test('a stored run is reproducible — editing config later does NOT change its frozen outputs', async () => {
     const created = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
     const id = created.ID || (created[0] && created[0].ID)

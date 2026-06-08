@@ -128,6 +128,58 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       } catch (e) { log.error('Prioritisation ChangeLog failed:', e.message) }
     })
 
+    // ── EAM-outbound: raise a work request (bounded — NEVER writes EAM) ──
+    // Creates a local QUEUED outbound record + audit. In STANDALONE mode it stays QUEUED; a
+    // future integration worker drains the queue and POSTs to EAM, stamping externalRef.
+    this.on('raiseWorkRequest', Assessments, async (req) => {
+      if (!(await isEnabled())) return req.reject(403, 'The Bridge Prioritisation module is currently disabled.')
+      const key = req.params[req.params.length - 1]
+      const aid = key && (key.ID || key)
+      const a = await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: aid }))
+      if (!a) return req.reject(404, 'Assessment not found.')
+      let bridge = null
+      if (a.bridge_ID != null) bridge = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: a.bridge_ID }))
+      const targetEamSystem = (bridge && bridge.eamSystem) || (await getConfig('eamOutboundSystem')) || 'STANDALONE'
+      const eamObjectRef = bridge ? (bridge.eamEquipId || bridge.eamFlocId || '') : ''
+      const reqType = ['Inspection', 'Intervention', 'Review'].includes(req.data.requestType) ? req.data.requestType : 'Inspection'
+      const id = cds.utils.uuid()
+      const now = new Date().toISOString()
+      const payload = {
+        source: 'BIS-Prioritisation', assessmentID: aid, bridgeRef: a.bridgeRef, priorityBand: a.band,
+        priorityScore: a.priorityScore, criticality: a.criticality, tier: a.tier, residual: a.residual,
+        formulaVersion: a.formulaVersion, configVersion: a.configVersion, requestType: reqType,
+        eamObjectRef, targetEamSystem, raisedAt: now, note: req.data.notes || ''
+      }
+      const row = {
+        ID: id, assessment_ID: aid, bridge_ID: a.bridge_ID, bridgeRef: a.bridgeRef, bridgeName: a.bridgeName,
+        priorityBand: a.band, priorityScore: a.priorityScore, requestType: reqType, targetEamSystem,
+        eamObjectRef, status: 'QUEUED', payload: JSON.stringify(payload), notes: req.data.notes || null,
+        raisedBy: req.user?.id || 'system', raisedAt: now, active: true
+      }
+      await db.run(cds.ql.INSERT.into('bridge.management.EamWorkRequest').entries(row))
+      try {
+        await writeChangeLogs(db, {
+          objectType: 'EamWorkRequest', objectId: id, objectName: (a.bridgeName || a.bridgeRef || aid) + ' · ' + reqType,
+          source: 'Prioritisation', changedBy: req.user?.id || 'system',
+          changes: [
+            { fieldName: 'status', oldValue: '', newValue: 'QUEUED' },
+            { fieldName: 'requestType', oldValue: '', newValue: reqType },
+            { fieldName: 'targetEamSystem', oldValue: '', newValue: targetEamSystem }
+          ]
+        })
+      } catch (e) { log.error('WorkRequest ChangeLog failed:', e.message) }
+      log.info('EAM work request queued (not yet pushed — EAM never modified)', { id, bridgeRef: a.bridgeRef, targetEamSystem, reqType })
+      return db.run(SELECT.one.from('bridge.management.EamWorkRequest').where({ ID: id }))
+    })
+
+    // WorkRequests soft-delete (cancel)
+    this.on('deactivate', this.entities.WorkRequests, async (req) => {
+      const key = req.params[req.params.length - 1]
+      const id = key && (key.ID || key)
+      await db.run(cds.ql.UPDATE('bridge.management.EamWorkRequest').set({ active: false, status: 'CANCELLED' }).where({ ID: id }))
+      return db.run(SELECT.one.from('bridge.management.EamWorkRequest').where({ ID: id }))
+    })
+
     // ── Immutability: reject any UPDATE on a stored run (append-only) ──
     this.before('UPDATE', Assessments, (req) =>
       req.reject(400, 'Prioritisation runs are immutable. Create a new assessment to record a change (the old run is preserved).'))

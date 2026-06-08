@@ -272,7 +272,65 @@ sap.ui.define([
 
     onTabSelect: function () {},
     onReportMode: function () {},
-    onExportPdf: function () { window.print(); },
+
+    // Native PDF export of the exec one-pager: render a self-contained, branded, print-formatted
+    // document (KPIs + band distribution + plain-English headline + methodology appendix with the
+    // formula+weights version for reproducibility) and open the browser print dialog (Save as PDF).
+    onExportPdf: function () {
+      var rep = this.getView().getModel("rep").getData();
+      var cfg = this._cfg;
+      var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); };
+      var today = new Date().toISOString().slice(0, 10);
+      var bandRows = (rep.bands || []).map(function (b) {
+        return '<tr><td><b>' + esc(b.code) + '</b></td><td style="text-align:right">' + esc(b.count) + '</td></tr>';
+      }).join("");
+      var w = this._normalise(cfg.dimWeights).map(function (x) { return Math.round(x * 100) / 100; });
+      var pw = this._normalise(cfg.priorityWeights).map(function (x) { return Math.round(x * 100) / 100; });
+      var html =
+        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Bridge Prioritisation — Portfolio One-Pager</title>' +
+        '<style>body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1a18;max-width:760px;margin:0 auto;padding:24px;line-height:1.5}' +
+        'h1{font-size:20px;margin:0 0 2px}.sub{color:#5F5E5A;font-size:12px;margin:0 0 16px}' +
+        '.kpis{display:flex;gap:10px;margin:12px 0}.kpi{flex:1;background:#f4f3ee;border-radius:8px;padding:10px}.kpi .l{font-size:11px;color:#5F5E5A}.kpi .v{font-size:22px;font-weight:600}' +
+        'table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}td{padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,.12)}' +
+        'h2{font-size:13px;margin:18px 0 4px}.note{font-size:13px}.appendix{font-size:11.5px;color:#5F5E5A;border-top:0.5px solid rgba(0,0,0,.2);margin-top:18px;padding-top:10px;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace}' +
+        '@media print{button{display:none}}</style></head><body>' +
+        '<h1>Bridge Prioritisation — Portfolio One-Pager</h1>' +
+        '<p class="sub">Generated ' + today + ' · figures read from immutable stored runs · methodology ' + esc(cfg.formulaVersion) + ' / config ' + esc(cfg.version) + '</p>' +
+        '<div class="kpis">' +
+        '<div class="kpi"><div class="l">Assessed</div><div class="v">' + esc(rep.assessed) + '</div></div>' +
+        '<div class="kpi"><div class="l">P1 critical</div><div class="v">' + esc(rep.p1) + '</div></div>' +
+        '<div class="kpi"><div class="l">Stale inputs (&gt;12 mo)</div><div class="v">' + esc(rep.stale) + '</div></div>' +
+        '<div class="kpi"><div class="l">Top score</div><div class="v">' + esc(rep.topScore) + '</div></div></div>' +
+        '<h2>Portfolio by band</h2><table>' + bandRows + '</table>' +
+        '<h2>Headline</h2><p class="note">' + esc(rep.headline) + '</p>' +
+        '<div class="appendix"><b>Methodology appendix (reproducible)</b>\n' +
+        'criticality = Σ(dimension × weight), weights ' + w.join(" / ") + ' (safety/network/financial/environmental/reputational), normalised to 1\n' +
+        'tier = round(criticality), clamped 1..5\n' +
+        'residual = likelihood × tier   [an active restriction is a treatment FLAG, never a score input]\n' +
+        'priorityScore = ' + pw[0] + '·riskN + ' + pw[1] + '·critN + ' + pw[2] + '·stratN (normalised); band: 80/60/40/20 → P1..P5\n' +
+        'maxResidual ' + cfg.maxResidual + ' · maxCriticality ' + cfg.maxCriticality + ' · formula ' + esc(cfg.formulaVersion) + ' · config ' + esc(cfg.version) + '\n' +
+        'Every run stores its inputs + this exact parameter snapshot, so any past list reproduces byte-identically.</div>' +
+        '<p style="margin-top:14px"><button onclick="window.print()">Print / Save as PDF</button></p>' +
+        '</body></html>';
+      var win = window.open("", "_blank");
+      if (!win) { MessageToast.show("Allow pop-ups to export the one-pager."); return; }
+      win.document.open(); win.document.write(html); win.document.close();
+      win.focus();
+      setTimeout(function () { try { win.print(); } catch (_e) {} }, 400);
+    },
+
+    // Raise an EAM work request from a stored run (bound action; server queues it — EAM untouched).
+    onRaiseWorkRequest: function (oEvent) {
+      var ctx = oEvent.getSource().getBindingContext("wl"); if (!ctx) return;
+      var row = ctx.getObject();
+      if (!row.ID) { MessageToast.show("No stored run for this row."); return; }
+      var url = this._svc + "/Assessments(" + row.ID + ")/PrioritisationService.raiseWorkRequest";
+      fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ requestType: "Inspection", notes: "Raised from prioritisation worklist (" + row.band + " · " + row.priorityScore + ")" }) })
+        .then(function (r) { return r.ok ? r.json() : r.json().then(function (b) { throw new Error((b.error && b.error.message) || r.statusText); }); })
+        .then(function (wr) { MessageToast.show("EAM work request " + wr.status + " for " + (wr.bridgeName || wr.bridgeRef) + " → " + wr.targetEamSystem + " (EAM not modified)."); })
+        .catch(function (e) { MessageBox.error("Could not raise work request: " + e.message); });
+    },
 
     _buildReports: function (rows) {
       var rep = this.getView().getModel("rep");

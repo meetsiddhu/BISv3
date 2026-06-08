@@ -144,7 +144,8 @@
                     <Column hAlign="End" width="6rem"><Text text="Crit/Tier" /></Column>
                     <Column hAlign="End" width="6rem"><Text text="Residual" /></Column>
                     <Column hAlign="End" width="6rem"><Text text="Score" /></Column>
-                    <Column hAlign="End" width="11rem"><Text text="Confidence" /></Column>
+                    <Column hAlign="End" width="9rem"><Text text="Confidence" /></Column>
+                    <Column hAlign="End" width="13rem"><Text text="EAM work request" /></Column>
                   </columns>
                   <items><ColumnListItem>
                     <cells>
@@ -154,6 +155,8 @@
                       <Text text="{wl>residualText}" />
                       <ObjectNumber number="{wl>priorityScore}" />
                       <Text text="{wl>confidence}" />
+                      <Button text="Raise to EAM" icon="sap-icon://outbox" press=".onRaiseWorkRequest" type="Transparent"
+                              tooltip="Raise an inspection work request to SAP EAM (queued; EAM is never modified here)" />
                     </cells>
                   </ColumnListItem></items>
                 </Table>

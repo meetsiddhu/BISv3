@@ -8,12 +8,27 @@ service PrioritisationService {
   // Immutable, append-only runs: READ for view, CREATE for manage. NO update/delete granted —
   // a correction creates a NEW run (linked via supersededBy); removal is soft (deactivate, admin).
   @restrict: [
-    { grant: 'READ',       to: 'view'   },
-    { grant: 'CREATE',     to: 'manage' },
-    { grant: 'deactivate', to: 'admin'  }
+    { grant: 'READ',              to: 'view'   },
+    { grant: 'CREATE',            to: 'manage' },
+    { grant: 'raiseWorkRequest',  to: 'manage' },
+    { grant: 'deactivate',        to: 'admin'  }
   ]
   entity Assessments as projection on my.PrioritisationAssessment actions {
     action deactivate() returns Assessments;
+    // Raise an inspection/intervention WORK REQUEST to SAP EAM for this asset. Creates a local
+    // outbound record only (never writes EAM master). manage-gated.
+    @Common.SideEffects: { TargetEntities: ['/WorkRequests'] }
+    action raiseWorkRequest(requestType : String, notes : String) returns WorkRequests;
+  };
+
+  // Outbound EAM work-request queue/audit (read for view; created only via raiseWorkRequest;
+  // soft-delete via deactivate). Append-only at the data layer — no direct CREATE/UPDATE.
+  @restrict: [
+    { grant: 'READ',       to: 'view'   },
+    { grant: 'deactivate', to: 'manage' }
+  ]
+  entity WorkRequests as projection on my.EamWorkRequest actions {
+    action deactivate() returns WorkRequests;
   };
 
   // Versioned engine config — read for everyone, only admin writes a new version.
