@@ -13,7 +13,7 @@
       "fallbackLocale": ""
     },
     "applicationVersion": {
-      "version": "1.0.7"
+      "version": "1.0.8"
     },
     "dataSources": {
       "AdminService": {
@@ -478,7 +478,7 @@
                       "title": "Map",
                       "position": {
                         "placement": "After",
-                        "anchor": "GeneralInformation"
+                        "anchor": "ExternalSystems"
                       }
                     },
                     "customAttributesSection": {

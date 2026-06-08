@@ -59,7 +59,8 @@ annotate AdminService.Bridges with @(
     DeleteHidden: true,
 
     Facets: [
-      // ── Tab 1: Core Identity & Location (3 sub-sections) ─────────────────
+      // ── Tab 1: Core Identity & Location ─────────────────────────────────
+      // Risk & Strategy moved out to its own tab (was overcrowding this section).
       {
         $Type : 'UI.CollectionFacet',
         Label : 'Core Identity & Location',
@@ -67,9 +68,18 @@ annotate AdminService.Bridges with @(
         Facets: [
           {$Type: 'UI.ReferenceFacet', Label: 'Asset Identity',     Target: '@UI.FieldGroup#AssetIdentity'},
           {$Type: 'UI.ReferenceFacet', Label: 'Mode & Network',     Target: '@UI.FieldGroup#ModeNetwork'},
-          {$Type: 'UI.ReferenceFacet', Label: 'Risk & Strategy',    Target: '@UI.FieldGroup#RiskAssessment'},
           {$Type: 'UI.ReferenceFacet', Label: 'Geographic Location', Target: '@UI.FieldGroup#GeoLocation'},
           {$Type: 'UI.ReferenceFacet', Label: 'Ownership',           Target: '@UI.FieldGroup#Ownership'},
+        ]
+      },
+      // ── Tab 2: Risk & Strategy (own tab) ────────────────────────────────
+      {
+        $Type : 'UI.CollectionFacet',
+        Label : 'Risk & Strategy',
+        ID    : 'RiskStrategy',
+        Facets: [
+          {$Type: 'UI.ReferenceFacet', Label: 'Risk Assessment',          Target: '@UI.FieldGroup#RiskAssessment'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Capital Planning (ROI / RUL)', Target: '@UI.FieldGroup#RiskFinancials'},
         ]
       },
       // ── Tab 2: Physical Characteristics (2 sub-sections) ─────────────────
@@ -93,7 +103,7 @@ annotate AdminService.Bridges with @(
           {$Type: 'UI.ReferenceFacet', Label: 'NHVR Approvals',       Target: '@UI.FieldGroup#NHVRApprovals'},
         ]
       },
-      // ── Tab 8: Data Provenance (source + audit sub-sections) ─────────────
+      // ── Data Provenance (source + audit sub-sections) ───────────────────
       {
         $Type : 'UI.CollectionFacet',
         Label : 'Data Provenance',
@@ -101,6 +111,18 @@ annotate AdminService.Bridges with @(
         Facets: [
           {$Type: 'UI.ReferenceFacet', Label: 'Source Information', Target: '@UI.FieldGroup#SourceInfo'},
           {$Type: 'UI.ReferenceFacet', Label: 'Audit Trail',        Target: '@UI.FieldGroup#AuditTrail'},
+        ]
+      },
+      // ── External Systems (EAM deep-links + BNAC + external references) ───
+      {
+        $Type : 'UI.CollectionFacet',
+        Label : 'External Systems',
+        ID    : 'ExternalSystems',
+        Facets: [
+          {$Type: 'UI.ReferenceFacet', Label: 'SAP EAM (S/4) Linkage', Target: '@UI.FieldGroup#EamLinks'},
+          {$Type: 'UI.ReferenceFacet', Label: 'EAM Sync Status',       Target: '@UI.FieldGroup#EamSync'},
+          {$Type: 'UI.ReferenceFacet', Label: 'External References',    Target: '@UI.FieldGroup#ExternalRefs'},
+          {$Type: 'UI.ReferenceFacet', Label: 'BNAC Object Links',      Target: '_bnacLinks/@UI.LineItem'},
         ]
       },
     ],
@@ -138,6 +160,17 @@ annotate AdminService.Bridges with @(
         {Value: assetClassStrategy_ID, Label: 'Asset Class Strategy'},
         {Value: nextInspectionDue,  Label: 'Next Inspection Due'},
         {Value: inspectionOverdue,  Label: 'Inspection Overdue'},
+        {Value: policyInterventionDue, Label: 'Policy Intervention Due'},
+      ]
+    },
+    FieldGroup#RiskFinancials: {
+      Data: [
+        {Value: estimatedRulYears,  Label: 'Estimated RUL (years)'},
+        {Value: likelyFailureCostAud, Label: 'Likely Failure Cost (AUD)'},
+        {Value: expectedValueAud,   Label: 'Expected Annual Loss (AUD)'},
+        {Value: mitigationCostAud,  Label: 'Mitigation Cost (AUD)'},
+        {Value: riskReductionPct,   Label: 'Risk Reduction (%)'},
+        {Value: benefitCostRatio,   Label: 'Benefit-Cost Ratio'},
       ]
     },
     FieldGroup#GeoLocation: {
@@ -228,6 +261,40 @@ annotate AdminService.Bridges with @(
         {Value: createdAt},
         {Value: modifiedBy},
         {Value: modifiedAt},
+      ]
+    },
+
+    // External Systems tab — SAP EAM (S/4) reference linkage (deep-link out; EAM is the
+    // system of record). These point at EAM master/work objects; this app complements EAM.
+    FieldGroup#EamLinks: {
+      Data: [
+        {Value: eamSystem,          Label: 'EAM System'},
+        {Value: eamObjectType,      Label: 'EAM Object Type'},
+        {Value: eamFlocId,          Label: 'Functional Location (FLOC)'},
+        {Value: eamEquipId,         Label: 'Equipment'},
+        {Value: eamPlant,           Label: 'Maintenance Plant (WERKS)'},
+        {Value: eamCompanyCode,     Label: 'Company Code (BUKRS)'},
+        {Value: eamControllingArea, Label: 'Controlling Area (KOKRS)'},
+        {Value: eamOrgUnit,         Label: 'Org Unit (ORGID)'},
+      ]
+    },
+    FieldGroup#EamSync: {
+      Data: [
+        {Value: eamSyncMode,   Label: 'Sync Mode'},
+        {Value: eamSyncStatus, Label: 'Sync Status'},
+        {Value: eamLastSyncAt, Label: 'Last Synced At'},
+        {Value: eamLastSyncBy, Label: 'Last Synced By'},
+      ]
+    },
+    // Other external references (URLs render as links in FE).
+    FieldGroup#ExternalRefs: {
+      Data: [
+        {Value: dataSource,            Label: 'Source System'},
+        {Value: sourceReferenceUrl,    Label: 'Source Record URL'},
+        {Value: openDataReference,     Label: 'Open-Data Reference'},
+        {Value: nhvrReferenceUrl,      Label: 'NHVR Reference'},
+        {Value: gazetteReference,      Label: 'Gazette Reference'},
+        {Value: asBuiltDrawingReference, Label: 'As-Built Drawing Reference'},
       ]
     },
 
@@ -1696,3 +1763,22 @@ annotate AdminService.RiskBand with @(
   UI.FieldGroup #RBMain: { Data: [ {Value:code},{Value:name},{Value:minScore},{Value:maxScore},{Value:colour},{Value:sortOrder} ] }
 );
 annotate AdminService.RiskBand with { code @title:'Code'; name @title:'Band'; minScore @title:'Min Score'; maxScore @title:'Max Score'; colour @title:'Colour'; sortOrder @title:'Order'; };
+
+// ── BNAC object-id links (External Systems tab on the Bridge object page) ──────
+// Read-only table of BNAC deep-links matched to the bridge by bridgeId. bnacUrl is the
+// resolved deep-link (active-environment baseUrl + bnacObjectId).
+annotate AdminService.BnacObjectIdMap with @(
+  UI.LineItem: [
+    { $Type: 'UI.DataFieldWithUrl', Value: bnacObjectId, Url: bnacUrl, Label: 'BNAC Object' },
+    { Value: loadedAt,    Label: 'Loaded At' },
+    { Value: loadedBy,    Label: 'Loaded By' },
+    { Value: loadBatchId, Label: 'Load Batch' },
+  ]
+) {
+  bridgeId     @title: 'Bridge Id';
+  bnacObjectId @title: 'BNAC Object Id';
+  bnacUrl      @title: 'BNAC URL';
+  loadedAt     @title: 'Loaded At';
+  loadedBy     @title: 'Loaded By';
+  loadBatchId  @title: 'Load Batch';
+};

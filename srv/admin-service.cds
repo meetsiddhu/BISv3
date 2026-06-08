@@ -16,7 +16,10 @@ service AdminService {
     // FE_UX-1: object-page risk criticality. VIRTUAL (computed in an after-READ handler),
     // NOT a calculated SQL column — a calculated CASE on a draft-enabled entity is
     // mis-translated by the CAP draft engine to invalid SQL and 500s draftEdit.
-    virtual riskCriticality : Integer
+    virtual riskCriticality : Integer,
+    // External Systems tab: BNAC object-id links surfaced by business-key match on
+    // bridgeId (BnacObjectIdMap is keyed by bridgeId; no managed FK). Read-only on the page.
+    _bnacLinks : Association to many my.BnacObjectIdMap on _bnacLinks.bridgeId = bridgeId
   } actions {
     action deactivate() returns Bridges;
     action reactivate() returns Bridges;
@@ -267,7 +270,11 @@ service AdminService {
   @restrict: [{ grant: '*', to: 'admin' }]
   entity BnacEnvironment as projection on my.BnacEnvironment;
 
-  @restrict: [{ grant: '*', to: 'admin' }]
+  // READ for view/manage so the bridge object page can show BNAC links; maintain = admin.
+  @restrict: [
+    { grant: 'READ', to: ['view','manage','admin'] },
+    { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }
+  ]
   entity BnacObjectIdMap as projection on my.BnacObjectIdMap;
 
   // ── Audit and monitoring — manager+admin read only ──

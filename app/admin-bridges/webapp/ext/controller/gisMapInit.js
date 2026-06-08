@@ -226,6 +226,9 @@
             if (fitBounds && fitBounds.isValid()) { map.fitBounds(fitBounds.pad(0.25)); }
             else if (hasPoint) { map.setView([lat, lng], 14); }
             _map = map;
+            // FE lazy-renders object-page sections; if the map initialised while the
+            // section had no size, Leaflet renders blank until invalidateSize is called.
+            setTimeout(function () { try { map.invalidateSize(); } catch (_e) {} }, 250);
         });
     }
 
@@ -236,9 +239,14 @@
             leafletStylesheet.id = "_gis_css"; leafletStylesheet.rel = "stylesheet"; leafletStylesheet.href = LEAFLET + "/leaflet.css";
             document.head.appendChild(leafletStylesheet);
         }
-        var leafletScript = document.createElement("script");
-        leafletScript.src = LEAFLET + "/leaflet.js";
-        leafletScript.onload = function () {
+        // AMD shim (the bug): in a SAPUI5 page window.define (the AMD loader) is present
+        // with define.amd, so Leaflet's UMD wrapper registers as an anonymous AMD module
+        // instead of setting window.L — leaving window.L undefined and the map blank even
+        // though leaflet.js loads HTTP-200. Hide define while Leaflet executes so it falls
+        // through to the browser-global branch and sets window.L, then restore define.
+        var _amdDefine = window.define;
+        function afterLoad() {
+            if (_amdDefine) { window.define = _amdDefine; }
             if (window.L && window.L.Icon && window.L.Icon.Default)
                 window.L.Icon.Default.mergeOptions({
                     iconUrl:       LEAFLET + "/images/marker-icon.png",
@@ -246,13 +254,19 @@
                     shadowUrl:     LEAFLET + "/images/marker-shadow.png"
                 });
             cb();
-        };
+        }
+        var leafletScript = document.createElement("script");
+        leafletScript.src = LEAFLET + "/leaflet.js";
+        leafletScript.onload = afterLoad;
         leafletScript.onerror = function () {
+            // CDN fallback — keep define hidden through its execution too.
             var fallbackLeafletScript = document.createElement("script");
             fallbackLeafletScript.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-            fallbackLeafletScript.onload = cb;
+            fallbackLeafletScript.onload = afterLoad;
+            fallbackLeafletScript.onerror = function () { if (_amdDefine) { window.define = _amdDefine; } cb(); };
             document.head.appendChild(fallbackLeafletScript);
         };
+        if (_amdDefine) { window.define = undefined; }
         document.head.appendChild(leafletScript);
     }
 
@@ -293,6 +307,21 @@
             if (el) { el._gisReady = false; setTimeout(window._gisInit, 600); }
         }
     });
+
+    // ── Render trigger ──────────────────────────────────────────────────────
+    // The Map object-page section is LAZY-rendered by Fiori Elements: #gisMapHostEl
+    // only enters the DOM when the user opens the Map tab — which can be long after
+    // this script self-invokes. Watch for the host appearing (and not yet built) and
+    // build the map then. This is the actual render trigger; the self-call below only
+    // catches the case where the section is already present.
+    try {
+        var _gisHostObserver = new MutationObserver(function () {
+            if (document.getElementById("gisMapHostEl") && !document.getElementById("gisMapCanvas")) {
+                window._gisInit();
+            }
+        });
+        _gisHostObserver.observe(document.body, { childList: true, subtree: true });
+    } catch (_e) { /* MutationObserver unavailable — rely on self-call + hashchange */ }
 
     window._gisInit();
 }());
