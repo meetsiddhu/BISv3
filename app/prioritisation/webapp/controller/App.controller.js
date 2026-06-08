@@ -91,9 +91,15 @@ sap.ui.define([
 
     _loadBridges: function () {
       var self = this;
+      this._bridgesLoaded = false;
       this._get("/AssessableBridges?$orderby=bridgeName&$top=500").then(function (d) {
         self.getView().getModel("br").setProperty("/rows", d.value || []);
-      }).catch(function () {});
+        self._bridgesLoaded = true;
+        self._buildReports(self.getView().getModel("wl").getProperty("/rows") || []); // refresh coverage once known
+      }).catch(function (_e) {
+        self._bridgesLoaded = false; // coverage must NOT default to 100% on failure
+        MessageToast.show("Bridge list unavailable — portfolio coverage will show as unknown.");
+      });
     },
 
     _loadWorklist: function () {
@@ -464,14 +470,17 @@ sap.ui.define([
       var decileN = Math.max(1, Math.ceil(sorted.length * 0.1));
       var topDecileCost = sorted.slice(0, decileN).reduce(function (s, r) { return s + (Number(r.mitigationCostAud) || 0); }, 0);
       var fmtM = function (n) { return n >= 1e6 ? "$" + (n / 1e6).toFixed(1) + "m" : n > 0 ? "$" + Math.round(n / 1000) + "k" : "$0"; };
-      // GAP #11: coverage denominator (assessed of total portfolio).
-      var totalBridges = (this.getView().getModel("br").getProperty("/rows") || []).length || rows.length;
-      var coveragePct = totalBridges ? Math.round(rows.length / totalBridges * 100) : 0;
+      // GAP #11 (hardened): coverage denominator = total portfolio. If the bridge list FAILED to
+      // load, coverage is UNKNOWN — never fall back to rows.length (which would falsely read 100%).
+      var brRows = this.getView().getModel("br").getProperty("/rows") || [];
+      var bridgesKnown = this._bridgesLoaded === true && brRows.length > 0;
+      var totalBridges = bridgesKnown ? brRows.length : null;
+      var coveragePct = bridgesKnown ? Math.round(rows.length / totalBridges * 100) : null;
       // mixed-methodology guard for the appendix reproducibility note
       var versions = Array.from(new Set(rows.map(function (r) { return (r.formulaVersion || "?") + "/" + (r.configVersion || "?"); })));
       rep.setProperty("/assessed", rows.length);
-      rep.setProperty("/totalBridges", totalBridges);
-      rep.setProperty("/coveragePct", coveragePct);
+      rep.setProperty("/totalBridges", bridgesKnown ? totalBridges : "—");
+      rep.setProperty("/coveragePct", bridgesKnown ? coveragePct : "—");
       rep.setProperty("/p1", counts.P1);
       rep.setProperty("/stale", stale);
       rep.setProperty("/topScore", top);
@@ -482,7 +491,8 @@ sap.ui.define([
       rep.setProperty("/asAt", new Date().toISOString().slice(0, 10));
       rep.setProperty("/bands", ["P1", "P2", "P3", "P4", "P5"].map(function (c) { return { code: c, count: counts[c], state: BAND_STATE[c] }; }));
       rep.setProperty("/headline",
-        counts.P1 + " of " + rows.length + " assessed structures are P1 critical (covering " + coveragePct + "% of the " + totalBridges + "-bridge portfolio). " +
+        counts.P1 + " of " + rows.length + " assessed structures are P1 critical" +
+        (bridgesKnown ? " (covering " + coveragePct + "% of the " + totalBridges + "-bridge portfolio). " : " (portfolio size unavailable — coverage not shown). ") +
         "Funding the top decile (" + decileN + " worst) is an estimated " + fmtM(topDecileCost) + " of intervention. " +
         stale + " run(s) rely on condition data older than 12 months and should be re-inspected before the funding submission. " +
         "All figures read from the immutable stored runs" + (versions.length > 1 ? " (NOTE: " + versions.length + " methodology versions present — re-run for a single-version submission)." : ".")

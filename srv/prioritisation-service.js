@@ -185,6 +185,16 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           }
         }
       }
+      // GAP #4 (ATOMIC): supersede prior active runs for this bridge IN THE SAME TRANSACTION as the
+      // insert, stamping supersededBy = this run's id. Done in `before` (not `after`) so two active
+      // runs can never coexist — even on a crash between insert and supersede. The new run isn't
+      // inserted yet, so every currently-active run for the bridge is a prior to retire.
+      if (!d.ID) d.ID = cds.utils.uuid()
+      if (d.bridge_ID != null) {
+        await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment')
+          .set({ active: false, supersededBy_ID: d.ID })
+          .where({ bridge_ID: d.bridge_ID, active: true }))
+      }
     })
 
     // ChangeLog on CREATE (rule 3) — non-bulk source so a transient miss warns, not blocks.
@@ -204,25 +214,20 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           ]
         })
       } catch (e) { log.error('Prioritisation ChangeLog failed:', e.message) }
+      // The supersede MUTATION already happened atomically in before('CREATE'); here we only AUDIT
+      // it (best-effort) by logging the prior runs this run retired (supersededBy = data.ID).
       try {
-        if (data.bridge_ID != null) {
-          const prior = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
-            .columns('ID').where({ bridge_ID: data.bridge_ID, active: true, ID: { '!=': data.ID } }))
-          if (prior && prior.length) {
-            await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment')
-              .set({ active: false, supersededBy_ID: data.ID })
-              .where({ bridge_ID: data.bridge_ID, active: true, ID: { '!=': data.ID } }))
-            for (const p of prior) {
-              await writeChangeLogs(db, {
-                objectType: 'PrioritisationAssessment', objectId: String(p.ID), objectName: data.bridgeName || data.bridgeRef || p.ID,
-                source: 'Prioritisation', changedBy: req.user?.id || 'system',
-                changes: [{ fieldName: 'active', oldValue: 'true', newValue: 'false' }, { fieldName: 'supersededBy', oldValue: '', newValue: String(data.ID) }]
-              }).catch(() => {})
-            }
-            log.info('Prioritisation run superseded prior active run(s)', { bridge_ID: data.bridge_ID, superseded: prior.length, by: data.ID })
-          }
+        const superseded = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
+          .columns('ID').where({ supersededBy_ID: data.ID }))
+        for (const p of (superseded || [])) {
+          await writeChangeLogs(db, {
+            objectType: 'PrioritisationAssessment', objectId: String(p.ID), objectName: data.bridgeName || data.bridgeRef || p.ID,
+            source: 'Prioritisation', changedBy: req.user?.id || 'system',
+            changes: [{ fieldName: 'active', oldValue: 'true', newValue: 'false' }, { fieldName: 'supersededBy', oldValue: '', newValue: String(data.ID) }]
+          }).catch(() => {})
         }
-      } catch (e) { log.error('Prioritisation supersede failed:', e.message) }
+        if (superseded && superseded.length) log.info('Prioritisation run superseded prior active run(s)', { bridge_ID: data.bridge_ID, superseded: superseded.length, by: data.ID })
+      } catch (e) { log.error('Prioritisation supersede audit failed:', e.message) }
     })
 
     // ── EAM-outbound: raise a work request (bounded — NEVER writes EAM) ──
