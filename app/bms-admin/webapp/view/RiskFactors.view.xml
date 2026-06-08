@@ -35,7 +35,7 @@
             <cells>
               <ObjectIdentifier title="{factor}" />
               <Text text="{name}" />
-              <ObjectNumber number="{= ${weight} == null ? '–' : ${weight}}" />
+              <ObjectNumber number="{weight}" />
               <Switch state="{= ${active} !== false}" change=".onToggleActive" customTextOn=" " customTextOff=" " />
               <Button icon="sap-icon://edit" type="Transparent" press=".onEdit" tooltip="{i18n>btn.edit}" />
             </cells>
