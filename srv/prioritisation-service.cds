@@ -62,4 +62,14 @@ service PrioritisationService {
     inputsTotal          : Integer;
     conditionAsAtMonths  : Integer;
   };
+
+  // Server-rendered, branded, paginated A4 PDF of the exec one-pager (figures computed server-side
+  // from the immutable runs — reproducible, not the client's view). Returns base64 bytes so it
+  // travels over the existing /odata route + honours @restrict; the client wraps it in a Blob.
+  function reportPdf() returns {
+    filename       : String;
+    contentType    : String;
+    contentBase64  : LargeString;
+    docId          : String;
+  };
 }

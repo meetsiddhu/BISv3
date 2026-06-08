@@ -6,7 +6,7 @@
     "title": "Bridge Prioritisation",
     "description": "Risk + criticality based bridge prioritisation (reproducible, immutable runs)",
     "i18n": "i18n/i18n.properties",
-    "applicationVersion": { "version": "1.0.2" },
+    "applicationVersion": { "version": "1.0.3" },
     "dataSources": {
       "PrioritisationService": {
         "uri": "/odata/v4/prioritisation/",

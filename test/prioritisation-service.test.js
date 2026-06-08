@@ -130,6 +130,19 @@ describe('PrioritisationService', () => {
     expect(logs.length).toBeGreaterThan(0)
   })
 
+  test('reportPdf returns a server-rendered, valid PDF (figures from the immutable runs)', async () => {
+    await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
+    const srv = await cds.connect.to('PrioritisationService')
+    const doc = await srv.tx({ user: new cds.User({ id: 'v', roles: ['view'] }) }, (tx) => tx.send('reportPdf'))
+    expect(doc).toBeTruthy()
+    expect(doc.contentType).toBe('application/pdf')
+    expect(doc.filename).toMatch(/\.pdf$/)
+    expect(doc.docId).toMatch(/^BIS-PRI-/)
+    const buf = Buffer.from(doc.contentBase64, 'base64')
+    expect(buf.slice(0, 5).toString('latin1')).toBe('%PDF-')
+    expect(buf.toString('latin1').trimEnd().endsWith('%%EOF')).toBe(true)
+  })
+
   test('a stored run is reproducible — editing config later does NOT change its frozen outputs', async () => {
     const created = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
     const id = created.ID || (created[0] && created[0].ID)

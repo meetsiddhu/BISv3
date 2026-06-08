@@ -364,10 +364,33 @@ sap.ui.define([
     onTabSelect: function () {},
     onReportMode: function () {},
 
-    // Native PDF export of the exec one-pager: render a self-contained, branded, print-formatted
-    // document (KPIs + band distribution + plain-English headline + methodology appendix with the
-    // formula+weights version for reproducibility) and open the browser print dialog (Save as PDF).
+    // Export the exec one-pager. Primary: SERVER-RENDERED branded A4 PDF (figures computed
+    // server-side from the immutable runs — reproducible). Fallback: client print-to-PDF.
     onExportPdf: function () {
+      var self = this;
+      var win = window.open("", "_blank"); // open synchronously (popup-blocker friendly)
+      if (win) { try { win.document.write("<p style='font-family:sans-serif;padding:24px'>Generating server-rendered PDF&hellip;</p>"); } catch (_e) {} }
+      fetch(this._svc + "/reportPdf()", { headers: { Accept: "application/json" }, credentials: "same-origin" })
+        .then(function (r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+        .then(function (d) {
+          if (!d || !d.contentBase64) throw new Error("empty document");
+          var bin = atob(d.contentBase64);
+          var bytes = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) { bytes[i] = bin.charCodeAt(i); }
+          var url = URL.createObjectURL(new Blob([bytes], { type: d.contentType || "application/pdf" }));
+          if (win) { win.location.href = url; } else { window.open(url, "_blank"); }
+          MessageToast.show("Server-rendered one-pager " + (d.docId || "") + " (reconciles to the stored runs).");
+          setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        })
+        .catch(function (e) {
+          MessageToast.show("Server PDF unavailable (" + e.message + ") — using print fallback.");
+          if (win) { try { win.close(); } catch (_e2) {} }
+          self._pdfHtmlFallback();
+        });
+    },
+
+    // Fallback: client-side print-to-PDF (self-contained, branded, print-formatted document).
+    _pdfHtmlFallback: function () {
       var rep = this.getView().getModel("rep").getData();
       var cfg = this._cfg;
       var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); };

@@ -3,6 +3,7 @@ const { SELECT } = cds.ql
 const { writeChangeLogs } = require('./audit-log')
 const { getConfig } = require('./system-config')
 const engine = require('./lib/prioritisation')
+const { Pdf } = require('./lib/pdf')
 
 // Bridge Prioritisation service. Every output is computed SERVER-SIDE from the inputs + the
 // active config snapshot (clients never set scores), runs are APPEND-ONLY (no UPDATE/DELETE),
@@ -73,6 +74,70 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       const facts = Object.assign({}, f)
       delete facts.bridge // strip the raw entity row — return only the federated facts
       return facts
+    })
+
+    // ── reportPdf: server-rendered, branded, paginated A4 exec one-pager ──
+    // Figures are computed HERE from the immutable runs (not the client's view) so the document is
+    // reproducible and reconciles exactly to the stored figures. Returns base64 PDF bytes.
+    this.on('reportPdf', async () => {
+      const runs = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
+        .where({ active: true }).orderBy({ priorityScore: 'desc' }))
+      const rawCfg = await db.run(SELECT.one.from('bridge.management.PrioritisationConfig')
+        .where({ active: true }).orderBy({ modifiedAt: 'desc' })) || {}
+      const cfg = await activeConfig()
+      let totalBridges = runs.length
+      try { const c = await db.run(SELECT.one`count(*) as n`.from('bridge.management.Bridges')); totalBridges = (c && (c.n ?? c.N)) || runs.length } catch (_e) { /* keep */ }
+
+      const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
+      const counts = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0 }
+      let stale = 0
+      runs.forEach(r => { if (counts[r.band] != null) counts[r.band]++; if (r.conditionAsAtMonths != null && r.conditionAsAtMonths > 12) stale++ })
+      const decileN = Math.max(1, Math.ceil(runs.length * 0.1))
+      const topDecileCost = runs.slice(0, decileN).reduce((s, r) => s + num(r.mitigationCostAud), 0)
+      const fmtM = (n) => n >= 1e6 ? '$' + (n / 1e6).toFixed(1) + 'm' : n > 0 ? '$' + Math.round(n / 1000) + 'k' : '$0'
+      const coveragePct = totalBridges ? Math.round(runs.length / totalBridges * 100) : 0
+      const versions = Array.from(new Set(runs.map(r => (r.formulaVersion || '?') + '/' + (r.configVersion || '?'))))
+      const owner = rawCfg.methodologyOwner || '—'
+      const version = rawCfg.version || cfg.version || 'v1'
+      const formulaVersion = rawCfg.formulaVersion || cfg.formulaVersion || 'v1-normalised'
+      const today = new Date().toISOString().slice(0, 10)
+      // deterministic-ish doc id from the run set (same set → same id)
+      let h = 0; const key = runs.map(r => r.ID).sort().join('|')
+      for (let i = 0; i < key.length; i++) { h = ((h << 5) - h + key.charCodeAt(i)) | 0 }
+      const docId = 'BIS-PRI-' + today.replace(/-/g, '') + '-' + (Math.abs(h).toString(36).toUpperCase() + '0000').slice(0, 4)
+      const w = engine.normalise(cfg.dimWeights).map(x => Math.round(x * 100) / 100)
+      const pw = engine.normalise(cfg.priorityWeights).map(x => Math.round(x * 100) / 100)
+
+      const doc = new Pdf({ footer: docId + '   ·   figures reconcile to the immutable stored runs' })
+      doc.brandHeader('Bridge Prioritisation — Portfolio One-Pager', 'Generated ' + today + ' · methodology ' + formulaVersion + ' / config ' + version + (versions.length > 1 ? '  (mixed versions — see appendix)' : ''))
+      doc.kpis([
+        { label: 'Top-decile cost (' + decileN + ' worst)', value: fmtM(topDecileCost) },
+        { label: 'P1 critical', value: counts.P1 },
+        { label: 'Assessed (of ' + totalBridges + ')', value: runs.length + ' / ' + coveragePct + '%' },
+        { label: 'Stale (>12 mo)', value: stale }
+      ])
+      doc.heading('Portfolio by band')
+      doc.tableHeader([{ text: 'Band', x: 48, w: 200 }, { text: 'Count', x: 400, w: 99, align: 'right' }])
+      ;['P1', 'P2', 'P3', 'P4', 'P5'].forEach(c => doc.tableRow([{ text: c, x: 48, w: 200, bold: true }, { text: counts[c], x: 400, w: 99, align: 'right' }]))
+      doc.heading('Headline')
+      doc.paragraph(counts.P1 + ' of ' + runs.length + ' assessed structures are P1 critical (covering ' + coveragePct + '% of the ' + totalBridges + '-bridge portfolio). ' +
+        'Funding the top decile (' + decileN + ' worst) is an estimated ' + fmtM(topDecileCost) + ' of intervention. ' +
+        stale + ' run(s) rely on condition data older than 12 months and should be re-inspected before the funding submission. ' +
+        'All figures read from the immutable stored runs' + (versions.length > 1 ? ' (NOTE: ' + versions.length + ' methodology versions present — re-run for a single-version submission).' : '.'))
+      doc.heading('Governance')
+      doc.kv('Prepared (as-at)', today)
+      doc.kv('Methodology owner', owner + ' · ' + formulaVersion + ' / config ' + version)
+      doc.kv('Methodology versions', versions.join(', ') + (versions.length > 1 ? '  (mixed)' : ''))
+      doc.kv('Endorsed by / date', '____________________ / __________')
+      doc.heading('Methodology appendix (reproducible)')
+      doc.paragraph('criticality = sum(dimension x weight), weights ' + w.join(' / ') + ' (safety/network/financial/environmental/reputational) normalised to 1. ' +
+        'tier = round(criticality) clamped 1..5. residual = likelihood x tier (an active restriction is a treatment FLAG, never a score input). ' +
+        'priorityScore = ' + pw[0] + ' riskN + ' + pw[1] + ' critN + ' + pw[2] + ' stratN (normalised); band thresholds 80/60/40/20 -> P1..P5. ' +
+        'maxResidual ' + cfg.maxResidual + ', maxCriticality ' + cfg.maxCriticality + '. ' +
+        'Every run stores its inputs and its exact parameter snapshot, so any past ranked list reproduces byte-identically.')
+
+      log.info('Prioritisation exec PDF rendered', { docId, runs: runs.length, pages: 'auto' })
+      return { filename: docId + '.pdf', contentType: 'application/pdf', contentBase64: doc.build().toString('base64'), docId }
     })
 
     // ── CREATE: feature-flag gate + SERVER-SIDE compute + immutable run stamp ──
