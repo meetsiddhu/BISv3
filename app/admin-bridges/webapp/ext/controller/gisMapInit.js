@@ -156,6 +156,7 @@
             var copyBtn = document.getElementById("gisCopyBtn");
             if (copyBtn && !copyBtn._bmsWired) { copyBtn._bmsWired = true; copyBtn.addEventListener("click", window._gisCopy); }
             if (!getBridgeKeyPredicate()) { setCoord(T("gisNoBridgeId", "No bridge ID in URL")); return; }
+            _lastBridgeKey = getBridgeKeyPredicate(); // mark so tab-click hashchanges don't re-draw
             readBridge("latitude,longitude,bridgeName,bridgeId,state,postingStatus,geoJson")
                 .then(draw)
                 .catch(function (error) { setCoord(T("gisErrorPrefix", "Error:") + " " + error.message); });
@@ -227,12 +228,18 @@
                     .addTo(map);
                 fitBounds = fitBounds ? fitBounds.extend([lat, lng]) : null;
             }
-            if (fitBounds && fitBounds.isValid()) { map.fitBounds(fitBounds.pad(0.25)); }
-            else if (hasPoint) { map.setView([lat, lng], 14); }
             _map = map;
-            // FE lazy-renders object-page sections; if the map initialised while the
-            // section had no size, Leaflet renders blank until invalidateSize is called.
-            setTimeout(function () { try { map.invalidateSize(); } catch (_e) {} }, 250);
+            // FE lazy-renders object-page sections; the container may have no computed size
+            // yet, which makes fitBounds throw "reading 'min'". Recompute size first, then
+            // fit/centre inside a guard so a transient sizing issue never breaks the panel.
+            try { map.invalidateSize(false); } catch (_e) {}
+            try {
+                if (fitBounds && fitBounds.isValid()) { map.fitBounds(fitBounds.pad(0.25)); }
+                else if (hasPoint) { map.setView([lat, lng], 14); }
+            } catch (_e) {
+                if (hasPoint) { try { map.setView([lat, lng], 13); } catch (_e2) {} }
+            }
+            setTimeout(function () { try { if (_map === map && map._container) { map.invalidateSize(); } } catch (_e) {} }, 300);
         });
     }
 
@@ -305,8 +312,14 @@
     };
 
     // ── Hash-change re-init ─────────────────────────────────────────────────
+    // Re-draw ONLY when the bridge key actually changes — not on every hash change
+    // (clicking object-page tabs mutates sap-iapp-state, which would otherwise trigger a
+    // redundant re-init/re-draw race).
+    var _lastBridgeKey = null;
     window.addEventListener("hashchange", function () {
-        if (window.location.hash.indexOf("/Bridges(") !== -1) {
+        var key = getBridgeKeyPredicate();
+        if (key && key !== _lastBridgeKey) {
+            _lastBridgeKey = key;
             var el = document.getElementById("gisMapCanvas");
             if (el) { el._gisReady = false; setTimeout(window._gisInit, 600); }
         }
