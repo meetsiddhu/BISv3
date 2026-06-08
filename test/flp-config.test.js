@@ -40,4 +40,15 @@ describe('FLP sandbox config consistency', () => {
     expect(inbounds['Prioritisation-display'].resolutionResult.additionalInformation).toMatch(/BridgeManagement\.prioritisation/)
     expect(tileIds).toContain('Restrictions') // gold tile untouched
   })
+
+  // Council gap #2: the served fiori-apps.html carries an inline tileConfig fallback. It MUST
+  // equal the authoritative fioriSandboxConfig.json so the launchpad can never silently diverge.
+  test('fiori-apps.html inline tileConfig is byte-equal to the authoritative fioriSandboxConfig.json', () => {
+    const html = fs.readFileSync(path.join(root, 'app/router/fiori-apps.html'), 'utf8')
+    const m = html.match(/var tileConfig = (\{[\s\S]*?\});\s*\n\s*window\['sap-ushell-config'\]/)
+    expect(m).toBeTruthy()
+    const inline = JSON.stringify(JSON.parse(m[1]))
+    const served = JSON.stringify(JSON.parse(fs.readFileSync(b, 'utf8')))
+    expect(inline).toBe(served)
+  })
 })

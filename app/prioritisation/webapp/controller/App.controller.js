@@ -10,6 +10,19 @@ sap.ui.define([
 
   // band -> sap.ui.core.ValueState (label+number ALWAYS shown too — never colour-only, WCAG).
   var BAND_STATE = { P1: "Error", P2: "Error", P3: "Warning", P4: "Success", P5: "None" };
+
+  // Rubric anchors per criticality dimension per 1-5 level (council gap #3; spec-mandated, so an
+  // assessor knows what "Safety = 4" means without training). Config (PrioritisationConfig.rubrics)
+  // overrides these defaults when present (rule 4: config-driven, versioned).
+  var DEFAULT_RUBRICS = {
+    dimSafety: { 1: "Negligible safety consequence", 2: "Minor injury possible", 3: "Serious injury credible", 4: "Single fatality credible", 5: "Multiple fatalities credible" },
+    dimNetwork: { 1: "No network disruption", 2: "Local detour, minutes", 3: "Sub-network impact, hours", 4: "Key corridor severed, days", 5: "Strategic corridor lost, weeks+" },
+    dimFinancial: { 1: "Trivial cost", 2: "Minor repair budget", 3: "Material capital cost", 4: "Major capital + indirect cost", 5: "Severe whole-of-life / liability cost" },
+    dimEnvironmental: { 1: "No environmental effect", 2: "Contained, reversible", 3: "Local, remediable", 4: "Significant, prolonged", 5: "Severe / protected-area harm" },
+    dimReputational: { 1: "No public interest", 2: "Local complaint", 3: "Regional media", 4: "State media / ministerial", 5: "National / inquiry-level" }
+  };
+  // Residual-severity legend (matrix), non-colour: residual = likelihood × consequence(tier).
+  var SEV = function (v) { return v >= 15 ? { label: "Very High", state: "Error" } : v >= 8 ? { label: "High", state: "Error" } : v >= 4 ? { label: "Medium", state: "Warning" } : { label: "Low", state: "Success" }; };
   // Wireframe-default params; replaced by the live config loaded from the service.
   var DEFAULT_CFG = {
     dimWeights: [0.35, 0.25, 0.15, 0.10, 0.15], priorityWeights: [0.40, 0.40, 0.20],
@@ -24,6 +37,7 @@ sap.ui.define([
     onInit: function () {
       this._svc = "/odata/v4/prioritisation";
       this._cfg = DEFAULT_CFG;
+      this._rubrics = DEFAULT_RUBRICS;
       this.getView().setModel(new JSONModel({
         bridgeID: null, strategy: "Renew",
         dimSafety: 3, dimNetwork: 3, dimFinancial: 3, dimEnvironmental: 3, dimReputational: 3,
@@ -64,8 +78,13 @@ sap.ui.define([
           maxResidual: +c.maxResidual || 25, maxCriticality: +c.maxCriticality || 5,
           urgency: { Renew: +c.urgencyRenew, Maintain: +c.urgencyMaintain, Monitor: +c.urgencyMonitor, Decommission: +c.urgencyDecommission },
           bandThresholds: Array.isArray(ladder) ? ladder : DEFAULT_CFG.bandThresholds,
-          version: c.version || "v1", formulaVersion: c.formulaVersion || "v1-normalised"
+          version: c.version || "v1", formulaVersion: c.formulaVersion || "v1-normalised",
+          methodologyOwner: c.methodologyOwner || "—"
         };
+        // config-driven rubrics override the built-in anchors (gap #3)
+        if (c.rubrics) { try { self._rubrics = JSON.parse(c.rubrics); } catch (_e) { /* keep defaults */ } }
+        self.getView().getModel("v").setProperty("/methodologyOwner", self._cfg.methodologyOwner);
+        self.getView().getModel("v").setProperty("/configVersion", self._cfg.version);
         self._recompute();
       }).catch(function () { /* defaults stand */ });
     },
@@ -79,6 +98,8 @@ sap.ui.define([
 
     _loadWorklist: function () {
       var self = this;
+      var tbl = this.byId("wlTable"); if (tbl) { tbl.setBusy(true); }
+      this.getView().getModel("wl").setProperty("/error", null);
       this._get("/Assessments?$filter=active eq true&$orderby=priorityScore desc&$top=500").then(function (d) {
         var rows = (d.value || []).map(function (a) {
           return Object.assign({}, a, {
@@ -91,7 +112,11 @@ sap.ui.define([
         }, this);
         self.getView().getModel("wl").setProperty("/rows", rows);
         self._buildReports(rows);
-      }.bind(this)).catch(function () {});
+        if (tbl) { tbl.setBusy(false); }
+      }.bind(this)).catch(function (e) {
+        if (tbl) { tbl.setBusy(false); }
+        self.getView().getModel("wl").setProperty("/error", "Could not load the worklist: " + (e && e.message ? e.message : "service unavailable") + ". Retry, or check your access.");
+      });
     },
 
     // ── live client preview engine (mirrors srv/lib/prioritisation.js with the loaded config) ──
@@ -127,8 +152,11 @@ sap.ui.define([
       m.setProperty("/band", c.band);
       m.setProperty("/bandState", BAND_STATE[c.band] || "None");
       m.setProperty("/likelihoodOverridden", Number(v.likelihood) !== Number(v.likelihoodDerived));
-      // segmented selections
-      this._DIMS.forEach(function (d) { this._segOn(this.byId("seg_" + d[0]), v[d[0]]); }, this);
+      // segmented selections + the on-screen rubric anchor for each selected level (gap #3)
+      this._DIMS.forEach(function (d) {
+        this._segOn(this.byId("seg_" + d[0]), v[d[0]]);
+        if (this._dimDesc && this._dimDesc[d[0]]) { this._dimDesc[d[0]].setText(v[d[0]] + " = " + this._rubricFor(d[0], v[d[0]])); }
+      }, this);
       this._segOn(this.byId("seg_likelihood"), v.likelihood);
       // matrix highlight (consequence column = tier; active = tier × L)
       this._paintMatrix(c.tier, c.L);
@@ -153,12 +181,24 @@ sap.ui.define([
 
     _buildDimControls: function () {
       var box = this.byId("dimsBox"); var self = this;
+      this._dimDesc = {};
       this._DIMS.forEach(function (d) {
-        var row = new sap.m.HBox({ alignItems: "Center", justifyContent: "SpaceBetween" }).addStyleClass("sapUiTinyMarginBottom");
+        var vb = new sap.m.VBox().addStyleClass("sapUiTinyMarginBottom");
+        var row = new sap.m.HBox({ alignItems: "Center", justifyContent: "SpaceBetween" });
         row.addItem(new sap.m.Label({ text: d[1], width: "10rem" }));
         row.addItem(self._seg("seg_" + d[0], 5, function (val) { self.getView().getModel("v").setProperty("/" + d[0], val); self._recompute(); }));
-        box.addItem(row);
+        vb.addItem(row);
+        // GAP #3: on-screen rubric anchor for the SELECTED level, so scoring is repeatable + needs no training.
+        var desc = new sap.m.Text({ wrapping: true }).addStyleClass("sapUiTinyMarginBegin");
+        desc.addStyleClass("sapUiContentLabelColor");
+        self._dimDesc[d[0]] = desc;
+        vb.addItem(desc);
+        box.addItem(vb);
       });
+    },
+    _rubricFor: function (dimKey, level) {
+      var r = (this._rubrics && this._rubrics[dimKey]) || DEFAULT_RUBRICS[dimKey] || {};
+      return r[level] || r[String(level)] || "";
     },
     _buildLikelihood: function () {
       var self = this;
@@ -175,8 +215,11 @@ sap.ui.define([
         rowBox.addItem(new sap.m.Label({ text: "L" + L, width: "2rem" }).addStyleClass("sapUiTinyMarginEnd"));
         for (var C = 1; C <= 5; C++) {
           (function (L, C) {
+            var sev = SEV(L * C);
+            // GAP #12: aria-label carries the FULL meaning (L, C, residual, severity) — never
+            // colour-only; the residual number is the visible text + the severity word is in the label.
             var cell = new sap.m.Button({ text: String(L * C), width: "2.6rem",
-              tooltip: "Likelihood " + L + " × consequence " + C + " = residual " + (L * C) + ". Click to set likelihood " + L + ".",
+              tooltip: "Likelihood " + L + " × consequence " + C + " = residual " + (L * C) + " (" + sev.label + " severity). Click to set likelihood " + L + ".",
               press: function () { self.getView().getModel("v").setProperty("/likelihood", L); self._recompute(); } });
             cell.addStyleClass("sapUiTinyMarginEnd").addStyleClass("sapUiTinyMarginBottom");
             self._matrixCells[L + "_" + C] = cell;
@@ -189,6 +232,12 @@ sap.ui.define([
       ["C1", "C2", "C3", "C4", "C5"].forEach(function (c) { foot.addItem(new sap.m.Label({ text: c, width: "2.6rem", textAlign: "Center" }).addStyleClass("sapUiTinyMarginEnd")); });
       grid.addItem(foot);
       box.addItem(grid);
+      // Non-colour severity legend (residual bands) — readable without relying on cell colour.
+      var legend = new sap.m.HBox({ wrap: "Wrap" }).addStyleClass("sapUiTinyMarginTop");
+      [["Low", "1–3"], ["Medium", "4–7"], ["High", "8–14"], ["Very High", "15–25"]].forEach(function (s) {
+        legend.addItem(new sap.m.ObjectStatus({ text: s[0] + " (" + s[1] + ")", state: SEV(s[0] === "Low" ? 1 : s[0] === "Medium" ? 5 : s[0] === "High" ? 10 : 20).state, inverted: true }).addStyleClass("sapUiTinyMarginEnd"));
+      });
+      box.addItem(legend);
     },
     _paintMatrix: function (tier, L) {
       Object.keys(this._matrixCells || {}).forEach(function (k) {
@@ -240,6 +289,40 @@ sap.ui.define([
         .catch(function (e) { MessageToast.show("Could not load bridge facts: " + e.message); });
     },
 
+    // GAP #7: open ONE past run with its FROZEN inputs + the methodology from THAT run's snapshot
+    // (the auditor/engineer view — reproduces a single ranking decision).
+    onOpenRun: function (oEvent) {
+      var ctx = oEvent.getSource().getBindingContext("wl"); if (!ctx) return;
+      var r = ctx.getObject();
+      var snap; try { snap = JSON.parse(r.paramSnapshot); } catch (_e) { snap = null; }
+      var L = function (k, val) { return new sap.m.HBox({ justifyContent: "SpaceBetween" }).addItem(new sap.m.Label({ text: k })).addItem(new sap.m.Text({ text: String(val == null ? "—" : val) })); };
+      var dims = "S " + r.dimSafety + " · N " + r.dimNetwork + " · F " + r.dimFinancial + " · E " + r.dimEnvironmental + " · R " + r.dimReputational;
+      var methodology = snap
+        ? "criticality weights " + (snap.dimWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; priority " + (snap.priorityWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; bands " + (snap.bandThresholds || []).map(function (b) { return b.code + "≥" + b.min; }).join(", ")
+        : "snapshot unavailable";
+      var dlg = new sap.m.Dialog({
+        title: "Run detail — " + (r.bridgeName || r.bridgeRef), contentWidth: "520px",
+        content: [new sap.m.VBox({ class: "sapUiContentPadding", items: [
+          new sap.m.ObjectStatus({ text: r.band + " · score " + r.priorityScore, state: r.bandState, inverted: true }).addStyleClass("sapUiTinyMarginBottom"),
+          L("Criticality dimensions (1-5)", dims),
+          L("Criticality · tier", r.critTier),
+          L("Likelihood", r.likelihood + (r.likelihoodOverridden ? " (override of " + r.likelihoodDerived + ")" : " (derived)")),
+          L("Override reason", r.likelihoodOverrideReason || (r.likelihoodOverridden ? "(missing)" : "n/a")),
+          L("Residual", r.residualText),
+          L("Strategy", r.strategy),
+          L("Active restriction (flag)", r.restrictionFlag ? "Yes — treatment, not a score input" : "No"),
+          L("Likely failure / mitigation $", (r.likelyFailureCostAud != null ? "$" + r.likelyFailureCostAud : "—") + " / " + (r.mitigationCostAud != null ? "$" + r.mitigationCostAud : "—")),
+          L("Confidence", r.confidence),
+          L("Assessed by · at", (r.assessedBy || "—") + " · " + r.assessedAtText),
+          L("Methodology", r.formulaVersion + " / config " + r.configVersion),
+          new sap.m.Text({ text: methodology, wrapping: true }).addStyleClass("sapUiTinyMarginTop sapUiContentLabelColor")
+        ]})],
+        beginButton: new sap.m.Button({ text: "Close", press: function () { dlg.close(); } }),
+        afterClose: function () { dlg.destroy(); }
+      });
+      dlg.open();
+    },
+
     onWorklistPress: function (oEvent) {
       var ctx = oEvent.getParameter("listItem").getBindingContext("wl"); if (!ctx) return;
       var row = ctx.getObject();
@@ -253,6 +336,14 @@ sap.ui.define([
     onSave: function () {
       var self = this; var v = this.getView().getModel("v").getData();
       if (!v.bridgeID) { MessageToast.show("Pick a bridge first."); return; }
+      // GAP #14: a likelihood override needs a logged reason (client block; server also rejects).
+      var reasonInput = this.byId("overrideReason");
+      if (v.likelihoodOverridden && !String(v.likelihoodOverrideReason || "").trim()) {
+        if (reasonInput) { reasonInput.setValueState("Error"); reasonInput.setValueStateText("A logged reason is required when overriding the derived likelihood (" + v.likelihoodDerived + ")."); reasonInput.focus(); }
+        MessageToast.show("Enter a reason for the likelihood override before saving.");
+        return;
+      }
+      if (reasonInput) { reasonInput.setValueState("None"); }
       var body = {
         bridge_ID: v.bridgeID, dimSafety: v.dimSafety, dimNetwork: v.dimNetwork, dimFinancial: v.dimFinancial,
         dimEnvironmental: v.dimEnvironmental, dimReputational: v.dimReputational,
@@ -297,19 +388,27 @@ sap.ui.define([
         '<h1>Bridge Prioritisation — Portfolio One-Pager</h1>' +
         '<p class="sub">Generated ' + today + ' · figures read from immutable stored runs · methodology ' + esc(cfg.formulaVersion) + ' / config ' + esc(cfg.version) + '</p>' +
         '<div class="kpis">' +
-        '<div class="kpi"><div class="l">Assessed</div><div class="v">' + esc(rep.assessed) + '</div></div>' +
+        '<div class="kpi"><div class="l">Top-decile cost (' + esc(rep.topDecileN) + ' worst)</div><div class="v">' + esc(rep.topDecileCost) + '</div></div>' +
         '<div class="kpi"><div class="l">P1 critical</div><div class="v">' + esc(rep.p1) + '</div></div>' +
-        '<div class="kpi"><div class="l">Stale inputs (&gt;12 mo)</div><div class="v">' + esc(rep.stale) + '</div></div>' +
-        '<div class="kpi"><div class="l">Top score</div><div class="v">' + esc(rep.topScore) + '</div></div></div>' +
+        '<div class="kpi"><div class="l">Assessed (coverage)</div><div class="v">' + esc(rep.assessed) + ' <span style="font-size:12px;color:#5F5E5A">/ ' + esc(rep.totalBridges) + ' · ' + esc(rep.coveragePct) + '%</span></div></div>' +
+        '<div class="kpi"><div class="l">Stale inputs (&gt;12 mo)</div><div class="v">' + esc(rep.stale) + '</div></div></div>' +
         '<h2>Portfolio by band</h2><table>' + bandRows + '</table>' +
         '<h2>Headline</h2><p class="note">' + esc(rep.headline) + '</p>' +
+        '<h2>Governance</h2><table>' +
+        '<tr><td>Prepared</td><td style="text-align:right">' + esc(today) + '</td></tr>' +
+        '<tr><td>Methodology owner</td><td style="text-align:right">' + esc(rep.methodologyOwner) + ' · ' + esc(cfg.formulaVersion) + ' / config ' + esc(cfg.version) + '</td></tr>' +
+        '<tr><td>Methodology versions in this list</td><td style="text-align:right">' + esc((rep.methodologyVersions || []).join(", ")) + (rep.methodologyVersions && rep.methodologyVersions.length > 1 ? ' ⚠ mixed' : '') + '</td></tr>' +
+        '<tr><td>Endorsed by / date</td><td style="text-align:right">__________________________ / __________</td></tr></table>' +
         '<div class="appendix"><b>Methodology appendix (reproducible)</b>\n' +
         'criticality = Σ(dimension × weight), weights ' + w.join(" / ") + ' (safety/network/financial/environmental/reputational), normalised to 1\n' +
         'tier = round(criticality), clamped 1..5\n' +
         'residual = likelihood × tier   [an active restriction is a treatment FLAG, never a score input]\n' +
         'priorityScore = ' + pw[0] + '·riskN + ' + pw[1] + '·critN + ' + pw[2] + '·stratN (normalised); band: 80/60/40/20 → P1..P5\n' +
+        'top-decile cost = Σ mitigationCostAud over the worst ' + esc(rep.topDecileN) + ' runs (each run carries its own cost snapshot)\n' +
         'maxResidual ' + cfg.maxResidual + ' · maxCriticality ' + cfg.maxCriticality + ' · formula ' + esc(cfg.formulaVersion) + ' · config ' + esc(cfg.version) + '\n' +
-        'Every run stores its inputs + this exact parameter snapshot, so any past list reproduces byte-identically.</div>' +
+        'Every run stores its inputs + its exact parameter snapshot, so any past list reproduces byte-identically. ' +
+        ((rep.methodologyVersions || []).length > 1 ? 'WARNING: this list mixes methodology versions (' + esc((rep.methodologyVersions || []).join(", ")) + ') — re-run all assessments under one version before an external submission.' : 'All runs in this list share one methodology version.') +
+        '</div>' +
         '<p style="margin-top:14px"><button onclick="window.print()">Print / Save as PDF</button></p>' +
         '</body></html>';
       var win = window.open("", "_blank");
@@ -337,12 +436,34 @@ sap.ui.define([
       var counts = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0 };
       var stale = 0, top = 0;
       rows.forEach(function (r) { if (counts[r.band] != null) counts[r.band]++; if (r.conditionAsAtMonths != null && r.conditionAsAtMonths > 12) stale++; if (Number(r.priorityScore) > top) top = Number(r.priorityScore); });
+      // GAP #9: $ cost of the TOP DECILE (ceil 10% of assessed, by score) — from each run's cost snapshot.
+      var sorted = rows.slice().sort(function (a, b) { return Number(b.priorityScore) - Number(a.priorityScore); });
+      var decileN = Math.max(1, Math.ceil(sorted.length * 0.1));
+      var topDecileCost = sorted.slice(0, decileN).reduce(function (s, r) { return s + (Number(r.mitigationCostAud) || 0); }, 0);
+      var fmtM = function (n) { return n >= 1e6 ? "$" + (n / 1e6).toFixed(1) + "m" : n > 0 ? "$" + Math.round(n / 1000) + "k" : "$0"; };
+      // GAP #11: coverage denominator (assessed of total portfolio).
+      var totalBridges = (this.getView().getModel("br").getProperty("/rows") || []).length || rows.length;
+      var coveragePct = totalBridges ? Math.round(rows.length / totalBridges * 100) : 0;
+      // mixed-methodology guard for the appendix reproducibility note
+      var versions = Array.from(new Set(rows.map(function (r) { return (r.formulaVersion || "?") + "/" + (r.configVersion || "?"); })));
       rep.setProperty("/assessed", rows.length);
+      rep.setProperty("/totalBridges", totalBridges);
+      rep.setProperty("/coveragePct", coveragePct);
       rep.setProperty("/p1", counts.P1);
       rep.setProperty("/stale", stale);
       rep.setProperty("/topScore", top);
+      rep.setProperty("/topDecileCost", fmtM(topDecileCost));
+      rep.setProperty("/topDecileN", decileN);
+      rep.setProperty("/methodologyVersions", versions);
+      rep.setProperty("/methodologyOwner", (this._cfg && this._cfg.methodologyOwner) || "—");
+      rep.setProperty("/asAt", new Date().toISOString().slice(0, 10));
       rep.setProperty("/bands", ["P1", "P2", "P3", "P4", "P5"].map(function (c) { return { code: c, count: counts[c], state: BAND_STATE[c] }; }));
-      rep.setProperty("/headline", counts.P1 + " structure(s) are P1 critical of " + rows.length + " assessed. " + stale + " run(s) rely on condition data older than 12 months and should be re-inspected before the funding submission. (All figures read from the immutable stored runs.)");
+      rep.setProperty("/headline",
+        counts.P1 + " of " + rows.length + " assessed structures are P1 critical (covering " + coveragePct + "% of the " + totalBridges + "-bridge portfolio). " +
+        "Funding the top decile (" + decileN + " worst) is an estimated " + fmtM(topDecileCost) + " of intervention. " +
+        stale + " run(s) rely on condition data older than 12 months and should be re-inspected before the funding submission. " +
+        "All figures read from the immutable stored runs" + (versions.length > 1 ? " (NOTE: " + versions.length + " methodology versions present — re-run for a single-version submission)." : ".")
+      );
     }
   });
 });

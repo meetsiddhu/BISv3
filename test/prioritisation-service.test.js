@@ -28,7 +28,8 @@ describe('PrioritisationService', () => {
       BRIDGE_ID = 990201
       await db.run(INSERT.into('bridge.management.Bridges').entries({
         ID: BRIDGE_ID, bridgeId: 'BRG-TEST-PRIO', bridgeName: 'Prioritisation Test Bridge',
-        conditionRating: 4, structuralAdequacyRating: 5, loadRating: 42, lastInspectionDate: '2025-10-01'
+        conditionRating: 4, structuralAdequacyRating: 5, loadRating: 42, lastInspectionDate: '2025-10-01',
+        likelyFailureCostAud: 1200000, mitigationCostAud: 350000
       }))
     } else { BRIDGE_ID = b.ID }
   })
@@ -76,6 +77,42 @@ describe('PrioritisationService', () => {
     expect(facts.derivedLikelihood).toBeGreaterThanOrEqual(1)
     expect(facts.derivedLikelihood).toBeLessThanOrEqual(5)
     expect(typeof facts.restrictionFlag).toBe('boolean')
+  })
+
+  test('a new run SUPERSEDES the prior active run for the same bridge (no double-count)', async () => {
+    const db = await cds.connect.to('db')
+    await db.run(DELETE.from('bridge.management.PrioritisationAssessment').where({ bridge_ID: BRIDGE_ID }))
+    const r1 = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
+    const id1 = r1.ID || (r1[0] && r1[0].ID)
+    const r2 = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs(), { dimSafety: 5 }))))
+    const id2 = r2.ID || (r2[0] && r2[0].ID)
+    const active = await db.run(SELECT.from('bridge.management.PrioritisationAssessment').where({ bridge_ID: BRIDGE_ID, active: true }))
+    expect(active.length).toBe(1) // exactly one current run per bridge
+    expect(active[0].ID).toBe(id2)
+    const old = await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: id1 }))
+    expect(old.active).toBe(false)
+    expect(old.supersededBy_ID).toBe(id2) // prior run preserved + linked, not deleted
+  })
+
+  test('likelihood override WITHOUT a reason is rejected; WITH a reason it is accepted + logged', async () => {
+    // derived likelihood for the test bridge is 4; choosing 1 is an override.
+    await expect(asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs(), { likelihood: 1 })))))
+      .rejects.toThrow(/justification|override/i)
+    const ok = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs(), { likelihood: 1, likelihoodOverrideReason: 'recent engineer inspection' }))))
+    const id = ok.ID || (ok[0] && ok[0].ID)
+    const db = await cds.connect.to('db')
+    const row = await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: id }))
+    expect(row.likelihoodOverridden).toBe(true)
+    expect(row.likelihoodOverrideReason).toMatch(/inspection/)
+  })
+
+  test('run captures the bridge $ cost snapshot (reproducible exec exposure)', async () => {
+    const created = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
+    const id = created.ID || (created[0] && created[0].ID)
+    const db = await cds.connect.to('db')
+    const row = await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: id }))
+    expect(Number(row.likelyFailureCostAud)).toBe(1200000)
+    expect(Number(row.mitigationCostAud)).toBe(350000)
   })
 
   test('raiseWorkRequest creates a QUEUED outbound record + ChangeLog, and never writes EAM', async () => {

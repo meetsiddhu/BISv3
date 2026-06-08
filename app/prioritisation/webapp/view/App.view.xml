@@ -13,14 +13,16 @@
             <!-- ══════════ WORKLIST ══════════ -->
             <IconTabFilter id="tabWorklist" text="{i18n>tab.worklist}" key="worklist" icon="sap-icon://list">
               <MessageStrip text="{i18n>worklist.subtitle}" showIcon="true" class="sapUiTinyMarginBottom" />
+              <MessageStrip text="{wl>/error}" type="Error" showIcon="true" visible="{= !!${wl>/error} }" class="sapUiTinyMarginBottom" />
               <Table id="wlTable" items="{path:'wl>/rows'}" growing="true" growingThreshold="50" noDataText="{i18n>worklist.noData}"
                      mode="SingleSelectMaster" itemPress=".onWorklistPress">
                 <columns>
                   <Column width="9rem"><Text text="{i18n>worklist.col.band}" /></Column>
                   <Column><Text text="{i18n>worklist.col.bridge}" /></Column>
                   <Column hAlign="End" width="6rem"><Text text="{i18n>worklist.col.score}" /></Column>
-                  <Column hAlign="End" width="11rem"><Text text="{i18n>worklist.col.confidence}" /></Column>
-                  <Column hAlign="End" width="11rem"><Text text="{i18n>worklist.col.assessed}" /></Column>
+                  <Column hAlign="End" width="10rem"><Text text="{i18n>worklist.col.confidence}" /></Column>
+                  <Column hAlign="End" width="9rem"><Text text="{i18n>worklist.col.assessed}" /></Column>
+                  <Column hAlign="End" width="6rem"><Text text="Detail" /></Column>
                 </columns>
                 <items>
                   <ColumnListItem type="Active">
@@ -31,6 +33,7 @@
                       <ObjectNumber number="{wl>priorityScore}" />
                       <Text text="{wl>confidence}" />
                       <Text text="{wl>assessedAtText}" />
+                      <Button icon="sap-icon://detail-view" type="Transparent" press=".onOpenRun" tooltip="Open this run's frozen inputs + methodology (audit)" />
                     </cells>
                   </ColumnListItem>
                 </items>
@@ -121,10 +124,10 @@
               <!-- exec one-pager -->
               <VBox visible="{= ${rep>/mode} === 'exec' }">
                 <l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0">
-                  <VBox class="sapUiContentPadding"><Text text="{i18n>reports.assessed}" /><Title text="{rep>/assessed}" level="H4" /></VBox>
+                  <VBox class="sapUiContentPadding"><Text text="Top-decile cost ({rep>/topDecileN} worst)" /><Title text="{rep>/topDecileCost}" level="H4" /></VBox>
                   <VBox class="sapUiContentPadding"><Text text="{i18n>reports.p1}" /><Title text="{rep>/p1}" level="H4" /></VBox>
+                  <VBox class="sapUiContentPadding"><Text text="Assessed (of {rep>/totalBridges})" /><Title text="{rep>/assessed} · {rep>/coveragePct}%" level="H4" /></VBox>
                   <VBox class="sapUiContentPadding"><Text text="{i18n>reports.stale}" /><Title text="{rep>/stale}" level="H4" /></VBox>
-                  <VBox class="sapUiContentPadding"><Text text="Top score" /><Title text="{rep>/topScore}" level="H4" /></VBox>
                 </l:Grid>
                 <Title text="{i18n>reports.byBand}" level="H6" class="sapUiSmallMarginTop sapUiTinyMarginBottom" />
                 <Table items="{path:'rep>/bands'}" noDataText="{i18n>reports.noData}">
@@ -134,6 +137,14 @@
                   </ColumnListItem></items>
                 </Table>
                 <Text text="{rep>/headline}" class="sapUiSmallMarginTop" />
+                <Panel headerText="Governance" class="sapUiSmallMarginTop">
+                  <l:Grid defaultSpan="L4 M6 S12" hSpacing="1" vSpacing="0">
+                    <VBox><Label text="Prepared (as-at)" /><Text text="{rep>/asAt}" /></VBox>
+                    <VBox><Label text="Methodology owner" /><Text text="{rep>/methodologyOwner}" /></VBox>
+                    <VBox><Label text="Methodology version" /><Text text="{v>/configVersion}" /></VBox>
+                  </l:Grid>
+                  <Text text="Endorsed by / date: ____________________ — figures reconcile to the immutable stored runs." class="sapUiTinyMarginTop sapUiContentLabelColor" />
+                </Panel>
                 <Button text="Export PDF" icon="sap-icon://pdf-attachment" press=".onExportPdf" class="sapUiSmallMarginTop" />
               </VBox>
               <!-- engineer detail (from the stored run) -->

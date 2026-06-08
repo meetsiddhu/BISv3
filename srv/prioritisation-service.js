@@ -105,14 +105,27 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           d.restrictionFlag = f.restrictionFlag
           d.likelihoodDerived = f.derivedLikelihood
           d.likelihoodOverridden = Number(d.likelihood) !== Number(f.derivedLikelihood)
+          // GAP #14: a likelihood override MUST carry a logged justification (parity with the
+          // BIS risk-override rule). Reject server-side when overridden without a reason.
+          if (d.likelihoodOverridden && !String(d.likelihoodOverrideReason || '').trim()) {
+            return req.reject(400, 'A likelihood override requires a logged justification (the derived value is ' + f.derivedLikelihood + ').')
+          }
           if (d.inputsAvailable == null) d.inputsAvailable = f.inputsAvailable
           if (d.inputsTotal == null) d.inputsTotal = f.inputsTotal
           if (d.conditionAsAtMonths == null) d.conditionAsAtMonths = f.conditionAsAtMonths
+          // GAP #9: cost snapshot from the bridge (reproducible $ exposure on the run).
+          if (f.bridge) {
+            if (d.likelyFailureCostAud == null) d.likelyFailureCostAud = f.bridge.likelyFailureCostAud ?? null
+            if (d.mitigationCostAud == null) d.mitigationCostAud = f.bridge.mitigationCostAud ?? null
+          }
         }
       }
     })
 
     // ChangeLog on CREATE (rule 3) — non-bulk source so a transient miss warns, not blocks.
+    // GAP #4: also SUPERSEDE prior active runs for the same bridge so the worklist + exec counts
+    // show exactly ONE current run per bridge (no double-counting on re-assessment). The prior
+    // runs are kept (immutable) but marked active=false + supersededBy=new run.
     this.after('CREATE', Assessments, async (data, req) => {
       try {
         await writeChangeLogs(db, {
@@ -126,6 +139,25 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           ]
         })
       } catch (e) { log.error('Prioritisation ChangeLog failed:', e.message) }
+      try {
+        if (data.bridge_ID != null) {
+          const prior = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
+            .columns('ID').where({ bridge_ID: data.bridge_ID, active: true, ID: { '!=': data.ID } }))
+          if (prior && prior.length) {
+            await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment')
+              .set({ active: false, supersededBy_ID: data.ID })
+              .where({ bridge_ID: data.bridge_ID, active: true, ID: { '!=': data.ID } }))
+            for (const p of prior) {
+              await writeChangeLogs(db, {
+                objectType: 'PrioritisationAssessment', objectId: String(p.ID), objectName: data.bridgeName || data.bridgeRef || p.ID,
+                source: 'Prioritisation', changedBy: req.user?.id || 'system',
+                changes: [{ fieldName: 'active', oldValue: 'true', newValue: 'false' }, { fieldName: 'supersededBy', oldValue: '', newValue: String(data.ID) }]
+              }).catch(() => {})
+            }
+            log.info('Prioritisation run superseded prior active run(s)', { bridge_ID: data.bridge_ID, superseded: prior.length, by: data.ID })
+          }
+        }
+      } catch (e) { log.error('Prioritisation supersede failed:', e.message) }
     })
 
     // ── EAM-outbound: raise a work request (bounded — NEVER writes EAM) ──

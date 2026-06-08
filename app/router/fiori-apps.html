@@ -63,6 +63,16 @@
                     "icon": "sap-icon://map-2",
                     "targetURL": "#Map-display"
                   }
+                },
+                {
+                  "id": "Prioritisation",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Bridge Prioritisation",
+                    "subtitle": "Ranked worklist · assess · reports",
+                    "icon": "sap-icon://sort-descending",
+                    "targetURL": "#Prioritisation-display"
+                  }
                 }
               ]
             },
@@ -143,16 +153,6 @@
                   }
                 },
                 {
-                  "id": "ChangeDocuments",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "Change Documents",
-                    "subtitle": "Audit & Attribute History",
-                    "icon": "sap-icon://history",
-                    "targetURL": "#ChangeDocuments-display&/ChangeDocumentReport"
-                  }
-                },
-                {
                   "id": "AttributeClasses",
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
@@ -171,42 +171,12 @@
                     "icon": "sap-icon://chain-link",
                     "targetURL": "#EAMMapping-manage&/EAMCodeMapping"
                   }
-                },
-                {
-                  "id": "EAMFieldMapping",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "EAM Field Mapping",
-                    "subtitle": "BIS to EAM Field Map",
-                    "icon": "sap-icon://chain-link",
-                    "targetURL": "#EAMFieldMapping-manage&/EAMFieldMapping"
-                  }
-                },
-                {
-                  "id": "EAMSyncLog",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "EAM Sync Log",
-                    "subtitle": "Integration Audit Trail",
-                    "icon": "sap-icon://history",
-                    "targetURL": "#EAMSyncLog-display&/EAMSyncLog"
-                  }
-                },
-                {
-                  "id": "BridgeElements",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "Bridge Elements",
-                    "subtitle": "NSW Level-2 Elements",
-                    "icon": "sap-icon://tree",
-                    "targetURL": "#BridgeElements-manage&/BridgeElements"
-                  }
                 }
               ]
             },
             {
               "id": "bms.group.risk",
-              "title": "RISK & MULTI-MODAL",
+              "title": "REPORTS & ANALYTICS",
               "isPreset": true,
               "isVisible": true,
               "isGroupLocked": false,
@@ -222,13 +192,13 @@
                   }
                 },
                 {
-                  "id": "NetworkRestrictions",
+                  "id": "NetworkPortfolio",
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
-                    "title": "Network Restrictions",
-                    "subtitle": "All Modes & Networks (ALV)",
-                    "icon": "sap-icon://table-view",
-                    "targetURL": "#NetworkRestrictions-manage&/NetworkRestrictionReport"
+                    "title": "Network Portfolio",
+                    "subtitle": "Network x Mode Analytics",
+                    "icon": "sap-icon://business-objects-experience",
+                    "targetURL": "#NetworkPortfolio-display&/NetworkPortfolioReport"
                   }
                 },
                 {
@@ -242,33 +212,13 @@
                   }
                 },
                 {
-                  "id": "AssetStrategy",
+                  "id": "ChangeDocuments",
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
-                    "title": "Asset Class Strategy",
-                    "subtitle": "Inspection & Intervention",
-                    "icon": "sap-icon://example",
-                    "targetURL": "#AssetStrategy-manage&/AssetClassStrategy"
-                  }
-                },
-                {
-                  "id": "RiskBands",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "Risk Bands",
-                    "subtitle": "Score Band Thresholds",
-                    "icon": "sap-icon://measurement-document",
-                    "targetURL": "#RiskBands-manage&/RiskBand"
-                  }
-                },
-                {
-                  "id": "RiskFactors",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "Risk Factors",
-                    "subtitle": "Scoring Weightings",
-                    "icon": "sap-icon://settings",
-                    "targetURL": "#RiskFactors-manage&/RiskConfig"
+                    "title": "Change Documents",
+                    "subtitle": "Audit & Attribute History",
+                    "icon": "sap-icon://history",
+                    "targetURL": "#ChangeDocuments-display&/ChangeDocumentReport"
                   }
                 }
               ]
@@ -468,48 +418,6 @@
                 "url": "/BridgeManagementadminbridges"
               }
             },
-            "EAMFieldMapping-manage": {
-              "semanticObject": "EAMFieldMapping",
-              "action": "manage",
-              "title": "EAM Field Mapping",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/BridgeManagementadminbridges"
-              }
-            },
-            "EAMSyncLog-display": {
-              "semanticObject": "EAMSyncLog",
-              "action": "display",
-              "title": "EAM Sync Log",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/BridgeManagementadminbridges"
-              }
-            },
-            "BridgeElements-manage": {
-              "semanticObject": "BridgeElements",
-              "action": "manage",
-              "title": "Bridge Elements",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/BridgeManagementadminbridges"
-              }
-            },
             "BridgeRisk-display": {
               "semanticObject": "BridgeRisk",
               "action": "display",
@@ -552,10 +460,10 @@
                 "url": "/BridgeManagementadminbridges"
               }
             },
-            "AssetStrategy-manage": {
-              "semanticObject": "AssetStrategy",
-              "action": "manage",
-              "title": "Asset Class Strategy",
+            "NetworkPortfolio-display": {
+              "semanticObject": "NetworkPortfolio",
+              "action": "display",
+              "title": "Network Portfolio",
               "signature": {
                 "parameters": {},
                 "additionalParameters": "allowed"
@@ -566,32 +474,18 @@
                 "url": "/BridgeManagementadminbridges"
               }
             },
-            "RiskBands-manage": {
-              "semanticObject": "RiskBands",
-              "action": "manage",
-              "title": "Risk Bands",
+            "Prioritisation-display": {
+              "semanticObject": "Prioritisation",
+              "action": "display",
+              "title": "Bridge Prioritisation",
               "signature": {
                 "parameters": {},
                 "additionalParameters": "allowed"
               },
               "resolutionResult": {
                 "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/BridgeManagementadminbridges"
-              }
-            },
-            "RiskFactors-manage": {
-              "semanticObject": "RiskFactors",
-              "action": "manage",
-              "title": "Risk Factors",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/BridgeManagementadminbridges"
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.prioritisation",
+                "url": "/BridgeManagementprioritisation"
               }
             }
           }

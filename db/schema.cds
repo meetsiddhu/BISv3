@@ -768,6 +768,10 @@ entity PrioritisationConfig : cuid, managed {
   // 5-band ladder (P1..P5) with a 0 floor — JSON, validated on write
   bandThresholds      : String(500) default '[{"code":"P1","min":80},{"code":"P2","min":60},{"code":"P3","min":40},{"code":"P4","min":20},{"code":"P5","min":0}]';
   formulaVersion      : String(20) default 'v1-normalised';
+  // Rubric anchor text per dimension per 1-5 level (council gap #3; spec-mandated). JSON:
+  // { "dimSafety": {"1":"...","5":"..."}, ... } — surfaced as on-screen scoring guidance.
+  rubrics             : LargeString;
+  methodologyOwner    : String(111);          // governance: methodology owner (board sign-off)
   notes               : LargeString;
 }
 
@@ -803,6 +807,10 @@ entity PrioritisationAssessment : cuid, managed {
   inputsAvailable          : Integer;
   inputsTotal              : Integer;
   conditionAsAtMonths      : Integer;
+  // Cost snapshot (council gap #9) — captured from the bridge at run time so the exec one-pager
+  // reports the $ cost of the top decile reproducibly per immutable run.
+  likelyFailureCostAud     : Decimal(15,2);
+  mitigationCostAud        : Decimal(15,2);
   // ── Reproducibility stamp ──
   configVersion            : String(20);
   formulaVersion           : String(20);
