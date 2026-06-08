@@ -192,6 +192,10 @@
         if (canv) canv.style.display = "block";
         loadLeaflet(function () {
             if (_map) { try { _map.remove(); } catch (_error) {} _map = null; }
+            // Defensive against a double-init race (the host MutationObserver and the
+            // hashchange handler can both fire _gisInit): fully reset the container so
+            // L.map() can never throw "Map container is already initialized".
+            if (canv && canv._leaflet_id != null) { try { canv._leaflet_id = null; } catch (_e) {} canv.innerHTML = ""; }
             var map = window.L.map(canv, { zoomControl: true, scrollWheelZoom: false });
             window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
@@ -315,9 +319,14 @@
     // build the map then. This is the actual render trigger; the self-call below only
     // catches the case where the section is already present.
     try {
+        var _gisTriggered = false;
         var _gisHostObserver = new MutationObserver(function () {
-            if (document.getElementById("gisMapHostEl") && !document.getElementById("gisMapCanvas")) {
+            // Fire once per host appearance; loadBundle is async, so without this guard the
+            // observer would launch many concurrent _gisInit calls before the canvas exists.
+            if (!_gisTriggered && document.getElementById("gisMapHostEl") && !document.getElementById("gisMapCanvas")) {
+                _gisTriggered = true;
                 window._gisInit();
+                setTimeout(function () { _gisTriggered = false; }, 1500); // allow re-trigger on later reveals
             }
         });
         _gisHostObserver.observe(document.body, { childList: true, subtree: true });
