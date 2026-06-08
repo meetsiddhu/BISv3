@@ -42,7 +42,8 @@
         if (attr.helpText) {
           html += '<div style="font-size:11px;color:#aaa">' + esc(attr.helpText) + '</div>';
         }
-        html += '<div style="font-size:11px"><a href="#" onclick="window._caHistory(\'' + esc(attr.internalKey) + '\',\'' + esc(attr.name) + '\');return false;" style="color:#0a6ed1;text-decoration:none">History</a></div>';
+        // Per-attribute history link removed — custom-attribute change history is surfaced
+        // in the "Change Documents" report (AttributeValueHistory joined per object).
         html += '</div>';
       });
       html += '</div></div>';
@@ -149,24 +150,8 @@
     });
   };
 
-  window._caHistory = function (key, label) {
-    var id = getBridgeId();
-    if (!id) return;
-    fetch(API_BASE + '/history/' + OBJECT_TYPE + '/' + id + '/' + key)
-      .then(function (historyResponse) { return historyResponse.json(); })
-      .then(function (data) {
-        var rows = data.history || [];
-        if (!rows.length) { alert('No history found for ' + label); return; }
-        var msg = label + ': Change History\n\n';
-        rows.forEach(function (historyEntry) {
-          var previousCustomFieldValue = historyEntry.oldValueText ?? historyEntry.oldValueInteger ?? historyEntry.oldValueDecimal ?? historyEntry.oldValueDate ?? (historyEntry.oldValueBoolean != null ? (historyEntry.oldValueBoolean ? 'Yes' : 'No') : '') ?? '-';
-          var newCustomFieldValue = historyEntry.newValueText ?? historyEntry.newValueInteger ?? historyEntry.newValueDecimal ?? historyEntry.newValueDate ?? (historyEntry.newValueBoolean != null ? (historyEntry.newValueBoolean ? 'Yes' : 'No') : '') ?? '-';
-          msg += (historyEntry.changedAt || '').slice(0,16).replace('T',' ') + '  ' + (historyEntry.changedBy || '') + '\n';
-          msg += '  ' + previousCustomFieldValue + '  →  ' + newCustomFieldValue + '  [' + (historyEntry.changeSource || '') + ']\n\n';
-        });
-        alert(msg);
-      });
-  };
+  // _caHistory removed: per-attribute history is no longer shown inline; the
+  // "Change Documents" report carries custom-attribute change history per object.
 
   window.addEventListener('hashchange', function () {
     if (window.location.hash.indexOf('/Bridges(') !== -1) {
