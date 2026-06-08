@@ -1,0 +1,59 @@
+{
+  "_version": "1.8.0",
+  "sap.app": {
+    "id": "BridgeManagement.prioritisation",
+    "type": "application",
+    "title": "Bridge Prioritisation",
+    "description": "Risk + criticality based bridge prioritisation (reproducible, immutable runs)",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": { "version": "1.0.0" },
+    "dataSources": {
+      "PrioritisationService": {
+        "uri": "/odata/v4/prioritisation/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "Prioritisation-display": {
+          "signature": { "parameters": {}, "additionalParameters": "allowed" },
+          "semanticObject": "Prioritisation",
+          "action": "display",
+          "title": "Bridge Prioritisation",
+          "subTitle": "Ranked worklist · assess · reports",
+          "icon": "sap-icon://sort-descending"
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "fullWidth": true,
+    "deviceTypes": { "desktop": true, "phone": false, "tablet": true }
+  },
+  "sap.ui5": {
+    "dependencies": {
+      "minUI5Version": "1.136.0",
+      "libs": { "sap.m": {}, "sap.f": {}, "sap.ui.layout": {}, "sap.ui.core": {} }
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "uri": "i18n/i18n.properties",
+        "settings": { "supportedLocales": [""], "fallbackLocale": "" }
+      },
+      "": {
+        "dataSource": "PrioritisationService",
+        "settings": { "operationMode": "Server", "autoExpandSelect": true, "groupId": "$auto" }
+      }
+    },
+    "rootView": {
+      "viewName": "BridgeManagement.prioritisation.view.App",
+      "type": "XML",
+      "id": "prioritisationApp"
+    },
+    "contentDensities": { "compact": true, "cozy": true }
+  },
+  "sap.fiori": { "registrationIds": [], "archeType": "transactional" }
+}

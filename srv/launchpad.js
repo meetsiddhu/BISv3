@@ -21,6 +21,11 @@ function buildSandboxConfig (isAdmin) {
       id: 'MapView',
       tileType: 'sap.ushell.ui.tile.StaticTile',
       properties: { title: 'Map View', subtitle: 'Geographic Explorer', icon: 'sap-icon://map-2', targetURL: '#Map-display' }
+    },
+    {
+      id: 'Prioritisation',
+      tileType: 'sap.ushell.ui.tile.StaticTile',
+      properties: { title: 'Bridge Prioritisation', subtitle: 'Ranked worklist · assess · reports', icon: 'sap-icon://sort-descending', targetURL: '#Prioritisation-display' }
     }
   ]
 
@@ -136,6 +141,11 @@ function buildSandboxConfig (isAdmin) {
       semanticObject: 'Map', action: 'display', title: 'Map View',
       signature: { parameters: {}, additionalParameters: 'allowed' },
       resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.mapview', url: '/BridgeManagementmapview' }
+    },
+    'Prioritisation-display': {
+      semanticObject: 'Prioritisation', action: 'display', title: 'Bridge Prioritisation',
+      signature: { parameters: {}, additionalParameters: 'allowed' },
+      resolutionResult: { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.prioritisation', url: '/BridgeManagementprioritisation' }
     },
     'MassUpload-display': {
       semanticObject: 'MassUpload', action: 'display', title: 'Mass Upload',

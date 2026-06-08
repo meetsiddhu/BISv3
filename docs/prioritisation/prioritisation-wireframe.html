@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIS Prioritisation — approved interaction wireframe</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.30.0/iconfont/tabler-icons.min.css">
+<style>
+:root{
+  --color-background-primary:#ffffff;--color-background-secondary:#f4f3ee;--color-background-tertiary:#ECEAE1;
+  --color-background-info:#E6F1FB;--color-text-primary:#1a1a18;--color-text-secondary:#5F5E5A;
+  --color-text-tertiary:#888780;--color-text-info:#185FA5;--color-border-tertiary:rgba(0,0,0,.12);
+  --color-border-secondary:rgba(0,0,0,.22);--color-border-info:#378ADD;--border-radius-md:8px;
+  --border-radius-lg:12px;--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--color-text-primary);max-width:760px;margin:0 auto;padding:24px;line-height:1.5;}
+button{font-family:inherit;}
+select{font-family:inherit;font-size:13px;padding:6px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:#fff;}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+.view{padding-top:4px}
+.nav-btn{font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 12px;background:transparent;cursor:pointer}
+.nav-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.seg{font-size:13px;min-width:30px;border:0.5px solid var(--color-border-secondary);background:transparent;border-radius:var(--border-radius-md);padding:5px 0;cursor:pointer}
+.seg.on{background:#185FA5;color:#fff;border-color:#185FA5}
+.cell{font-size:12px;text-align:center;padding:8px 0;border:0.5px solid var(--color-border-tertiary);cursor:pointer;border-radius:4px}
+.cell.col{outline:2px solid var(--color-border-info);outline-offset:-2px}
+.cell.active{box-shadow:0 0 0 2px var(--color-text-primary) inset}
+.hide{display:none}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Approved interaction wireframe for the bridge prioritisation module: launchpad tile, worklist, assessment with constrained risk matrix and formula inspector, and dual exec/engineer reports.</h2>
+
+<div style="display:flex;gap:10px;margin:1rem 0;">
+  <div style="flex:1;background:#E6F1FB;border:0.5px solid #378ADD;border-radius:var(--border-radius-md);padding:12px;">
+    <i class="ti ti-sort-descending-numbers" style="font-size:20px;color:#185FA5" aria-hidden="true"></i>
+    <p style="margin:6px 0 0;font-size:13px;font-weight:500;color:#0C447C;">Bridge prioritisation</p>
+    <p style="margin:2px 0 0;font-size:11px;color:#185FA5;">312 assessed · 18 P1</p>
+  </div>
+  <div style="flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;opacity:.7;">
+    <i class="ti ti-traffic-cone" style="font-size:20px;color:#854F0B" aria-hidden="true"></i>
+    <p style="margin:6px 0 0;font-size:13px;font-weight:500;">Restrictions</p>
+    <p style="margin:2px 0 0;font-size:11px;color:var(--color-text-secondary);">gold tile</p>
+  </div>
+  <div style="flex:1;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;opacity:.7;">
+    <i class="ti ti-building-bridge" style="font-size:20px;color:var(--color-text-secondary)" aria-hidden="true"></i>
+    <p style="margin:6px 0 0;font-size:13px;font-weight:500;">Bridge register</p>
+    <p style="margin:2px 0 0;font-size:11px;color:var(--color-text-secondary);">from EAM</p>
+  </div>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:12px;">
+  <button class="nav-btn active" data-view="worklist">Worklist</button>
+  <button class="nav-btn" data-view="assess">Assess</button>
+  <button class="nav-btn" data-view="reports">Reports</button>
+  <span style="margin-left:auto;font-size:11px;color:var(--color-text-tertiary);align-self:center;">prioritisation module · BIS</span>
+</div>
+
+<div class="view" id="v-worklist">
+  <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">Ranked by priority · band is the primary signal, score secondary · confidence shown per row</div>
+  <div id="wl-rows"></div>
+</div>
+
+<div class="view hide" id="v-assess">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+    <span id="a-name" style="font-size:15px;font-weight:500;">Prospect Rd overbridge</span>
+    <span style="font-size:11px;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:var(--border-radius-md);"><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px" aria-hidden="true"></i> 4 of 5 inputs · condition as-at 8 mo</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div>
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px;">1 · Consequence — criticality dimensions</p>
+      <div id="dims"></div>
+      <div style="margin-top:10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;">
+        <span style="font-size:12px;color:var(--color-text-secondary);">Criticality (computed)</span>
+        <div style="display:flex;align-items:baseline;gap:8px;"><span id="crit-val" style="font-size:22px;font-weight:500;">3.0</span><span id="crit-tier" style="font-size:12px;color:var(--color-text-secondary);">tier 3</span></div>
+      </div>
+      <p style="font-size:13px;font-weight:500;margin:14px 0 6px;">2 · Likelihood of failure</p>
+      <div id="lik" style="display:flex;gap:6px;"></div>
+      <p style="font-size:11px;color:var(--color-text-tertiary);margin:6px 0 0;">derived 4 from condition + load rating — override is logged</p>
+    </div>
+    <div>
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px;">Risk matrix</p>
+      <div style="display:flex;gap:8px;">
+        <div style="display:flex;flex-direction:column-reverse;justify-content:space-around;font-size:10px;color:var(--color-text-tertiary);padding-bottom:16px;">L1<br>L2<br>L3<br>L4<br>L5</div>
+        <div style="flex:1;">
+          <div id="matrix" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;"></div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;font-size:10px;color:var(--color-text-tertiary);text-align:center;margin-top:2px;"><span>C1</span><span>C2</span><span>C3</span><span>C4</span><span>C5</span></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--color-text-tertiary);margin:8px 0 0;">consequence column is computed from the dimensions — clicking a cell sets likelihood only. Change the dimensions to move the column.</p>
+    </div>
+  </div>
+  <div style="border-top:0.5px solid var(--color-border-tertiary);margin-top:16px;padding-top:14px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--color-text-secondary);">Strategy</span>
+      <select id="strat"><option value="80">Renew</option><option value="50">Maintain</option><option value="20">Monitor</option><option value="30">Decommission</option></select>
+      <span style="margin-left:auto;font-size:12px;color:var(--color-text-secondary);">Priority</span>
+      <span id="p-score" style="font-size:26px;font-weight:500;">—</span>
+      <span id="p-band" style="font-size:13px;padding:3px 10px;border-radius:var(--border-radius-md);">—</span>
+    </div>
+    <div id="decomp" style="margin-top:12px;"></div>
+    <details style="margin-top:12px;" open>
+      <summary style="font-size:13px;cursor:pointer;color:var(--color-text-info);">Formula inspector</summary>
+      <pre id="formula" style="font-family:var(--font-mono);font-size:11.5px;white-space:pre-wrap;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;margin-top:8px;color:var(--color-text-secondary);"></pre>
+    </details>
+  </div>
+</div>
+
+<div class="view hide" id="v-reports">
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="nav-btn active" data-rep="exec">C-level one-pager</button>
+    <button class="nav-btn" data-rep="eng">Ground-engineer detail</button>
+    <span style="margin-left:auto;font-size:11px;color:var(--color-text-tertiary);align-self:center;">same immutable run · numbers reconcile</span>
+  </div>
+  <div id="r-exec">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;"><p style="margin:0;font-size:11px;color:var(--color-text-secondary);">Assessed</p><p style="margin:2px 0 0;font-size:20px;font-weight:500;">312</p></div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;"><p style="margin:0;font-size:11px;color:var(--color-text-secondary);">P1 critical</p><p style="margin:2px 0 0;font-size:20px;font-weight:500;color:#A32D2D;">18</p></div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;"><p style="margin:0;font-size:11px;color:var(--color-text-secondary);">Top-decile cost</p><p style="margin:2px 0 0;font-size:20px;font-weight:500;">$8.4m</p></div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;"><p style="margin:0;font-size:11px;color:var(--color-text-secondary);">Stale inputs</p><p style="margin:2px 0 0;font-size:20px;font-weight:500;color:#854F0B;">27</p></div>
+    </div>
+    <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 6px;">Portfolio by band</p>
+    <div style="display:flex;height:26px;border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:6px;">
+      <div style="flex:18;background:#A32D2D;"></div><div style="flex:44;background:#D85A30;"></div><div style="flex:120;background:#BA7517;"></div><div style="flex:90;background:#639922;"></div><div style="flex:40;background:#888780;"></div>
+    </div>
+    <div style="display:flex;gap:14px;font-size:11px;color:var(--color-text-secondary);flex-wrap:wrap;"><span><b style="color:#A32D2D;font-weight:500;">P1</b> 18</span><span><b style="color:#993C1D;font-weight:500;">P2</b> 44</span><span><b style="color:#854F0B;font-weight:500;">P3</b> 120</span><span><b style="color:#3B6D11;font-weight:500;">P4</b> 90</span><span><b style="color:#5F5E5A;font-weight:500;">P5</b> 40</span></div>
+    <p style="font-size:13px;line-height:1.7;margin:14px 0 0;">Eighteen structures are P1 critical; addressing the top decile is an estimated $8.4m of intervention and removes the largest share of portfolio risk. Twenty-seven scores rely on condition data older than 12 months and should be re-inspected before the funding submission.</p>
+    <div style="margin-top:12px;display:flex;gap:8px;"><button class="nav-btn"><i class="ti ti-file-download" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Export PDF</button><button class="nav-btn">Methodology appendix</button></div>
+  </div>
+  <div id="r-eng" class="hide">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Prospect Rd overbridge · P1</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <tr><td style="padding:5px 0;color:var(--color-text-secondary);">Condition (EAM)</td><td style="text-align:right;">CS3 · as-at 8 mo</td></tr>
+      <tr><td style="padding:5px 0;color:var(--color-text-secondary);">Load rating (AS 5100.7)</td><td style="text-align:right;">SM1600 · GML</td></tr>
+      <tr><td style="padding:5px 0;color:var(--color-text-secondary);">Active restriction (BIS)</td><td style="text-align:right;">42 t GVM · hard</td></tr>
+      <tr><td style="padding:5px 0;color:var(--color-text-secondary);">Criticality</td><td style="text-align:right;" id="eng-crit">3.0 · tier 3</td></tr>
+      <tr><td style="padding:5px 0;color:var(--color-text-secondary);">Residual risk</td><td style="text-align:right;" id="eng-risk">—</td></tr>
+      <tr style="border-top:0.5px solid var(--color-border-secondary);"><td style="padding:5px 0;font-weight:500;">Priority score</td><td style="text-align:right;font-weight:500;" id="eng-score">—</td></tr>
+    </table>
+    <div style="margin-top:12px;display:flex;gap:8px;"><button class="nav-btn"><i class="ti ti-external-link" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Open EAM notification</button><button class="nav-btn">Assessment history</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var DIMS=[["safety","Safety",.35],["network","Network service",.25],["financial","Financial",.15],["environ","Environmental",.10],["reput","Reputational",.15]];
+  var state={safety:3,network:3,financial:3,environ:3,reput:3,L:4,strat:80};
+  var BANDS=[[80,"P1","#A32D2D","#FCEBEB"],[60,"P2","#993C1D","#FAECE7"],[40,"P3","#854F0B","#FAEEDA"],[20,"P4","#3B6D11","#EAF3DE"],[0,"P5","#5F5E5A","#F1EFE8"]];
+  function r(n,d){var m=Math.pow(10,d||0);return Math.round(n*m)/m;}
+  function lvl(v){return v>=15?["#FCEBEB","#A32D2D"]:v>=8?["#FAECE7","#993C1D"]:v>=4?["#FAEEDA","#854F0B"]:["#EAF3DE","#3B6D11"];}
+  var dimsEl=document.getElementById("dims");
+  DIMS.forEach(function(d){
+    var row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:6px;";
+    var lab=document.createElement("span");lab.textContent=d[1];lab.style.cssText="font-size:12px;flex:1;color:var(--color-text-secondary);";row.appendChild(lab);
+    for(var i=1;i<=5;i++){(function(v){var b=document.createElement("button");b.className="seg";b.textContent=v;b.dataset.dim=d[0];b.dataset.val=v;if(v==state[d[0]])b.classList.add("on");b.onclick=function(){state[d[0]]=v;recompute();};row.appendChild(b);})(i);}
+    dimsEl.appendChild(row);
+  });
+  var likEl=document.getElementById("lik");
+  for(var i=1;i<=5;i++){(function(v){var b=document.createElement("button");b.className="seg lik";b.textContent=v;b.dataset.val=v;b.style.flex="1";if(v==state.L)b.classList.add("on");b.onclick=function(){state.L=v;recompute();};likEl.appendChild(b);})(i);}
+  var mEl=document.getElementById("matrix");
+  for(var L=5;L>=1;L--){for(var C=1;C<=5;C++){(function(L,C){var c=document.createElement("div");c.className="cell";c.dataset.l=L;c.dataset.c=C;c.onclick=function(){state.L=L;recompute();};mEl.appendChild(c);})(L,C);}}
+  document.getElementById("strat").onchange=function(){state.strat=+this.value;recompute();};
+  function recompute(){
+    var crit=DIMS.reduce(function(s,d){return s+state[d[0]]*d[2];},0);
+    var tier=Math.min(5,Math.max(1,Math.round(crit)));
+    var residual=state.L*tier;
+    var riskN=residual/25*100, critN=crit/5*100, stratN=state.strat;
+    var score=r(.4*riskN+.4*critN+.2*stratN);
+    var band=BANDS.find(function(b){return score>=b[0];});
+    dimsEl.querySelectorAll(".seg").forEach(function(b){b.classList.toggle("on",+b.dataset.val===state[b.dataset.dim]);});
+    likEl.querySelectorAll(".lik").forEach(function(b){b.classList.toggle("on",+b.dataset.val===state.L);});
+    document.getElementById("crit-val").textContent=r(crit,1).toFixed(1);
+    document.getElementById("crit-tier").textContent="tier "+tier;
+    mEl.querySelectorAll(".cell").forEach(function(c){
+      var L=+c.dataset.l,C=+c.dataset.c,co=lvl(L*C);
+      c.style.background=co[0];c.style.color=co[1];c.textContent=L*C;
+      c.classList.toggle("col",C===tier);
+      c.classList.toggle("active",C===tier&&L===state.L);
+    });
+    document.getElementById("p-score").textContent=score;
+    var pb=document.getElementById("p-band");pb.textContent=band[1];pb.style.background=band[3];pb.style.color=band[2];
+    document.getElementById("decomp").innerHTML=bar("Risk",.4*riskN,riskN,"#378ADD")+bar("Criticality",.4*critN,critN,"#1D9E75")+bar("Strategy",.2*stratN,stratN,"#7F77DD");
+    document.getElementById("formula").textContent=
+      "criticality = .35\u00b7"+state.safety+" + .25\u00b7"+state.network+" + .15\u00b7"+state.financial+" + .10\u00b7"+state.environ+" + .15\u00b7"+state.reput+" = "+r(crit,2)+"  \u2192 tier "+tier+"\n"+
+      "residual risk = L("+state.L+") \u00d7 consequence("+tier+") = "+residual+"   [restriction is a flag, not in the score]\n"+
+      "priority = .4\u00b7riskN + .4\u00b7critN + .2\u00b7stratN = .4\u00b7"+r(riskN)+" + .4\u00b7"+r(critN)+" + .2\u00b7"+stratN+" = "+score+"  \u2192 "+band[1];
+    document.getElementById("eng-crit").textContent=r(crit,1).toFixed(1)+" · tier "+tier;
+    document.getElementById("eng-risk").textContent=residual+" / 25";
+    document.getElementById("eng-score").textContent=score+" · "+band[1];
+  }
+  function bar(label,contrib,raw,col){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-size:11px;width:78px;color:var(--color-text-secondary);">'+label+'</span><div style="flex:1;height:14px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+Math.round(raw)+'%;background:'+col+';"></div></div><span style="font-size:11px;width:64px;text-align:right;color:var(--color-text-secondary);">+'+Math.round(contrib)+'</span></div>';
+  }
+  function show(v){
+    ["worklist","assess","reports"].forEach(function(x){document.getElementById("v-"+x).classList.toggle("hide",x!==v);});
+    document.querySelectorAll(".nav-btn[data-view]").forEach(function(b){b.classList.toggle("active",b.dataset.view===v);});
+  }
+  document.querySelectorAll(".nav-btn[data-view]").forEach(function(b){b.onclick=function(){show(b.dataset.view);};});
+  document.querySelectorAll(".nav-btn[data-rep]").forEach(function(b){b.onclick=function(){
+    document.querySelectorAll(".nav-btn[data-rep]").forEach(function(x){x.classList.toggle("active",x===b);});
+    document.getElementById("r-exec").classList.toggle("hide",b.dataset.rep!=="exec");
+    document.getElementById("r-eng").classList.toggle("hide",b.dataset.rep!=="eng");
+  };});
+  var WL=[["Prospect Rd overbridge","P1",86,"#A32D2D","#FCEBEB","4 of 5 · 8 mo"],["Windsor Rd culvert","P1",82,"#A32D2D","#FCEBEB","5 of 5 · 2 mo"],["Main West rail UB","P2",71,"#993C1D","#FAECE7","3 of 5 · stale"],["George St LR span","P3",54,"#854F0B","#FAEEDA","5 of 5 · 1 mo"],["Lane Cove footbridge","P4",33,"#3B6D11","#EAF3DE","4 of 5 · 6 mo"]];
+  document.getElementById("wl-rows").innerHTML=WL.map(function(w){
+    return '<div class="wl-row" data-name="'+w[0]+'" style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;">'+
+    '<span style="font-size:12px;padding:2px 8px;border-radius:var(--border-radius-md);background:'+w[4]+';color:'+w[3]+';">'+w[1]+'</span>'+
+    '<span style="font-size:13px;flex:1;">'+w[0]+'</span>'+
+    '<div style="width:90px;height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+w[2]+'%;background:'+w[3]+';"></div></div>'+
+    '<span style="font-size:12px;width:28px;text-align:right;font-weight:500;">'+w[2]+'</span>'+
+    '<span style="font-size:10px;color:var(--color-text-tertiary);width:74px;text-align:right;">'+w[5]+'</span></div>';
+  }).join("");
+  document.querySelectorAll(".wl-row[data-name]").forEach(function(row){row.onclick=function(){document.getElementById("a-name").textContent=row.dataset.name;show("assess");};});
+  recompute();show("worklist");
+})();
+</script>
+</body>
+</html>

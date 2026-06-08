@@ -29,4 +29,15 @@ describe('FLP sandbox config consistency', () => {
     expect(tileIds).not.toContain('NetworkRestrictions')
     expect(inbounds['NetworkRestrictions-manage']).toBeTruthy()
   })
+
+  test('Bridge Prioritisation tile + inbound present, gold Restrictions tile untouched', () => {
+    const c = JSON.parse(fs.readFileSync(b, 'utf8'))
+    const groups = c.services.LaunchPage.adapter.config.groups
+    const tileIds = groups.flatMap(g => (g.tiles || []).map(t => t.id))
+    const inbounds = c.services.ClientSideTargetResolution.adapter.config.inbounds
+    expect(tileIds).toContain('Prioritisation')
+    expect(inbounds['Prioritisation-display']).toBeTruthy()
+    expect(inbounds['Prioritisation-display'].resolutionResult.additionalInformation).toMatch(/BridgeManagement\.prioritisation/)
+    expect(tileIds).toContain('Restrictions') // gold tile untouched
+  })
 })

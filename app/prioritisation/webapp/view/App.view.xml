@@ -1,0 +1,167 @@
+<mvc:View
+  controllerName="BridgeManagement.prioritisation.controller.App"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:l="sap.ui.layout"
+  xmlns:core="sap.ui.core"
+  displayBlock="true">
+  <App id="rootApp">
+    <Page id="mainPage" title="{i18n>appTitle}" showHeader="true">
+      <content>
+        <IconTabBar id="tabs" expandable="false" select=".onTabSelect" class="sapUiResponsiveContentPadding">
+          <items>
+            <!-- ══════════ WORKLIST ══════════ -->
+            <IconTabFilter id="tabWorklist" text="{i18n>tab.worklist}" key="worklist" icon="sap-icon://list">
+              <MessageStrip text="{i18n>worklist.subtitle}" showIcon="true" class="sapUiTinyMarginBottom" />
+              <Table id="wlTable" items="{path:'wl>/rows'}" growing="true" growingThreshold="50" noDataText="{i18n>worklist.noData}"
+                     mode="SingleSelectMaster" itemPress=".onWorklistPress">
+                <columns>
+                  <Column width="9rem"><Text text="{i18n>worklist.col.band}" /></Column>
+                  <Column><Text text="{i18n>worklist.col.bridge}" /></Column>
+                  <Column hAlign="End" width="6rem"><Text text="{i18n>worklist.col.score}" /></Column>
+                  <Column hAlign="End" width="11rem"><Text text="{i18n>worklist.col.confidence}" /></Column>
+                  <Column hAlign="End" width="11rem"><Text text="{i18n>worklist.col.assessed}" /></Column>
+                </columns>
+                <items>
+                  <ColumnListItem type="Active">
+                    <cells>
+                      <!-- band carries LABEL + NUMBER + semantic state (never colour-only) -->
+                      <ObjectStatus text="{wl>band}" state="{wl>bandState}" inverted="true" />
+                      <ObjectIdentifier title="{wl>bridgeName}" text="{wl>bridgeRef}" />
+                      <ObjectNumber number="{wl>priorityScore}" />
+                      <Text text="{wl>confidence}" />
+                      <Text text="{wl>assessedAtText}" />
+                    </cells>
+                  </ColumnListItem>
+                </items>
+              </Table>
+            </IconTabFilter>
+
+            <!-- ══════════ ASSESS (hero) ══════════ -->
+            <IconTabFilter id="tabAssess" text="{i18n>tab.assess}" key="assess" icon="sap-icon://measure">
+              <VBox class="sapUiSmallMarginBeginEnd">
+                <HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
+                  <Label text="{i18n>assess.pickBridge}" class="sapUiTinyMarginEnd" />
+                  <ComboBox id="bridgePicker" width="22rem" selectionChange=".onPickBridge"
+                            items="{path:'br>/rows', templateShareable:false}">
+                    <core:Item key="{br>ID}" text="{br>bridgeName} ({br>bridgeId})" />
+                  </ComboBox>
+                  <ObjectStatus class="sapUiSmallMarginBegin" icon="sap-icon://alert"
+                                text="{v>/confidenceText}" state="{v>/confidenceState}" visible="{= !!${v>/bridgeID} }" />
+                </HBox>
+
+                <!-- federated read-only facts with provenance -->
+                <Panel headerText="Federated facts (read-only · from register / EAM / restrictions)" visible="{= !!${v>/bridgeID} }" class="sapUiTinyMarginBottom">
+                  <l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0">
+                    <VBox><Label text="Condition (EAM)" /><Text text="{v>/facts/conditionText}" /></VBox>
+                    <VBox><Label text="Load rating" /><Text text="{v>/facts/loadText}" /></VBox>
+                    <VBox><Label text="Active restriction (BIS)" /><Text text="{v>/facts/restrictionSummary}" /></VBox>
+                    <VBox><Label text="Register risk (BIS)" /><Text text="{v>/facts/riskText}" /></VBox>
+                  </l:Grid>
+                </Panel>
+
+                <l:Grid defaultSpan="L6 M12 S12" hSpacing="2" vSpacing="0">
+                  <!-- LEFT: dimensions + likelihood -->
+                  <VBox>
+                    <Title text="{i18n>assess.consequence}" level="H5" class="sapUiTinyMarginBottom" />
+                    <VBox id="dimsBox" />
+                    <HBox alignItems="Baseline" class="sapUiSmallMarginTop" >
+                      <Text text="{i18n>assess.criticality}: " />
+                      <ObjectNumber number="{v>/criticality}" emphasized="true" class="sapUiTinyMarginBegin" />
+                      <Text text="(tier {v>/tier})" class="sapUiTinyMarginBegin" />
+                    </HBox>
+                    <Title text="{i18n>assess.likelihood}" level="H5" class="sapUiSmallMarginTop sapUiTinyMarginBottom" />
+                    <HBox id="likBox" />
+                    <Text text="{i18n>assess.likelihoodHint}" class="sapUiTinyMarginTop" />
+                    <Input id="overrideReason" placeholder="{i18n>assess.overrideReason}" value="{v>/likelihoodOverrideReason}"
+                           visible="{v>/likelihoodOverridden}" class="sapUiTinyMarginTop" />
+                  </VBox>
+                  <!-- RIGHT: constrained risk matrix -->
+                  <VBox>
+                    <Title text="{i18n>assess.matrix}" level="H5" class="sapUiTinyMarginBottom" />
+                    <HBox id="matrixBox" />
+                    <Text text="{i18n>assess.matrixHint}" class="sapUiTinyMarginTop" />
+                  </VBox>
+                </l:Grid>
+
+                <!-- score + band + decomposition + formula -->
+                <Panel class="sapUiSmallMarginTop">
+                  <HBox alignItems="Center" wrap="Wrap">
+                    <Label text="{i18n>assess.strategy}" class="sapUiTinyMarginEnd" />
+                    <Select id="strategySelect" selectedKey="{v>/strategy}" change=".onChange">
+                      <core:Item key="Renew" text="Renew" />
+                      <core:Item key="Maintain" text="Maintain" />
+                      <core:Item key="Monitor" text="Monitor" />
+                      <core:Item key="Decommission" text="Decommission" />
+                    </Select>
+                    <ToolbarSpacer />
+                    <Label text="{i18n>assess.priority}" class="sapUiTinyMarginEnd" />
+                    <ObjectNumber number="{v>/priorityScore}" emphasized="true" class="sapUiSmallMarginEnd" />
+                    <ObjectStatus text="{v>/band}" state="{v>/bandState}" inverted="true" />
+                    <Button text="{i18n>assess.save}" type="Emphasized" icon="sap-icon://save" press=".onSave"
+                            enabled="{= !!${v>/bridgeID} }" class="sapUiMediumMarginBegin" />
+                  </HBox>
+                  <VBox id="decompBox" class="sapUiSmallMarginTop" />
+                  <Panel headerText="{i18n>assess.formula}" expandable="true" expanded="true" class="sapUiTinyMarginTop">
+                    <Text text="{v>/formula}" class="sapUiTinyMargin" />
+                  </Panel>
+                </Panel>
+              </VBox>
+            </IconTabFilter>
+
+            <!-- ══════════ REPORTS ══════════ -->
+            <IconTabFilter id="tabReports" text="{i18n>tab.reports}" key="reports" icon="sap-icon://bar-chart">
+              <SegmentedButton selectedKey="{rep>/mode}" selectionChange=".onReportMode" class="sapUiTinyMarginBottom">
+                <items>
+                  <SegmentedButtonItem key="exec" text="{i18n>reports.exec}" />
+                  <SegmentedButtonItem key="eng" text="{i18n>reports.eng}" />
+                </items>
+              </SegmentedButton>
+              <MessageStrip text="{i18n>reports.sameRun}" showIcon="true" class="sapUiTinyMarginBottom" />
+              <!-- exec one-pager -->
+              <VBox visible="{= ${rep>/mode} === 'exec' }">
+                <l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0">
+                  <VBox class="sapUiContentPadding"><Text text="{i18n>reports.assessed}" /><Title text="{rep>/assessed}" level="H4" /></VBox>
+                  <VBox class="sapUiContentPadding"><Text text="{i18n>reports.p1}" /><Title text="{rep>/p1}" level="H4" /></VBox>
+                  <VBox class="sapUiContentPadding"><Text text="{i18n>reports.stale}" /><Title text="{rep>/stale}" level="H4" /></VBox>
+                  <VBox class="sapUiContentPadding"><Text text="Top score" /><Title text="{rep>/topScore}" level="H4" /></VBox>
+                </l:Grid>
+                <Title text="{i18n>reports.byBand}" level="H6" class="sapUiSmallMarginTop sapUiTinyMarginBottom" />
+                <Table items="{path:'rep>/bands'}" noDataText="{i18n>reports.noData}">
+                  <columns><Column><Text text="Band" /></Column><Column hAlign="End"><Text text="Count" /></Column></columns>
+                  <items><ColumnListItem>
+                    <cells><ObjectStatus text="{rep>code}" state="{rep>state}" inverted="true" /><ObjectNumber number="{rep>count}" /></cells>
+                  </ColumnListItem></items>
+                </Table>
+                <Text text="{rep>/headline}" class="sapUiSmallMarginTop" />
+                <Button text="Export PDF" icon="sap-icon://pdf-attachment" press=".onExportPdf" class="sapUiSmallMarginTop" />
+              </VBox>
+              <!-- engineer detail (from the stored run) -->
+              <VBox visible="{= ${rep>/mode} === 'eng' }">
+                <Table items="{path:'wl>/rows'}" noDataText="{i18n>reports.noData}" mode="SingleSelectMaster">
+                  <columns>
+                    <Column><Text text="Bridge" /></Column><Column width="7rem"><Text text="Priority" /></Column>
+                    <Column hAlign="End" width="6rem"><Text text="Crit/Tier" /></Column>
+                    <Column hAlign="End" width="6rem"><Text text="Residual" /></Column>
+                    <Column hAlign="End" width="6rem"><Text text="Score" /></Column>
+                    <Column hAlign="End" width="11rem"><Text text="Confidence" /></Column>
+                  </columns>
+                  <items><ColumnListItem>
+                    <cells>
+                      <ObjectIdentifier title="{wl>bridgeName}" text="{wl>bridgeRef}" />
+                      <ObjectStatus text="{wl>band}" state="{wl>bandState}" inverted="true" />
+                      <Text text="{wl>critTier}" />
+                      <Text text="{wl>residualText}" />
+                      <ObjectNumber number="{wl>priorityScore}" />
+                      <Text text="{wl>confidence}" />
+                    </cells>
+                  </ColumnListItem></items>
+                </Table>
+              </VBox>
+            </IconTabFilter>
+          </items>
+        </IconTabBar>
+      </content>
+    </Page>
+  </App>
+</mvc:View>

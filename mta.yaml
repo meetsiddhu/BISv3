@@ -1,6 +1,6 @@
 _schema-version: 3.3.0
 ID: BridgeManagement
-version: 3.9.27
+version: 3.9.28
 description: "Bridge Management System — NSW standalone"
 parameters:
   enable-parallel-deployments: true
@@ -112,6 +112,10 @@ modules:
           artifacts:
             - mass-upload.zip
           target-path: app/
+        - name: BridgeManagementprioritisation
+          artifacts:
+            - prioritisation.zip
+          target-path: app/
     requires:
       - name: BridgeManagement-auth
       - name: srv-api
@@ -201,6 +205,17 @@ modules:
   - name: BridgeManagementattributesadmin
     type: html5
     path: app/attributes-admin
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm ci
+        - npm run build
+      supported-platforms: []
+
+  - name: BridgeManagementprioritisation
+    type: html5
+    path: app/prioritisation
     build-parameters:
       build-result: dist
       builder: custom

@@ -735,3 +735,81 @@ annotate Restrictions with @(cds.persistence.indexes: [
     { name: 'idx_bms_restriction_status', columns: ['restrictionStatus'] },
     { name: 'idx_bms_restriction_type',   columns: ['restrictionType'] }
 ]);
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Bridge Prioritisation module (bounded, additive) — approved design (docs/prioritisation/).
+//  Config-driven (rule 4). Every assessment is an IMMUTABLE, reproducible RUN stamped with the
+//  exact param snapshot + version, so any past worklist replays byte-identically. The restriction
+//  is a FLAG only — never in the score. Separate from RiskConfig/RiskBand (no recompute hook).
+// ════════════════════════════════════════════════════════════════════════════
+
+// Versioned parameter set for the prioritisation engine. Soft-delete via active; an edit creates
+// a NEW active version (old kept active=false) affecting only FUTURE runs.
+entity PrioritisationConfig : cuid, managed {
+  version             : String(20);                  // e.g. 'v1'
+  active              : Boolean default true;
+  // criticality dimension weights (normalised to sum 1 at compute time)
+  wSafety             : Decimal(6,4) default 0.35;
+  wNetwork            : Decimal(6,4) default 0.25;
+  wFinancial          : Decimal(6,4) default 0.15;
+  wEnvironmental      : Decimal(6,4) default 0.10;
+  wReputational       : Decimal(6,4) default 0.15;
+  // priority-score weights (normalised to sum 1 at compute time)
+  wRisk               : Decimal(6,4) default 0.40;
+  wCrit               : Decimal(6,4) default 0.40;
+  wStrat              : Decimal(6,4) default 0.20;
+  maxResidual         : Decimal(6,2) default 25;
+  maxCriticality      : Decimal(6,2) default 5;
+  // strategy urgency values 0..100
+  urgencyRenew        : Decimal(6,2) default 80;
+  urgencyMaintain     : Decimal(6,2) default 50;
+  urgencyMonitor      : Decimal(6,2) default 20;
+  urgencyDecommission : Decimal(6,2) default 30;
+  // 5-band ladder (P1..P5) with a 0 floor — JSON, validated on write
+  bandThresholds      : String(500) default '[{"code":"P1","min":80},{"code":"P2","min":60},{"code":"P3","min":40},{"code":"P4","min":20},{"code":"P5","min":0}]';
+  formulaVersion      : String(20) default 'v1-normalised';
+  notes               : LargeString;
+}
+
+// One immutable prioritisation RUN. Inputs + computed outputs + the exact param snapshot used.
+// Append-only (the service grants READ,CREATE only); a correction creates a NEW run linked via
+// supersededBy. Soft-delete via active. Plain persisted columns (no draft).
+entity PrioritisationAssessment : cuid, managed {
+  bridge                   : Association to Bridges;
+  bridgeRef                : String(40);             // snapshot of bridgeId at run time
+  bridgeName               : String(111);            // snapshot of the asset name at run time
+  // ── Judgement inputs (1..5) ──
+  dimSafety                : Integer @assert.range: [1, 5];
+  dimNetwork               : Integer @assert.range: [1, 5];
+  dimFinancial             : Integer @assert.range: [1, 5];
+  dimEnvironmental         : Integer @assert.range: [1, 5];
+  dimReputational          : Integer @assert.range: [1, 5];
+  likelihood               : Integer @assert.range: [1, 5];
+  likelihoodDerived        : Integer;                // engine default (condition + load)
+  likelihoodOverridden     : Boolean default false;
+  likelihoodOverrideReason : String(255);
+  strategy                 : String(20);             // Renew | Maintain | Monitor | Decommission
+  restrictionFlag          : Boolean default false;  // FLAG only — never enters the score
+  // ── Computed outputs (server-side; reproducible) ──
+  criticality              : Decimal(7,3);
+  tier                     : Integer;                // round(criticality) clamped 1..5
+  residual                 : Decimal(7,2);           // likelihood × tier
+  riskN                    : Decimal(8,3);
+  critN                    : Decimal(8,3);
+  stratN                   : Decimal(8,3);
+  priorityScore            : Decimal(6,2);
+  band                     : String(10);             // P1..P5
+  // ── Confidence / freshness snapshot ──
+  inputsAvailable          : Integer;
+  inputsTotal              : Integer;
+  conditionAsAtMonths      : Integer;
+  // ── Reproducibility stamp ──
+  configVersion            : String(20);
+  formulaVersion           : String(20);
+  paramSnapshot            : LargeString;            // JSON of the exact params used
+  assessedBy               : String(111);
+  assessedAt               : Timestamp;
+  // ── Lifecycle ──
+  supersededBy             : Association to PrioritisationAssessment;
+  active                   : Boolean default true;
+}

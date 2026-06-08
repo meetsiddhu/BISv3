@@ -51,6 +51,16 @@
                     "icon": "sap-icon://map-2",
                     "targetURL": "#Map-display"
                   }
+                },
+                {
+                  "id": "Prioritisation",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Bridge Prioritisation",
+                    "subtitle": "Ranked worklist · assess · reports",
+                    "icon": "sap-icon://sort-descending",
+                    "targetURL": "#Prioritisation-display"
+                  }
                 }
               ]
             },
@@ -450,6 +460,20 @@
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
                 "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "Prioritisation-display": {
+              "semanticObject": "Prioritisation",
+              "action": "display",
+              "title": "Bridge Prioritisation",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.prioritisation",
+                "url": "/BridgeManagementprioritisation"
               }
             }
           }
