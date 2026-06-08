@@ -6,7 +6,7 @@
     "title": "BMS Administration",
     "description": "Bridge Management System Administration",
     "i18n": "i18n/i18n.properties",
-    "applicationVersion": { "version": "1.0.0" },
+    "applicationVersion": { "version": "1.1.0" },
     "dataSources": {
       "AdminService":      { "uri": "/odata/v4/admin/",    "type": "OData", "settings": { "odataVersion": "4.0" } },
       "AuditService":      { "uri": "/audit/api/",         "type": "HTTP" },
@@ -83,6 +83,9 @@
         { "pattern": "bnac-config", "name": "bnacConfig", "target": "bnacConfig" },
         { "pattern": "attribute-config", "name": "attributeConfig", "target": "attributeConfig" },
         { "pattern": "gis-config",       "name": "gisConfig",       "target": "gisConfig" },
+        { "pattern": "risk-bands",       "name": "riskBands",       "target": "riskBands" },
+        { "pattern": "risk-factors",     "name": "riskFactors",     "target": "riskFactors" },
+        { "pattern": "asset-strategy",   "name": "assetStrategy",   "target": "assetStrategy" },
         { "pattern": "demo-mode",        "name": "demoMode",        "target": "demoMode" }
       ],
       "targets": {
@@ -91,6 +94,9 @@
         "bnacConfig":      { "viewName": "BnacConfig",       "viewLevel": 1 },
         "attributeConfig": { "viewName": "AttributeConfig",  "viewLevel": 1 },
         "gisConfig":       { "viewName": "GisConfig",        "viewLevel": 1 },
+        "riskBands":       { "viewName": "RiskBands",        "viewLevel": 1 },
+        "riskFactors":     { "viewName": "RiskFactors",      "viewLevel": 1 },
+        "assetStrategy":   { "viewName": "AssetStrategy",    "viewLevel": 1 },
         "demoMode":        { "viewName": "DemoMode",         "viewLevel": 1 }
       }
     },

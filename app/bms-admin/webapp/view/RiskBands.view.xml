@@ -1,0 +1,49 @@
+<mvc:View
+  controllerName="BridgeManagement.bmsadmin.controller.RiskBands"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  displayBlock="true">
+
+  <Page id="riskBandsPage" showHeader="true" title="{i18n>nav.riskBands}">
+    <customHeader>
+      <Bar>
+        <contentLeft>
+          <Title text="{i18n>riskBands.title}" level="H3" />
+        </contentLeft>
+        <contentRight>
+          <Button icon="sap-icon://refresh" text="{i18n>btn.refresh}" press=".onRefresh" type="Transparent" />
+          <Button icon="sap-icon://add" text="{i18n>btn.add}" press=".onAdd" type="Emphasized" class="sapUiSmallMarginBegin" />
+          <Button icon="sap-icon://sys-help" tooltip="{i18n>btn.help}" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
+        </contentRight>
+      </Bar>
+    </customHeader>
+    <content>
+      <MessageStrip text="{i18n>riskBands.note}" type="Information" showIcon="true" class="sapUiSmallMargin" />
+      <Table id="riskBandsTable" items="{path:'/rows', sorter:{path:'minScore', descending:true}}" growing="true"
+             noDataText="{i18n>riskBands.noData}" class="sapUiSmallMarginBegin sapUiSmallMarginEnd">
+        <columns>
+          <Column><Text text="{i18n>riskBands.col.code}" /></Column>
+          <Column><Text text="{i18n>riskBands.col.band}" /></Column>
+          <Column hAlign="End" width="8rem"><Text text="{i18n>riskBands.col.min}" /></Column>
+          <Column hAlign="End" width="8rem"><Text text="{i18n>riskBands.col.max}" /></Column>
+          <Column hAlign="Center" width="7rem"><Text text="{i18n>riskBands.col.colour}" /></Column>
+          <Column hAlign="Center" width="7rem"><Text text="{i18n>col.active}" /></Column>
+          <Column hAlign="End" width="6rem"><Text text="{i18n>col.actions}" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <ObjectIdentifier title="{code}" />
+              <Text text="{name}" />
+              <ObjectNumber number="{minScore}" />
+              <ObjectNumber number="{maxScore}" />
+              <Text text="{colour}" />
+              <Switch state="{= ${active} !== false}" change=".onToggleActive" customTextOn=" " customTextOff=" " />
+              <Button icon="sap-icon://edit" type="Transparent" press=".onEdit" tooltip="{i18n>btn.edit}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </content>
+  </Page>
+</mvc:View>

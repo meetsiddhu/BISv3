@@ -461,15 +461,17 @@ entity AssetClassStrategy : cuid, managed {
 entity RiskConfig {
   key factor : String(40);   // consequence | likelihood weighting factor key
   name       : String(111);
-  weight     : Decimal(5,2) default 1;
+  // PRE-MORTEM MUST-FIX 12: a negative or huge weight silently distorts a scoring factor
+  // fleet-wide. Bound it (additive @assert; service + importer enforce the same range).
+  weight     : Decimal(5,2) default 1 @assert.range: [0, 10];
   active     : Boolean default true;
 }
 
 entity RiskBand {
   key code  : String(20);    // VeryHigh | High | Medium | Low
   name      : String(40);    // display band name
-  minScore  : Decimal(6,2);
-  maxScore  : Decimal(6,2);
+  minScore  : Decimal(6,2) @assert.range: [0, 100];  // score range is 4..100 (see risk.js)
+  maxScore  : Decimal(6,2) @assert.range: [0, 100];
   colour    : String(20);    // semantic colour for charts
   sortOrder : Integer default 0;
   rationale : LargeString;   // RISK-3: documented justification for the threshold (auditable)

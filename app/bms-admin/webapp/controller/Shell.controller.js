@@ -11,6 +11,9 @@ sap.ui.define([
     bnacConfig:       "bnacConfig",
     gisConfig:        "gisConfig",
     attributeConfig:  "attributeConfig",
+    riskBands:        "riskBands",
+    riskFactors:      "riskFactors",
+    assetStrategy:    "assetStrategy",
     demoMode:         "demoMode"
   };
 

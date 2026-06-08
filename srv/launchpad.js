@@ -63,11 +63,6 @@ function buildSandboxConfig (isAdmin) {
         properties: { title: 'BMS Administration', subtitle: 'Audit, Config & User Access', icon: 'sap-icon://action-settings', targetURL: '#BmsAdmin-manage' }
       },
       {
-        id: 'ChangeDocuments',
-        tileType: 'sap.ushell.ui.tile.StaticTile',
-        properties: { title: 'Change Documents', subtitle: 'Audit & Attribute History', icon: 'sap-icon://history', targetURL: '#ChangeDocuments-display&/ChangeDocumentReport' }
-      },
-      {
         id: 'AttributeClasses',
         tileType: 'sap.ushell.ui.tile.StaticTile',
         properties: { title: 'Attribute Classes', subtitle: 'Classes & Characteristics', icon: 'sap-icon://customize', targetURL: '#AttributeClasses-manage&/AttributeGroups' }
@@ -95,14 +90,15 @@ function buildSandboxConfig (isAdmin) {
     )
   }
 
-  // Risk & multi-modal tiles (Phases 2-4) — admin only.
+  // Reports & analytics tiles — admin only. (Risk Bands / Risk Factors / Asset Class Strategy
+  // config moved into the BMS Administration app; the redundant flat-ALV Network Restrictions
+  // tile was dropped — its inbound is kept for deep-links. NetworkPortfolio surfaces the
+  // previously-orphaned NetworkPortfolioReport.)
   const riskNetworkTiles = isAdmin ? [
-    { id: 'BridgeRisk',           tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Bridge Risk',            subtitle: 'Risk-Prioritised Worklist', icon: 'sap-icon://warning2',              targetURL: '#BridgeRisk-display&/BridgeRiskReport' } },
-    { id: 'NetworkRestrictions',  tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Network Restrictions',   subtitle: 'All Modes & Networks (ALV)', icon: 'sap-icon://table-view',            targetURL: '#NetworkRestrictions-manage&/NetworkRestrictionReport' } },
-    { id: 'RestrictionsDashboard',tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Restrictions Dashboard', subtitle: 'Multi-Mode Analytics (ALP)', icon: 'sap-icon://bar-chart',             targetURL: '#RestrictionsDashboard-display&/NetworkRestrictionReport' } },
-    { id: 'AssetStrategy',        tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Asset Class Strategy',   subtitle: 'Inspection & Intervention',  icon: 'sap-icon://example',               targetURL: '#AssetStrategy-manage&/AssetClassStrategy' } },
-    { id: 'RiskBands',            tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Risk Bands',             subtitle: 'Score Band Thresholds',      icon: 'sap-icon://measurement-document',  targetURL: '#RiskBands-manage&/RiskBand' } },
-    { id: 'RiskFactors',          tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Risk Factors',           subtitle: 'Scoring Weightings',         icon: 'sap-icon://settings',              targetURL: '#RiskFactors-manage&/RiskConfig' } }
+    { id: 'BridgeRisk',           tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Bridge Risk',            subtitle: 'Risk-Prioritised Worklist',  icon: 'sap-icon://warning2',                     targetURL: '#BridgeRisk-display&/BridgeRiskReport' } },
+    { id: 'NetworkPortfolio',     tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Network Portfolio',     subtitle: 'Network x Mode Analytics',   icon: 'sap-icon://business-objects-experience',  targetURL: '#NetworkPortfolio-display&/NetworkPortfolioReport' } },
+    { id: 'RestrictionsDashboard',tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Restrictions Dashboard', subtitle: 'Multi-Mode Analytics (ALP)', icon: 'sap-icon://bar-chart',                    targetURL: '#RestrictionsDashboard-display&/NetworkRestrictionReport' } },
+    { id: 'ChangeDocuments',      tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Change Documents',      subtitle: 'Audit & Attribute History',  icon: 'sap-icon://history',                      targetURL: '#ChangeDocuments-display&/ChangeDocumentReport' } }
   ] : []
 
   const inbounds = {
@@ -194,11 +190,12 @@ function buildSandboxConfig (isAdmin) {
     // Risk & multi-modal (Phases 2-4) — all render in the admin-bridges FE app.
     var adminBridgesRR = { applicationType: 'SAPUI5', additionalInformation: 'SAPUI5.Component=BridgeManagement.adminbridges', url: '/BridgeManagementadminbridges' }
     inbounds['BridgeRisk-display']           = { semanticObject: 'BridgeRisk',           action: 'display', title: 'Bridge Risk',            signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    inbounds['NetworkPortfolio-display']     = { semanticObject: 'NetworkPortfolio',     action: 'display', title: 'Network Portfolio',      signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    // Kept (no tile) so existing bookmarks/deep-links to the network-restrictions ALV resolve.
     inbounds['NetworkRestrictions-manage']   = { semanticObject: 'NetworkRestrictions',   action: 'manage',  title: 'Network Restrictions',   signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
     inbounds['RestrictionsDashboard-display']= { semanticObject: 'RestrictionsDashboard', action: 'display', title: 'Restrictions Dashboard', signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
-    inbounds['AssetStrategy-manage']         = { semanticObject: 'AssetStrategy',         action: 'manage',  title: 'Asset Class Strategy',   signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
-    inbounds['RiskBands-manage']             = { semanticObject: 'RiskBands',             action: 'manage',  title: 'Risk Bands',             signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
-    inbounds['RiskFactors-manage']           = { semanticObject: 'RiskFactors',           action: 'manage',  title: 'Risk Factors',           signature: { parameters: {}, additionalParameters: 'allowed' }, resolutionResult: adminBridgesRR }
+    // Risk Bands / Risk Factors / Asset Class Strategy now live in the BMS Administration app
+    // (side-nav), so their standalone launchpad inbounds were removed.
   }
 
   return {
@@ -228,7 +225,7 @@ function buildSandboxConfig (isAdmin) {
               },
               {
                 id: 'bms.group.risk',
-                title: 'RISK & MULTI-MODAL',
+                title: 'REPORTS & ANALYTICS',
                 isPreset: true, isVisible: riskNetworkTiles.length > 0, isGroupLocked: false,
                 tiles: riskNetworkTiles
               }

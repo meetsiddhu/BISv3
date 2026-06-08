@@ -131,16 +131,6 @@
                   }
                 },
                 {
-                  "id": "ChangeDocuments",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "Change Documents",
-                    "subtitle": "Audit & Attribute History",
-                    "icon": "sap-icon://history",
-                    "targetURL": "#ChangeDocuments-display&/ChangeDocumentReport"
-                  }
-                },
-                {
                   "id": "AttributeClasses",
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
@@ -164,7 +154,7 @@
             },
             {
               "id": "bms.group.risk",
-              "title": "RISK & MULTI-MODAL",
+              "title": "REPORTS & ANALYTICS",
               "isPreset": true,
               "isVisible": true,
               "isGroupLocked": false,
@@ -180,13 +170,13 @@
                   }
                 },
                 {
-                  "id": "NetworkRestrictions",
+                  "id": "NetworkPortfolio",
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
-                    "title": "Network Restrictions",
-                    "subtitle": "All Modes & Networks (ALV)",
-                    "icon": "sap-icon://table-view",
-                    "targetURL": "#NetworkRestrictions-manage&/NetworkRestrictionReport"
+                    "title": "Network Portfolio",
+                    "subtitle": "Network x Mode Analytics",
+                    "icon": "sap-icon://business-objects-experience",
+                    "targetURL": "#NetworkPortfolio-display&/NetworkPortfolioReport"
                   }
                 },
                 {
@@ -200,33 +190,13 @@
                   }
                 },
                 {
-                  "id": "AssetStrategy",
+                  "id": "ChangeDocuments",
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
-                    "title": "Asset Class Strategy",
-                    "subtitle": "Inspection & Intervention",
-                    "icon": "sap-icon://example",
-                    "targetURL": "#AssetStrategy-manage&/AssetClassStrategy"
-                  }
-                },
-                {
-                  "id": "RiskBands",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "Risk Bands",
-                    "subtitle": "Score Band Thresholds",
-                    "icon": "sap-icon://measurement-document",
-                    "targetURL": "#RiskBands-manage&/RiskBand"
-                  }
-                },
-                {
-                  "id": "RiskFactors",
-                  "tileType": "sap.ushell.ui.tile.StaticTile",
-                  "properties": {
-                    "title": "Risk Factors",
-                    "subtitle": "Scoring Weightings",
-                    "icon": "sap-icon://settings",
-                    "targetURL": "#RiskFactors-manage&/RiskConfig"
+                    "title": "Change Documents",
+                    "subtitle": "Audit & Attribute History",
+                    "icon": "sap-icon://history",
+                    "targetURL": "#ChangeDocuments-display&/ChangeDocumentReport"
                   }
                 }
               ]
@@ -468,38 +438,10 @@
                 "url": "/BridgeManagementadminbridges"
               }
             },
-            "AssetStrategy-manage": {
-              "semanticObject": "AssetStrategy",
-              "action": "manage",
-              "title": "Asset Class Strategy",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/BridgeManagementadminbridges"
-              }
-            },
-            "RiskBands-manage": {
-              "semanticObject": "RiskBands",
-              "action": "manage",
-              "title": "Risk Bands",
-              "signature": {
-                "parameters": {},
-                "additionalParameters": "allowed"
-              },
-              "resolutionResult": {
-                "applicationType": "SAPUI5",
-                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
-                "url": "/BridgeManagementadminbridges"
-              }
-            },
-            "RiskFactors-manage": {
-              "semanticObject": "RiskFactors",
-              "action": "manage",
-              "title": "Risk Factors",
+            "NetworkPortfolio-display": {
+              "semanticObject": "NetworkPortfolio",
+              "action": "display",
+              "title": "Network Portfolio",
               "signature": {
                 "parameters": {},
                 "additionalParameters": "allowed"

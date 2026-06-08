@@ -24,6 +24,9 @@
             <tnt:NavigationListItem text="BNAC Config"       key="bnacConfig"      icon="sap-icon://chain-link"    />
             <tnt:NavigationListItem text="GIS Config"        key="gisConfig"       icon="sap-icon://map"           />
             <tnt:NavigationListItem text="Attribute Config"  key="attributeConfig" icon="sap-icon://customize"     />
+            <tnt:NavigationListItem text="Risk Bands"        key="riskBands"       icon="sap-icon://measurement-document" />
+            <tnt:NavigationListItem text="Risk Factors"      key="riskFactors"     icon="sap-icon://settings"      />
+            <tnt:NavigationListItem text="Asset Class Strategy" key="assetStrategy" icon="sap-icon://example"     />
             <tnt:NavigationListItem text="Demo Mode"         key="demoMode"        icon="sap-icon://simulate"      />
           </tnt:NavigationList>
         </tnt:item>

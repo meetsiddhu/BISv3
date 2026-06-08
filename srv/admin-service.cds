@@ -428,13 +428,19 @@ service AdminService {
   // NET-1: network-level portfolio analytics — aggregate condition/risk/backlog per
   // network + transport mode for capital-planning ALP consumption (PIARC/Austroads AGAM
   // network view). Read-only; the per-bridge worklist remains BridgeRiskReport.
+  // PRE-MORTEM MUST-FIX 6/7: rendered as a flat ListReport of pre-aggregated rows (NOT an FE
+  // ALP with $apply re-aggregation — that would re-aggregate already-aggregated columns and
+  // average-of-averages incorrectly). Single non-null synthetic key (network+mode are
+  // nullable, and network alone collided across modes); dimensions COALESCE'd so a bridge with
+  // no network/mode still groups into a stable "Unassigned" row instead of a null OData key.
   @readonly
   @cds.redirection.target: false
   @restrict: [{ grant: 'READ', to: 'view' }]
   entity NetworkPortfolioReport as
     select from my.Bridges {
-      key network,
-          transportMode,
+      key (coalesce(network, 'Unassigned') || ' | ' || coalesce(transportMode, 'Unassigned')) as portfolioKey : String(170),
+          coalesce(network, 'Unassigned')                                             as network              : String(80),
+          coalesce(transportMode, 'Unassigned')                                       as transportMode        : String(40),
           count(*)                                                                    as bridgeCount          : Integer,
           avg(conditionRating)                                                        as avgCondition         : Decimal(4, 2),
           avg(riskScore)                                                              as avgRiskScore         : Decimal(6, 2),

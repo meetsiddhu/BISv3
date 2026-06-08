@@ -1,0 +1,47 @@
+<mvc:View
+  controllerName="BridgeManagement.bmsadmin.controller.RiskFactors"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  displayBlock="true">
+
+  <Page id="riskFactorsPage" showHeader="true" title="{i18n>nav.riskFactors}">
+    <customHeader>
+      <Bar>
+        <contentLeft>
+          <Title text="{i18n>riskFactors.title}" level="H3" />
+        </contentLeft>
+        <contentRight>
+          <Button icon="sap-icon://refresh" text="{i18n>btn.refresh}" press=".onRefresh" type="Transparent" />
+          <Button icon="sap-icon://add" text="{i18n>btn.add}" press=".onAdd" type="Emphasized" class="sapUiSmallMarginBegin" />
+          <Button icon="sap-icon://sys-help" tooltip="{i18n>btn.help}" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
+        </contentRight>
+      </Bar>
+    </customHeader>
+    <content>
+      <MessageStrip
+        text="{i18n>riskFactors.note}"
+        type="Information" showIcon="true" class="sapUiSmallMargin" />
+      <Table id="riskFactorsTable" items="{/rows}" growing="true" growingThreshold="50"
+             noDataText="{i18n>riskFactors.noData}" class="sapUiSmallMarginBegin sapUiSmallMarginEnd">
+        <columns>
+          <Column><Text text="{i18n>riskFactors.col.factor}" /></Column>
+          <Column><Text text="{i18n>riskFactors.col.name}" /></Column>
+          <Column hAlign="End" width="9rem"><Text text="{i18n>riskFactors.col.weight}" /></Column>
+          <Column hAlign="Center" width="7rem"><Text text="{i18n>col.active}" /></Column>
+          <Column hAlign="End" width="7rem"><Text text="{i18n>col.actions}" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <ObjectIdentifier title="{factor}" />
+              <Text text="{name}" />
+              <ObjectNumber number="{= ${weight} == null ? '–' : ${weight}}" />
+              <Switch state="{= ${active} !== false}" change=".onToggleActive" customTextOn=" " customTextOff=" " />
+              <Button icon="sap-icon://edit" type="Transparent" press=".onEdit" tooltip="{i18n>btn.edit}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </content>
+  </Page>
+</mvc:View>

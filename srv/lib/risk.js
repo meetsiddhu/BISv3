@@ -5,12 +5,74 @@
 // -> 0-100 score -> band. Engineer override keeps manually-set consequence/likelihood.
 // Bands match the RiskBand seed thresholds.
 
+// Default bands mirror the RiskBand seed thresholds, so scoring is unchanged when no
+// config is supplied. The RiskBand TABLE is the source of truth (rule 4: config-driven);
+// admin edits flow in via bandsFromConfig(). This array is only the fallback.
 const RISK_BANDS = [
   { name: 'Very High', min: 60 },
   { name: 'High',      min: 36 },
   { name: 'Medium',    min: 16 },
   { name: 'Low',       min: 0 }
 ]
+
+// Build the band ladder from RiskBand rows ({code/name, minScore, maxScore, active,
+// sortOrder}). Returns bands sorted DESCENDING by min (deriveRisk does find(score>=min)).
+// Returns null if the configured set is empty or invalid, so the caller falls back to the
+// hardcoded default rather than scoring against a broken ladder (rule: never corrupt fleet
+// scoring from bad config).
+function bandsFromConfig (rows) {
+  const bands = []
+  for (const r of rows || []) {
+    if (!r || r.active === false) continue
+    if (r.minScore === null || r.minScore === undefined || r.minScore === '') continue
+    const min = Number(r.minScore)
+    if (!Number.isFinite(min)) continue
+    bands.push({ name: r.name || r.code, min, max: Number(r.maxScore), code: r.code })
+  }
+  if (!bands.length) return null
+  bands.sort((a, b) => b.min - a.min)
+  return validateRiskBands(bands).ok ? bands : null
+}
+
+// Validate a band ladder: at least one band, a band starting at 0 (covers the bottom),
+// and strictly-decreasing mins (no two bands share a threshold / no gap-by-duplicate).
+// Returns { ok, errors[] }. Used by config UIs + importers AND by bandsFromConfig.
+function validateRiskBands (bands) {
+  const errors = []
+  // Accept both the internal shape ({min,max}) and raw RiskBand rows ({minScore,maxScore}),
+  // so config UIs and importers can validate before writing.
+  const list = (bands || []).map(b => ({
+    name: b.name || b.code,
+    min: b.min != null ? b.min : b.minScore,
+    max: b.max != null ? b.max : b.maxScore
+  })).sort((a, b) => b.min - a.min)
+  if (!list.length) { return { ok: false, errors: ['At least one risk band is required.'] } }
+  for (const b of list) {
+    if (!Number.isFinite(Number(b.min))) errors.push(`Band "${b.name}" has a non-numeric minScore.`)
+    if (Number.isFinite(Number(b.max)) && Number(b.max) < Number(b.min)) errors.push(`Band "${b.name}": maxScore < minScore.`)
+  }
+  for (let i = 1; i < list.length; i++) {
+    if (Number(list[i].min) === Number(list[i - 1].min)) errors.push(`Bands "${list[i - 1].name}" and "${list[i].name}" share the same minScore (${list[i].min}).`)
+  }
+  if (Number(list[list.length - 1].min) !== 0) errors.push('The lowest band must start at minScore 0 to cover the full score range.')
+  return { ok: errors.length === 0, errors }
+}
+
+// Validate RiskConfig weight rows: weights must be finite and within [0, max]. A negative
+// or wildly large weight silently distorts a scoring factor fleet-wide. Returns {ok,errors}.
+function validateRiskWeights (rows, maxWeight) {
+  const cap = Number.isFinite(Number(maxWeight)) ? Number(maxWeight) : 10
+  const errors = []
+  for (const r of rows || []) {
+    if (!r || r.active === false || r.factor == null) continue
+    if (r.weight === null || r.weight === undefined || r.weight === '') continue
+    const n = Number(r.weight)
+    if (!Number.isFinite(n)) { errors.push(`Factor "${r.factor}": weight is not a number.`); continue }
+    if (n < 0) errors.push(`Factor "${r.factor}": weight must not be negative (${n}).`)
+    if (n > cap) errors.push(`Factor "${r.factor}": weight ${n} exceeds the maximum of ${cap}.`)
+  }
+  return { ok: errors.length === 0, errors }
+}
 
 // NaN-safe clamp: a non-finite input collapses to the lower bound, so a stray NaN
 // anywhere in the pipeline can never propagate into the score (RISK P0-001 hardening).
@@ -27,9 +89,11 @@ const DEFAULT_WEIGHTS = {
   likelihood_structural: 1
 }
 
-function deriveRisk (b, weights) {
+function deriveRisk (b, weights, bands) {
   b = b || {}
   const w = Object.assign({}, DEFAULT_WEIGHTS, weights || {})
+  // Band ladder: configured RiskBand rows (source of truth) or the hardcoded fallback.
+  const ladder = (Array.isArray(bands) && bands.length) ? bands : RISK_BANDS
   // RISK P0-001: defense-in-depth — a non-finite weight (e.g. a malformed RiskConfig
   // row reaching deriveRisk directly, bypassing weightsFromConfig's guard) must never
   // propagate NaN into the score. Fall back to the documented default per factor; the
@@ -71,7 +135,7 @@ function deriveRisk (b, weights) {
       )), 1, 5)
 
   const score = consequence * likelihood * 4 // 4..100
-  const band = RISK_BANDS.find(x => score >= x.min) || RISK_BANDS[RISK_BANDS.length - 1]
+  const band = ladder.find(x => score >= x.min) || ladder[ladder.length - 1]
   return { consequence, likelihood, score, priority: band.name }
 }
 
@@ -140,4 +204,4 @@ function weightsFromConfig (rows) {
   return w
 }
 
-module.exports = { deriveRisk, clampRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig, RISK_BANDS, DEFAULT_WEIGHTS, LIKELIHOOD_TO_ANNUAL_PROB }
+module.exports = { deriveRisk, clampRisk, weightsFromConfig, bandsFromConfig, validateRiskBands, validateRiskWeights, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig, RISK_BANDS, DEFAULT_WEIGHTS, LIKELIHOOD_TO_ANNUAL_PROB }

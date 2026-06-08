@@ -1640,6 +1640,39 @@ annotate AdminService.BridgeRiskReport with {
 };
 
 ////////////////////////////////////////////////////////////////////////////
+//  Network Portfolio Report — flat ListReport of pre-aggregated network x mode rows.
+//  (Plain LR, NOT an ALP — the entity is already GROUP BY-aggregated; FE $apply would
+//   re-aggregate already-aggregated columns. Pre-mortem MUST-FIX 6.)
+////////////////////////////////////////////////////////////////////////////
+annotate AdminService.NetworkPortfolioReport with @(
+  Capabilities.InsertRestrictions: { Insertable: false },
+  Capabilities.UpdateRestrictions: { Updatable: false },
+  Capabilities.DeleteRestrictions: { Deletable: false },
+  UI.HeaderInfo: { TypeName: 'Network Portfolio', TypeNamePlural: 'Network Portfolio', Title: { Value: network }, Description: { Value: transportMode } },
+  UI.SelectionFields: [ network, transportMode ],
+  UI.LineItem: [
+    { Value: network,                 Label: 'Network' },
+    { Value: transportMode,           Label: 'Mode' },
+    { Value: bridgeCount,             Label: 'Bridges' },
+    { Value: highRiskCount,           Label: 'High/Very-High Risk' },
+    { Value: overdueCount,            Label: 'Inspections Overdue' },
+    { Value: interventionDueCount,    Label: 'Intervention Due' },
+    { Value: avgCondition,            Label: 'Avg Condition (1-10)' },
+    { Value: avgRiskScore,            Label: 'Avg Risk Score' },
+    { Value: totalExpectedValueAud,   Label: 'Expected Annual Loss (AUD)' },
+    { Value: totalMitigationCostAud,  Label: 'Mitigation Cost (AUD)' }
+  ]
+);
+annotate AdminService.NetworkPortfolioReport with {
+  portfolioKey @UI.Hidden;
+  network @title:'Network'; transportMode @title:'Mode'; bridgeCount @title:'Bridges';
+  highRiskCount @title:'High/Very-High Risk'; overdueCount @title:'Inspections Overdue';
+  interventionDueCount @title:'Intervention Due'; avgCondition @title:'Avg Condition (1-10)';
+  avgRiskScore @title:'Avg Risk Score'; totalExpectedValueAud @title:'Expected Annual Loss (AUD)';
+  totalMitigationCostAud @title:'Mitigation Cost (AUD)';
+};
+
+////////////////////////////////////////////////////////////////////////////
 //  Network Restrictions Report — ALV List Report + Analytical List Page — Phase 3
 ////////////////////////////////////////////////////////////////////////////
 annotate AdminService.NetworkRestrictionReport with @(
@@ -1700,10 +1733,12 @@ annotate AdminService.NetworkRestrictionReport with {
 };
 
 ////////////////////////////////////////////////////////////////////////////
-//  Asset Class Strategy — Fiori Elements (draft CRUD) — Phase 4
+//  Asset Class Strategy — maintained in the BMS Administration app (non-draft).
+//  Draft REMOVED (pre-mortem MUST-FIX 4): bms-admin uses direct OData CRUD, which a
+//  draft-enabled entity rejects. The annotations below remain for value-help/metadata
+//  (e.g. the Bridges object-page assetClassStrategy value list); the standalone FE
+//  List/ObjectPage routes were removed from manifest.json.
 ////////////////////////////////////////////////////////////////////////////
-annotate bridge.management.AssetClassStrategy with @fiori.draft.enabled;
-annotate AdminService.AssetClassStrategy with @odata.draft.enabled;
 annotate AdminService.AssetClassStrategy with @(
   UI.HeaderInfo: { TypeName: 'Asset Class Strategy', TypeNamePlural: 'Asset Class Strategies', Title: { Value: name }, Description: { Value: assetClass } },
   UI.SelectionFields: [ assetClass, transportMode, active ],

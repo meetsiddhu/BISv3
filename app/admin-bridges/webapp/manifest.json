@@ -13,7 +13,7 @@
       "fallbackLocale": ""
     },
     "applicationVersion": {
-      "version": "1.0.12"
+      "version": "1.0.13"
     },
     "dataSources": {
       "AdminService": {
@@ -119,6 +119,17 @@
           "subTitle": "Risk-prioritised worklist",
           "icon": "sap-icon://warning2"
         },
+        "NetworkPortfolio-display": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "NetworkPortfolio",
+          "action": "display",
+          "title": "Network Portfolio",
+          "subTitle": "Network x mode portfolio analytics",
+          "icon": "sap-icon://business-objects-experience"
+        },
         "NetworkRestrictions-manage": {
           "signature": {
             "parameters": {},
@@ -140,39 +151,6 @@
           "title": "Restrictions Dashboard",
           "subTitle": "Multi-mode analytics (ALP)",
           "icon": "sap-icon://bar-chart"
-        },
-        "AssetStrategy-manage": {
-          "signature": {
-            "parameters": {},
-            "additionalParameters": "allowed"
-          },
-          "semanticObject": "AssetStrategy",
-          "action": "manage",
-          "title": "Asset Class Strategy",
-          "subTitle": "Inspection & intervention strategy",
-          "icon": "sap-icon://example"
-        },
-        "RiskBands-manage": {
-          "signature": {
-            "parameters": {},
-            "additionalParameters": "allowed"
-          },
-          "semanticObject": "RiskBands",
-          "action": "manage",
-          "title": "Risk Bands",
-          "subTitle": "Risk score band thresholds",
-          "icon": "sap-icon://measurement-document"
-        },
-        "RiskFactors-manage": {
-          "signature": {
-            "parameters": {},
-            "additionalParameters": "allowed"
-          },
-          "semanticObject": "RiskFactors",
-          "action": "manage",
-          "title": "Risk Factors",
-          "subTitle": "Risk scoring weightings",
-          "icon": "sap-icon://settings"
         },
         "EAMFieldMapping-manage": {
           "signature": {
@@ -355,39 +333,14 @@
           "target": "BridgeRiskReportList"
         },
         {
+          "name": "NetworkPortfolioReportList",
+          "pattern": "NetworkPortfolioReport:?query:",
+          "target": "NetworkPortfolioReportList"
+        },
+        {
           "name": "RestrictionsDashboard",
           "pattern": "NetworkRestrictionReport:?query:",
           "target": "NetworkRestrictionReportALP"
-        },
-        {
-          "name": "AssetClassStrategyList",
-          "pattern": "AssetClassStrategy:?query:",
-          "target": "AssetClassStrategyList"
-        },
-        {
-          "name": "AssetClassStrategyPage",
-          "pattern": "AssetClassStrategy({key}):?query:",
-          "target": "AssetClassStrategyPage"
-        },
-        {
-          "name": "RiskBandList",
-          "pattern": "RiskBand:?query:",
-          "target": "RiskBandList"
-        },
-        {
-          "name": "RiskBandPage",
-          "pattern": "RiskBand({key}):?query:",
-          "target": "RiskBandPage"
-        },
-        {
-          "name": "RiskConfigList",
-          "pattern": "RiskConfig:?query:",
-          "target": "RiskConfigList"
-        },
-        {
-          "name": "RiskConfigPage",
-          "pattern": "RiskConfig({key}):?query:",
-          "target": "RiskConfigPage"
         },
         {
           "name": "EAMFieldMappingList",
@@ -789,6 +742,25 @@
             }
           }
         },
+        "NetworkPortfolioReportList": {
+          "type": "Component",
+          "id": "NetworkPortfolioReportList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "NetworkPortfolioReport",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "enablePaste": false
+                  }
+                }
+              }
+            }
+          }
+        },
         "NetworkRestrictionReportALP": {
           "type": "Component",
           "id": "NetworkRestrictionReportALP",
@@ -805,117 +777,6 @@
                   }
                 }
               }
-            }
-          }
-        },
-        "AssetClassStrategyList": {
-          "type": "Component",
-          "id": "AssetClassStrategyList",
-          "name": "sap.fe.templates.ListReport",
-          "options": {
-            "settings": {
-              "entitySet": "AssetClassStrategy",
-              "liveMode": false,
-              "initialLoad": "Enabled",
-              "controlConfiguration": {
-                "@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "enablePaste": false
-                  }
-                }
-              },
-              "navigation": {
-                "AssetClassStrategy": {
-                  "detail": {
-                    "route": "AssetClassStrategyPage"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "AssetClassStrategyPage": {
-          "type": "Component",
-          "id": "AssetClassStrategyPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "entitySet": "AssetClassStrategy",
-              "editableHeaderContent": false
-            }
-          }
-        },
-        "RiskBandList": {
-          "type": "Component",
-          "id": "RiskBandList",
-          "name": "sap.fe.templates.ListReport",
-          "options": {
-            "settings": {
-              "entitySet": "RiskBand",
-              "liveMode": false,
-              "initialLoad": "Enabled",
-              "controlConfiguration": {
-                "@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "enablePaste": false
-                  }
-                }
-              },
-              "navigation": {
-                "RiskBand": {
-                  "detail": {
-                    "route": "RiskBandPage"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "RiskBandPage": {
-          "type": "Component",
-          "id": "RiskBandPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "entitySet": "RiskBand",
-              "editableHeaderContent": false
-            }
-          }
-        },
-        "RiskConfigList": {
-          "type": "Component",
-          "id": "RiskConfigList",
-          "name": "sap.fe.templates.ListReport",
-          "options": {
-            "settings": {
-              "entitySet": "RiskConfig",
-              "liveMode": false,
-              "initialLoad": "Enabled",
-              "controlConfiguration": {
-                "@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "enablePaste": false
-                  }
-                }
-              },
-              "navigation": {
-                "RiskConfig": {
-                  "detail": {
-                    "route": "RiskConfigPage"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "RiskConfigPage": {
-          "type": "Component",
-          "id": "RiskConfigPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "entitySet": "RiskConfig",
-              "editableHeaderContent": false
             }
           }
         },

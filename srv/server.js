@@ -1462,16 +1462,23 @@ cds.on('bootstrap', (app) => {
         return res.status(400).json({ error: { message: 'Invalid file type. Only .xlsx and .csv allowed.' } })
       }
 
+      // Admin scope (beyond the route's 'manage' gate) — risk-config datasets require it
+      // (mass-upload writes bypass the AdminService @restrict). Mirrors requiresScope().
+      const isAdmin = _isDummyAuth
+        ? (req.user?.roles || []).map(r => String(r).toLowerCase()).includes('admin')
+        : _jwtHasScope(req.headers.authorization, 'admin')
       const buffer = Buffer.from(contentBase64, 'base64')
       const result = await importUpload({
         buffer,
         fileName,
         datasetName: dataset,
-        uploadedBy: req.user?.id || 'system'
+        uploadedBy: req.user?.id || 'system',
+        isAdmin
       })
       res.json(result)
     } catch (error) {
-      res.status(422).json({ error: { message: error.message || 'Upload failed' } })
+      const status = error.code === 'SCOPE_REQUIRED' ? 403 : 422
+      res.status(status).json({ error: { message: error.message || 'Upload failed' } })
     }
   })
 

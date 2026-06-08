@@ -1,4 +1,4 @@
-const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig, RISK_BANDS } = require('../srv/lib/risk')
+const { deriveRisk, weightsFromConfig, bandsFromConfig, validateRiskBands, validateRiskWeights, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig, RISK_BANDS } = require('../srv/lib/risk')
 
 describe('risk prioritisation engine', () => {
   test('high consequence + poor condition -> Very High', () => {
@@ -164,5 +164,62 @@ describe('risk prioritisation engine', () => {
     expect(r.priority).toBeTruthy()
     // Equivalent to using all defaults, since both bad weights fall back to their defaults.
     expect(r).toEqual(deriveRisk(b))
+  })
+
+  // ── PRE-MORTEM MUST-FIX 1: RiskBand table now drives priority (config-driven) ──
+  describe('configurable risk bands', () => {
+    const SEED_BANDS = [
+      { code: 'VeryHigh', name: 'Very High', minScore: 60, maxScore: 100, active: true },
+      { code: 'High', name: 'High', minScore: 36, maxScore: 59.99, active: true },
+      { code: 'Medium', name: 'Medium', minScore: 16, maxScore: 35.99, active: true },
+      { code: 'Low', name: 'Low', minScore: 0, maxScore: 15.99, active: true }
+    ]
+
+    test('bandsFromConfig(seed) reproduces the hardcoded default ladder (no behaviour change)', () => {
+      const bands = bandsFromConfig(SEED_BANDS)
+      expect(bands.map(b => ({ name: b.name, min: b.min }))).toEqual(RISK_BANDS)
+    })
+
+    test('deriveRisk with seed bands === deriveRisk with default bands, across the matrix', () => {
+      for (const importanceLevel of [1, 2, 3, 4, 5]) {
+        for (const conditionRating of [1, 4, 7, 10]) {
+          const b = { importanceLevel, conditionRating, structuralAdequacyRating: conditionRating, highPriorityAsset: importanceLevel > 3 }
+          expect(deriveRisk(b, {}, bandsFromConfig(SEED_BANDS)).priority).toBe(deriveRisk(b, {}, null).priority)
+        }
+      }
+    })
+
+    test('custom bands actually change the priority assigned to a score', () => {
+      const b = { importanceLevel: 2, conditionRating: 8, structuralAdequacyRating: 8 } // a low-ish score
+      const base = deriveRisk(b, {}, null)
+      // A ladder where everything above 0 is "Critical" must relabel the same score.
+      const aggressive = bandsFromConfig([{ code: 'C', name: 'Critical', minScore: 1, active: true }, { code: 'OK', name: 'OK', minScore: 0, active: true }])
+      const rr = deriveRisk(b, {}, aggressive)
+      expect(rr.score).toBe(base.score)
+      expect(['Critical', 'OK']).toContain(rr.priority)
+      expect(rr.priority).not.toBe(base.priority) // proves the table drives priority
+    })
+
+    test('invalid/empty band config falls back to default ladder (never corrupts scoring)', () => {
+      expect(bandsFromConfig([])).toBeNull()
+      expect(bandsFromConfig([{ code: 'X', name: 'X', minScore: 50, active: true }])).toBeNull() // no band at 0
+      const b = { importanceLevel: 5, conditionRating: 1 }
+      // deriveRisk given a null/[] bands arg uses the default ladder.
+      expect(deriveRisk(b, {}, bandsFromConfig([])).priority).toBe(deriveRisk(b).priority)
+    })
+
+    test('validateRiskBands flags gaps, duplicates and missing-zero', () => {
+      expect(validateRiskBands(SEED_BANDS).ok).toBe(true)
+      expect(validateRiskBands([{ name: 'A', min: 50 }, { name: 'B', min: 20 }]).ok).toBe(false) // no 0
+      expect(validateRiskBands([{ name: 'A', min: 0 }, { name: 'B', min: 0 }]).ok).toBe(false) // duplicate min
+    })
+
+    test('validateRiskWeights rejects negative and over-cap weights', () => {
+      expect(validateRiskWeights([{ factor: 'a', weight: 1, active: true }]).ok).toBe(true)
+      expect(validateRiskWeights([{ factor: 'a', weight: -1, active: true }]).ok).toBe(false)
+      expect(validateRiskWeights([{ factor: 'a', weight: 999, active: true }]).ok).toBe(false)
+      // inactive rows are ignored
+      expect(validateRiskWeights([{ factor: 'a', weight: -5, active: false }]).ok).toBe(true)
+    })
   })
 })

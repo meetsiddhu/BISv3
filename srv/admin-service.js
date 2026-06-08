@@ -16,7 +16,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   ]
 
   // ── Risk prioritisation engine (Phase 2/4) — see srv/lib/risk.js (unit-tested) ──
-  const { deriveRisk, weightsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig } = require('./lib/risk')
+  const { deriveRisk, weightsFromConfig, bandsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig } = require('./lib/risk')
   const { nextInspectionDue, isOverdue } = require('./lib/inspection')
 
   // Load the governing strategy (interval + degradation rate) for a bridge.
@@ -49,6 +49,32 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     }
     return _riskWeights
   }
+
+  // Load active RiskBand thresholds (config-driven; rule 4). The band ladder is the
+  // source of truth for risk PRIORITY; null => fall back to the hardcoded default ladder
+  // (so a missing/invalid config never corrupts fleet scoring). Cached per process.
+  let _riskBands = null
+  let _riskBandsLoaded = false
+  const getRiskBands = async () => {
+    if (_riskBandsLoaded) return _riskBands
+    try {
+      const db = await cds.connect.to('db')
+      const rows = await db.run(SELECT.from('bridge.management.RiskBand')
+        .columns('code', 'name', 'minScore', 'maxScore', 'sortOrder', 'active'))
+      _riskBands = bandsFromConfig(rows) // null if empty/invalid -> deriveRisk uses default
+      cds.log('bms').info('Risk bands loaded', { bands: _riskBands ? _riskBands.length : 0, source: _riskBands ? 'RiskBand table' : 'hardcoded default' })
+    } catch (e) {
+      cds.log('bms').warn('RiskBand load failed; using default bands:', e.message)
+      _riskBands = null
+    }
+    _riskBandsLoaded = true
+    return _riskBands
+  }
+
+  // Invalidate both risk caches — call after any RiskConfig/RiskBand write so the next
+  // score uses fresh config. Exposed on the service so handlers/imports can trigger it.
+  const invalidateRiskCaches = () => { _riskWeights = null; _riskBands = null; _riskBandsLoaded = false }
+  this.invalidateRiskCaches = invalidateRiskCaches
 
   const bridgeIdFor = (ID, state) => {
     const stateMap = { NSW:'NSW', VIC:'VIC', QLD:'QLD', WA:'WA', SA:'SA', TAS:'TAS', ACT:'ACT', NT:'NT' }
@@ -385,7 +411,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // Compute risk score/priority on every bridge save (Phase 2; mode-aware via Gap B).
   this.before('SAVE', Bridges, async (req) => {
     const weights = await getRiskWeights()
-    const r = deriveRisk(req.data, weights)
+    const bands = await getRiskBands()
+    const r = deriveRisk(req.data, weights, bands)
     req.data.riskConsequence = r.consequence
     req.data.riskLikelihood  = r.likelihood
     req.data.riskScore       = r.score
@@ -515,11 +542,15 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     }
   })
 
-  // Backfill / refresh risk for all bridges (admin action).
-  this.on('recalcRisk', async (req) => {
+  // Shared fleet recompute (used by the recalcRisk action AND by the after-CUD hook on
+  // RiskConfig/RiskBand, so editing/importing risk config can never leave stored scores
+  // stale — the headline correctness fix). Always invalidates caches first so the freshly
+  // written config is in effect. Returns { n, audited }.
+  const recomputeAllRisk = async (req) => {
     const db = await cds.connect.to('db')
-    _riskWeights = null // force a reload so freshly-edited weights take effect
+    invalidateRiskCaches() // force a reload so freshly-edited weights AND bands take effect
     const weights = await getRiskWeights()
+    const bands = await getRiskBands()
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
       .columns('ID', 'bridgeId', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
                'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence',
@@ -537,7 +568,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const changedBy = req.user?.id || 'system'
     let n = 0, audited = 0
     for (const b of bridges) {
-      const r = deriveRisk(b, weights)
+      const r = deriveRisk(b, weights, bands)
       const strat = stratById.get(b.assetClassStrategy_ID)
       const due = nextInspectionDue(b.lastInspectionDate, strat && strat.inspectionIntervalMonths)
       const ev = expectedValueAud(r.likelihood, b.likelyFailureCostAud, probMapFromConfig(weights))
@@ -573,7 +604,50 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         audited++
       }
     }
+    return { n, audited }
+  }
+  this.recomputeAllRisk = recomputeAllRisk
+
+  // Backfill / refresh risk for all bridges (admin action).
+  this.on('recalcRisk', async (req) => {
+    const { n, audited } = await recomputeAllRisk(req)
     return `Recalculated risk + inspection-due for ${n} bridges (${audited} changed, audited).`
+  })
+
+  // ── Risk-config change -> invalidate caches AND recompute the fleet ──────────────
+  // PRE-MORTEM MUST-FIX 1/2: RiskBand now drives priority and RiskConfig drives weights;
+  // a per-process cache + stored scores meant edits silently no-op'd until restart. After
+  // any create/update/delete on either config entity, drop the caches and rescore every
+  // bridge so the change actually takes effect and is auditable (source 'Calibration').
+  this.after(['CREATE', 'UPDATE', 'DELETE'], ['RiskConfig', 'RiskBand', 'AssetClassStrategy'], async (_data, req) => {
+    try {
+      const { n, audited } = await recomputeAllRisk(req)
+      cds.log('bms').info('Risk config changed -> fleet rescored', { entity: req.target?.name, bridges: n, changed: audited })
+      if (req.info) req.info(`Risk configuration changed: ${n} bridges rescored (${audited} changed).`)
+    } catch (e) {
+      // Never fail the config write because the downstream recompute hiccupped; surface it.
+      cds.log('bms').error('Risk config recompute failed after config write:', e.message)
+      if (req.warn) req.warn('Configuration saved, but automatic risk recompute failed — run "Recalculate Risk" manually.')
+    }
+  })
+
+  // ── Soft-delete + referential guards for risk config (pre-mortem MUST-FIX 5/14) ──
+  // Rule 2: no hard DELETE on these tunables — they soft-delete via active=false so the
+  // ChangeLog historises superseded thresholds/weights. Reject hard DELETE outright.
+  this.before('DELETE', ['AssetClassStrategy', 'RiskConfig', 'RiskBand'], (req) => {
+    req.reject(400, 'This configuration is soft-deleted: set "active" to false instead of deleting (audit trail is preserved).')
+  })
+  // An AssetClassStrategy still referenced by a bridge cannot be deactivated — that would
+  // strip the inspection-due / intervention policy from those bridges.
+  this.before('UPDATE', 'AssetClassStrategy', async (req) => {
+    if (req.data.active === false || req.data.active === 'false') {
+      const db = await cds.connect.to('db')
+      const id = req.data.ID || (req.params && req.params[0] && (req.params[0].ID || req.params[0]))
+      if (id) {
+        const ref = await db.run(SELECT.one.from('bridge.management.Bridges').columns('ID').where({ assetClassStrategy_ID: id }))
+        if (ref) req.reject(409, 'Cannot deactivate: this Asset Class Strategy is still assigned to one or more bridges. Reassign them first.')
+      }
+    }
   })
 
   // ── FIT-002: condition→risk auto-trigger ─────────────────────────────────────
@@ -593,12 +667,13 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       // Don't let an older (backfilled) inspection override a more recent condition.
       if (b.lastInspectionDate && insp.inspectionDate && insp.inspectionDate < b.lastInspectionDate) return
       const weights = await getRiskWeights()
+      const bands = await getRiskBands()
       const strat = await getStrategy(b.assetClassStrategy_ID)
       const merged = { ...b,
         conditionRating: insp.conditionRating,
         structuralAdequacyRating: insp.structuralRating ?? b.structuralAdequacyRating,
         lastInspectionDate: insp.inspectionDate || b.lastInspectionDate }
-      const r = deriveRisk(merged, weights)
+      const r = deriveRisk(merged, weights, bands)
       const due = nextInspectionDue(merged.lastInspectionDate, strat && strat.inspectionIntervalMonths)
       const ev = expectedValueAud(r.likelihood, b.likelyFailureCostAud, probMapFromConfig(weights))
       await db.run(UPDATE('bridge.management.Bridges').set({

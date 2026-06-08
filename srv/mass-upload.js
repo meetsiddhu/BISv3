@@ -3,6 +3,7 @@ const XLSX = require('xlsx')
 
 const { SELECT, INSERT, UPDATE } = cds.ql
 const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-log')
+const { validateRiskWeights, validateRiskBands } = require('./lib/risk')
 
 const LOOKUP_COLUMNS = [
   column('code', 'string', { required: true }),
@@ -109,6 +110,42 @@ const RESTRICTION_COLUMNS = [
   column('remarks', 'string')
 ]
 
+// ── Risk configuration datasets (admin-only; pre-mortem MUST-FIX 3/12/13) ──
+const RISKBAND_COLUMNS = [
+  column('code', 'string', { required: true }),     // VeryHigh | High | Medium | Low (key)
+  column('name', 'string', { required: true }),
+  column('minScore', 'decimal'),
+  column('maxScore', 'decimal'),
+  column('colour', 'string'),
+  column('sortOrder', 'integer'),
+  column('rationale', 'string'),
+  column('reviewedBy', 'string'),
+  column('reviewSource', 'string'),
+  column('active', 'boolean')
+]
+
+const RISKCONFIG_COLUMNS = [
+  column('factor', 'string', { required: true }),   // scoring factor key (key)
+  column('name', 'string'),
+  column('weight', 'decimal'),
+  column('active', 'boolean')
+]
+
+const ASSETCLASSSTRATEGY_COLUMNS = [
+  column('assetClass', 'string', { required: true }),     // natural key part 1
+  column('transportMode', 'string', { required: true }),  // natural key part 2
+  column('name', 'string', { required: true }),
+  column('inspectionIntervalMonths', 'integer', { required: true }),
+  column('targetConditionRating', 'integer'),
+  column('interventionThreshold', 'integer'),
+  column('reviewCycleMonths', 'integer'),
+  column('degradationRatePerYear', 'decimal'),
+  column('deteriorationModel', 'string'),
+  column('eamMaintenancePlan', 'string'),
+  column('description', 'string'),
+  column('active', 'boolean')
+]
+
 const DATASETS = Object.freeze([
   lookupDataset('AssetClasses', 'Asset Classes', 'Bridge asset class dropdown values'),
   lookupDataset('States', 'States', 'Bridge state dropdown values'),
@@ -141,6 +178,41 @@ const DATASETS = Object.freeze([
     columns: RESTRICTION_COLUMNS,
     orderBy: 'restrictionRef',
     importer: importRestrictionRows
+  },
+  // Risk configuration — ADMIN ONLY (these tune fleet-wide scoring & policy). requiredScope
+  // is enforced in the importer dispatch; importing any of these triggers a risk recompute.
+  {
+    name: 'RiskBands',
+    label: 'Risk Bands',
+    description: 'Risk score band thresholds (admin only). Upsert by code; soft-delete via active=false.',
+    entity: 'bridge.management.RiskBand',
+    columns: RISKBAND_COLUMNS,
+    orderBy: 'sortOrder',
+    requiredScope: 'admin',
+    riskConfig: true,
+    importer: importRiskBandRows
+  },
+  {
+    name: 'RiskFactors',
+    label: 'Risk Factors',
+    description: 'Risk scoring weightings (admin only). Upsert by factor; soft-delete via active=false.',
+    entity: 'bridge.management.RiskConfig',
+    columns: RISKCONFIG_COLUMNS,
+    orderBy: 'factor',
+    requiredScope: 'admin',
+    riskConfig: true,
+    importer: importRiskConfigRows
+  },
+  {
+    name: 'AssetClassStrategies',
+    label: 'Asset Class Strategies',
+    description: 'Inspection & intervention strategy per asset class + transport mode (admin only). Upsert by (assetClass, transportMode).',
+    entity: 'bridge.management.AssetClassStrategy',
+    columns: ASSETCLASSSTRATEGY_COLUMNS,
+    orderBy: 'assetClass',
+    requiredScope: 'admin',
+    riskConfig: true,
+    importer: importAssetClassStrategyRows
   }
 ])
 
@@ -287,7 +359,7 @@ async function buildCsvTemplate(datasetName) {
   return Buffer.from(XLSX.utils.sheet_to_csv(sheet), 'utf8')
 }
 
-async function importUpload({ buffer, fileName, datasetName, uploadedBy }) {
+async function importUpload({ buffer, fileName, datasetName, uploadedBy, isAdmin }) {
   if (!buffer?.length) {
     throw new Error('Uploaded file is empty')
   }
@@ -296,7 +368,7 @@ async function importUpload({ buffer, fileName, datasetName, uploadedBy }) {
   const db = await cds.connect.to('db')
   const tx = db.tx()
   const batchId = cds.utils.uuid()
-  const auditContext = { db, batchId, changedBy: uploadedBy || 'system', batchBridgeCache: new Map() }
+  const auditContext = { db, batchId, changedBy: uploadedBy || 'system', batchBridgeCache: new Map(), isAdmin: !!isAdmin }
 
   try {
     let summaries
@@ -420,9 +492,33 @@ async function importUpload({ buffer, fileName, datasetName, uploadedBy }) {
       }
     }
 
+    // PRE-MORTEM MUST-FIX 2: importing risk config bypasses the AdminService after-handler
+    // (raw DB writes), so the stored scores would go stale. If any risk-config dataset was
+    // imported, invalidate the engine caches and rescore the fleet now (post-commit).
+    let rescored = null
+    const importedRiskConfig = summaries.some((s) => {
+      const ds = DATASET_BY_NAME.get(s.dataset || s.name)
+      return ds && ds.riskConfig
+    })
+    if (importedRiskConfig) {
+      try {
+        const admin = await cds.connect.to('AdminService')
+        if (typeof admin.recomputeAllRisk === 'function') {
+          const r = await admin.recomputeAllRisk({ user: { id: uploadedBy || 'system' }, info () {}, warn () {} })
+          rescored = r && r.n
+        } else if (typeof admin.invalidateRiskCaches === 'function') {
+          admin.invalidateRiskCaches()
+        }
+      } catch (e) {
+        cds.log('bms').error('Risk recompute after config import failed:', e.message)
+        warnings = warnings.concat([`Risk configuration imported, but the automatic recompute failed (${e.message}). Run "Recalculate Risk" manually.`])
+      }
+    }
+
     const processed = summaries.reduce((total, summary) => total + summary.processed, 0)
     return {
-      message: `Mass upload completed successfully. ${processed} rows processed across ${summaries.length} dataset(s).`,
+      message: `Mass upload completed successfully. ${processed} rows processed across ${summaries.length} dataset(s).` +
+        (rescored != null ? ` Risk configuration changed — ${rescored} bridges rescored.` : ''),
       summaries,
       skipped,
       warnings
@@ -586,6 +682,7 @@ async function importWorkbook(tx, buffer, datasetName, auditContext) {
       skipped.push({ name: dataset.name, label: dataset.label })
       continue
     }
+    assertDatasetScope(dataset, auditContext)
     const rows = parseSheetRows(sheet, dataset)
     summaries.push(await dataset.importer(tx, dataset, rows, warnings, auditContext))
   }
@@ -614,10 +711,23 @@ async function importCsv(tx, buffer, datasetName, auditContext) {
     throw new Error('CSV file does not contain any rows.')
   }
 
+  assertDatasetScope(dataset, auditContext)
   const warnings = []
   const rows = parseSheetRows(sheet, dataset)
   const summary = await dataset.importer(tx, dataset, rows, warnings, auditContext)
   return { summary, warnings }
+}
+
+// PRE-MORTEM MUST-FIX 3: the /mass-upload mount only requires the 'manage' scope, and the
+// importers write straight to the DB (bypassing the AdminService @restrict). Risk-config
+// datasets tune fleet-wide scoring/policy, so they must require 'admin' — enforce it here,
+// the single dispatch chokepoint, before any row is written.
+function assertDatasetScope(dataset, auditContext) {
+  if (dataset && dataset.requiredScope === 'admin' && !(auditContext && auditContext.isAdmin)) {
+    const err = new Error(`"${dataset.label}" can only be imported by an administrator (admin scope required).`)
+    err.code = 'SCOPE_REQUIRED'
+    throw err
+  }
 }
 
 async function readDatasetRows(dbOrTx, dataset) {
@@ -693,6 +803,143 @@ async function importLookupRows(tx, dataset, rows, warnings, auditContext) {
   }
 
   return buildSummary(dataset, normalized.length, inserts.length, updates.length)
+}
+
+// ── Risk-config importers (admin-only; soft-delete; upsert; audited) ──────────────
+// Shared: build a patch of only the columns the sheet actually provided (so a partial
+// re-import never clears unspecified fields, and a blank "active" never reactivates).
+function providedPatch(row, names) {
+  const p = {}
+  for (const n of names) { if (hasValue(row[n])) p[n] = row[n] }
+  return p
+}
+
+async function importRiskConfigRows(tx, dataset, rows, warnings, auditContext) {
+  const normalized = normalizeRows(dataset, rows, warnings)
+  if (!normalized.length) return emptySummary(dataset)
+  // Validate weights (finite, 0..10) over the whole import before writing anything.
+  const wcheck = validateRiskWeights(normalized.map((r) => ({ factor: r.factor, weight: r.weight, active: r.active })), 10)
+  if (!wcheck.ok) throw new Error('Risk Factors import rejected — invalid weights: ' + wcheck.errors.join(' '))
+
+  const factors = normalized.map((r) => r.factor)
+  const existing = await tx.run(SELECT.from(dataset.entity).columns('factor').where({ factor: { in: factors } }))
+  const existingSet = new Set(existing.map((r) => r.factor))
+  let inserted = 0, updated = 0
+  for (const row of normalized) {
+    const patch = providedPatch(row, ['name', 'weight', 'active'])
+    if (existingSet.has(row.factor)) {
+      const oldRow = await fetchCurrentRecord(tx, dataset.entity, { factor: row.factor })
+      await tx.run(UPDATE(dataset.entity).set(patch).where({ factor: row.factor }))
+      updated++
+      if (oldRow) {
+        const changes = diffRecords(Object.fromEntries(Object.keys(patch).map((k) => [k, oldRow[k]])), patch)
+        if (changes.length) queueAudit(auditContext, riskAudit('RiskConfig', row.factor, row.name || row.factor, auditContext, changes))
+      }
+    } else {
+      await tx.run(INSERT.into(dataset.entity).entries(Object.assign({ factor: row.factor }, patch)))
+      inserted++
+      queueAudit(auditContext, riskAudit('RiskConfig', row.factor, row.name || row.factor, auditContext,
+        Object.keys(patch).map((k) => ({ fieldName: k, oldValue: '', newValue: String(patch[k]) }))))
+    }
+  }
+  return buildSummary(dataset, normalized.length, inserted, updated)
+}
+
+async function importRiskBandRows(tx, dataset, rows, warnings, auditContext) {
+  const normalized = normalizeRows(dataset, rows, warnings)
+  if (!normalized.length) return emptySummary(dataset)
+  // Per-row sanity, then validate the resulting ACTIVE ladder (current rows + this import)
+  // so an import can never leave a gapped/overlapping band ladder that corrupts priority.
+  for (const r of normalized) {
+    if (hasValue(r.minScore) && hasValue(r.maxScore) && Number(r.maxScore) < Number(r.minScore)) {
+      throw new Error(`Risk Bands import rejected — band "${r.code}": maxScore < minScore.`)
+    }
+  }
+  const current = await tx.run(SELECT.from(dataset.entity).columns('code', 'minScore', 'maxScore', 'active'))
+  const merged = new Map(current.map((r) => [r.code, r]))
+  for (const r of normalized) {
+    const base = merged.get(r.code) || {}
+    merged.set(r.code, Object.assign({}, base, providedPatch(r, ['minScore', 'maxScore', 'active'])))
+  }
+  const ladder = validateRiskBands([...merged.values()])
+  if (!ladder.ok) throw new Error('Risk Bands import rejected — resulting ladder invalid: ' + ladder.errors.join(' '))
+
+  const codes = normalized.map((r) => r.code)
+  const existing = await tx.run(SELECT.from(dataset.entity).columns('code').where({ code: { in: codes } }))
+  const existingSet = new Set(existing.map((r) => r.code))
+  let inserted = 0, updated = 0
+  for (const row of normalized) {
+    const patch = providedPatch(row, ['name', 'minScore', 'maxScore', 'colour', 'sortOrder', 'rationale', 'reviewedBy', 'reviewSource', 'active'])
+    if (existingSet.has(row.code)) {
+      const oldRow = await fetchCurrentRecord(tx, dataset.entity, { code: row.code })
+      await tx.run(UPDATE(dataset.entity).set(patch).where({ code: row.code }))
+      updated++
+      if (oldRow) {
+        const changes = diffRecords(Object.fromEntries(Object.keys(patch).map((k) => [k, oldRow[k]])), patch)
+        if (changes.length) queueAudit(auditContext, riskAudit('RiskBand', row.code, row.name || row.code, auditContext, changes))
+      }
+    } else {
+      await tx.run(INSERT.into(dataset.entity).entries(Object.assign({ code: row.code }, patch)))
+      inserted++
+      queueAudit(auditContext, riskAudit('RiskBand', row.code, row.name || row.code, auditContext,
+        Object.keys(patch).map((k) => ({ fieldName: k, oldValue: '', newValue: String(patch[k]) }))))
+    }
+  }
+  return buildSummary(dataset, normalized.length, inserted, updated)
+}
+
+async function importAssetClassStrategyRows(tx, dataset, rows, warnings, auditContext) {
+  const normalized = normalizeRows(dataset, rows, warnings)
+  if (!normalized.length) return emptySummary(dataset)
+  // Match by NATURAL key (assetClass+transportMode), preserve the existing cuid on update,
+  // never re-key, never delete (soft-delete via active only).
+  const existing = await tx.run(SELECT.from(dataset.entity).columns('ID', 'assetClass', 'transportMode', 'active'))
+  const byNatural = new Map(existing.map((r) => [`${r.assetClass}|${r.transportMode}`, r]))
+  const PATCH_COLS = ['name', 'inspectionIntervalMonths', 'targetConditionRating', 'interventionThreshold', 'reviewCycleMonths', 'degradationRatePerYear', 'deteriorationModel', 'eamMaintenancePlan', 'description', 'active']
+  let inserted = 0, updated = 0
+  for (const row of normalized) {
+    const interval = Number(row.inspectionIntervalMonths)
+    if (!Number.isFinite(interval) || interval < 1 || interval > 240) {
+      throw new Error(`Asset Class Strategy import rejected — "${row.assetClass}/${row.transportMode}": inspection interval must be 1–240 months.`)
+    }
+    const key = `${row.assetClass}|${row.transportMode}`
+    const hit = byNatural.get(key)
+    const patch = providedPatch(row, PATCH_COLS)
+    if (hit) {
+      // Block deactivating a strategy still assigned to a bridge (referential integrity).
+      if (patch.active === false) {
+        const ref = await tx.run(SELECT.one.from('bridge.management.Bridges').columns('ID').where({ assetClassStrategy_ID: hit.ID }))
+        if (ref) throw new Error(`Asset Class Strategy import rejected — "${row.assetClass}/${row.transportMode}" is assigned to bridges and cannot be deactivated.`)
+      }
+      const oldRow = await fetchCurrentRecord(tx, dataset.entity, { ID: hit.ID })
+      await tx.run(UPDATE(dataset.entity).set(patch).where({ ID: hit.ID }))
+      updated++
+      if (oldRow) {
+        const changes = diffRecords(Object.fromEntries(Object.keys(patch).map((k) => [k, oldRow[k]])), patch)
+        if (changes.length) queueAudit(auditContext, riskAudit('AssetClassStrategy', hit.ID, row.name || key, auditContext, changes))
+      }
+    } else {
+      const ID = cds.utils.uuid()
+      await tx.run(INSERT.into(dataset.entity).entries(Object.assign({ ID, assetClass: row.assetClass, transportMode: row.transportMode }, patch)))
+      inserted++
+      queueAudit(auditContext, riskAudit('AssetClassStrategy', ID, row.name || key, auditContext,
+        [{ fieldName: 'assetClass', oldValue: '', newValue: row.assetClass }, { fieldName: 'transportMode', oldValue: '', newValue: row.transportMode }]
+          .concat(Object.keys(patch).map((k) => ({ fieldName: k, oldValue: '', newValue: String(patch[k]) })))))
+    }
+  }
+  return buildSummary(dataset, normalized.length, inserted, updated)
+}
+
+function riskAudit(objectType, objectId, objectName, auditContext, changes) {
+  return {
+    objectType,
+    objectId: `${objectType}:${objectId}`,
+    objectName,
+    source: 'MassUpload',
+    batchId: auditContext && auditContext.batchId,
+    changedBy: (auditContext && auditContext.changedBy) || 'system',
+    changes
+  }
 }
 
 async function importBridgeRows(tx, dataset, rows, warnings, auditContext) {
@@ -1117,6 +1364,12 @@ function getDedupeKey(dataset, row) {
   if (dataset.columns === LOOKUP_COLUMNS) return parsePrimaryLookupRowKey(row)
   if (dataset.name === 'Bridges') return row.ID ?? `bridgeId:${row.bridgeId}`
   if (dataset.name === 'Restrictions') return row.ID ?? `restrictionRef:${row.restrictionRef}`
+  if (dataset.name === 'RiskBands') return `code:${row.code}`
+  if (dataset.name === 'RiskFactors') return `factor:${row.factor}`
+  // AssetClassStrategy identity is the natural key (assetClass + transportMode), NOT the
+  // surrogate cuid — so two file rows for the same class/mode dedupe to one (last wins),
+  // and re-import matches the existing strategy instead of creating a duplicate.
+  if (dataset.name === 'AssetClassStrategies') return `acs:${row.assetClass}|${row.transportMode}`
   return JSON.stringify(row)
 }
 
