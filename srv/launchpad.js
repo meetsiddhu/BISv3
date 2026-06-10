@@ -100,7 +100,6 @@ function buildSandboxConfig (isAdmin) {
   // tile was dropped — its inbound is kept for deep-links. NetworkPortfolio surfaces the
   // previously-orphaned NetworkPortfolioReport.)
   const riskNetworkTiles = isAdmin ? [
-    { id: 'BridgeRisk',           tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Bridge Risk',            subtitle: 'Risk-Prioritised Worklist',  icon: 'sap-icon://warning2',                     targetURL: '#BridgeRisk-display&/BridgeRiskReport' } },
     { id: 'NetworkPortfolio',     tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Network Portfolio',     subtitle: 'Network x Mode Analytics',   icon: 'sap-icon://business-objects-experience',  targetURL: '#NetworkPortfolio-display&/NetworkPortfolioReport' } },
     { id: 'RestrictionsDashboard',tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Restrictions Dashboard', subtitle: 'Multi-Mode Analytics (ALP)', icon: 'sap-icon://bar-chart',                    targetURL: '#RestrictionsDashboard-display&/NetworkRestrictionReport' } },
     { id: 'ChangeDocuments',      tileType: 'sap.ushell.ui.tile.StaticTile', properties: { title: 'Change Documents',      subtitle: 'Audit & Attribute History',  icon: 'sap-icon://history',                      targetURL: '#ChangeDocuments-display&/ChangeDocumentReport' } }
