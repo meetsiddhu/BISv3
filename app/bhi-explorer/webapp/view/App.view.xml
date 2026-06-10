@@ -2,46 +2,55 @@
   xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:l="sap.ui.layout" xmlns:core="sap.ui.core" displayBlock="true">
   <App id="rootApp"><Page id="mainPage" title="{i18n>appTitle}">
     <content><VBox class="sapUiSmallMargin">
+      <MessageStrip text="{ui>/listError}" type="Error" showIcon="true" visible="{= !!${ui>/listError} }" class="sapUiTinyMarginBottom"/>
+      <MessageStrip text="{ui>/cmError}" type="Error" showIcon="true" visible="{= !!${ui>/cmError} }" class="sapUiTinyMarginBottom"/>
+      <MessageStrip text="{ui>/detailError}" type="Error" showIcon="true" visible="{= !!${ui>/detailError} }" class="sapUiTinyMarginBottom"/>
       <HBox alignItems="Center" wrap="Wrap">
-        <Label text="{i18n>pick}" class="sapUiTinyMarginEnd"/>
-        <ComboBox id="bridgePicker" width="22rem" selectionChange=".onPick" items="{path:'br>/rows', templateShareable:false}">
+        <Label text="{i18n>pick}" labelFor="bridgePicker" class="sapUiTinyMarginEnd"/>
+        <ComboBox id="bridgePicker" width="22rem" busy="{ui>/listBusy}" busyIndicatorDelay="0"
+          selectionChange=".onPick" items="{path:'br>/rows', templateShareable:false}">
           <core:Item key="{br>ID}" text="{br>bridgeName} ({br>bridgeId})"/>
         </ComboBox>
         <ObjectStatus class="sapUiSmallMarginBegin" text="{d>/headline}" state="{d>/state}" inverted="true" visible="{= !!${d>/headline} }"/>
       </HBox>
-      <l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0" visible="{= !!${d>/bsi} }">
-        <VBox class="sapUiContentPadding"><Text text="BSI / 10"/><Title text="{d>/bsi}" level="H2"/><ProgressIndicator percentValue="{d>/bsiPct}" displayValue="{d>/bsi} / 10" state="{d>/state}" width="100%"/></VBox>
-        <VBox class="sapUiContentPadding"><Text text="BHI / 100"/><Title text="{d>/bhi}" level="H2"/><ProgressIndicator percentValue="{d>/bhi}" displayValue="{d>/bhi} / 100" state="{d>/state}" width="100%"/></VBox>
-        <VBox class="sapUiContentPadding"><Text text="Remaining service life"/><Title text="{d>/rsl} years" level="H2"/></VBox>
-        <VBox class="sapUiContentPadding"><Text text="Priority"/><ObjectStatus text="{d>/priority}" state="{d>/state}" inverted="true" class="sapUiTinyMarginTop"/><Text text="{d>/coverageText}" class="sapUiTinyMarginTop"/></VBox>
-      </l:Grid>
-      <Panel headerText="{i18n>elements}" visible="{= !!${d>/bsi} }" class="sapUiTinyMarginTop">
-        <Table items="{path:'d>/elementBreakdown', templateShareable:false}">
-          <columns><Column><Text text="Element bucket"/></Column><Column hAlign="End" width="7rem"><Text text="Weight"/></Column><Column hAlign="End" width="8rem"><Text text="Worst rating"/></Column><Column><Text text=""/></Column></columns>
-          <items><ColumnListItem><cells>
-            <Text text="{d>bucket}"/><Text text="{d>weight}"/><Text text="{d>ratingText}"/>
-            <ProgressIndicator percentValue="{d>ratingPct}" displayValue="{d>ratingText}" state="{d>ratingState}" width="100%"/>
-          </cells></ColumnListItem></items>
-        </Table>
-      </Panel>
-      <Panel headerText="{i18n>models}" visible="{= !!${d>/bsi} }" class="sapUiTinyMarginTop">
-        <Table items="{path:'d>/models', templateShareable:false}">
-          <columns><Column><Text text="Mode weight model"/></Column><Column><Text text="Weights"/></Column><Column hAlign="End" width="7rem"><Text text="BSI"/></Column><Column><Text text=""/></Column></columns>
-          <items><ColumnListItem><cells>
-            <ObjectIdentifier title="{d>model}"/><Text text="{d>weightsText}"/><Text text="{d>bsiText}"/>
-            <ProgressIndicator percentValue="{d>bsiPct}" displayValue="{d>bsiText} / 10" state="{d>state}" width="100%"/>
-          </cells></ColumnListItem></items>
-        </Table>
-      </Panel>
-      <Panel headerText="{i18n>formulas}" expandable="true" expanded="true" visible="{= !!${d>/bsi} }" class="sapUiTinyMarginTop">
-        <List items="{path:'d>/formulas', templateShareable:false}"><StandardListItem title="{d>t}"/></List>
-      </Panel>
+      <Text text="{ui>/capNote}" class="sapUiTinyMarginBottom"/>
+      <VBox busy="{ui>/detailBusy}" busyIndicatorDelay="0">
+        <IllustratedMessage illustrationType="sapIllus-NoEntries" illustrationSize="Spot"
+          title="{i18n>empty.title}" description="{i18n>empty.text}" visible="{= !${d>/bsi} }"/>
+        <l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0" visible="{= !!${d>/bsi} }">
+          <VBox class="sapUiContentPadding"><Text text="{i18n>tile.bsi}"/><Title text="{d>/bsi}" level="H2"/><ProgressIndicator percentValue="{d>/bsiPct}" displayValue="{d>/bsiDisplay}" state="{d>/state}" width="100%"/></VBox>
+          <VBox class="sapUiContentPadding"><Text text="{i18n>tile.bhi}"/><Title text="{d>/bhi}" level="H2"/><ProgressIndicator percentValue="{d>/bhi}" displayValue="{d>/bhiDisplay}" state="{d>/state}" width="100%"/></VBox>
+          <VBox class="sapUiContentPadding"><Text text="{i18n>tile.rsl}"/><Title text="{d>/rslText}" level="H2"/></VBox>
+          <VBox class="sapUiContentPadding"><Text text="{i18n>tile.priority}"/><ObjectStatus text="{d>/priority}" state="{d>/state}" inverted="true" class="sapUiTinyMarginTop"/><Text text="{d>/coverageText}" class="sapUiTinyMarginTop"/></VBox>
+        </l:Grid>
+        <Panel headerText="{i18n>elements}" visible="{= !!${d>/bsi} }" class="sapUiTinyMarginTop">
+          <Table items="{path:'d>/elementBreakdown', templateShareable:false}" noDataText="{i18n>elements.noData}">
+            <columns><Column><Text text="{i18n>col.bucket}"/></Column><Column hAlign="End" width="7rem"><Text text="{i18n>col.weight}"/></Column><Column hAlign="End" width="8rem"><Text text="{i18n>col.worstRating}"/></Column><Column><Text text=""/></Column></columns>
+            <items><ColumnListItem><cells>
+              <Text text="{d>bucket}"/><Text text="{d>weight}"/><Text text="{d>ratingText}"/>
+              <ProgressIndicator percentValue="{d>ratingPct}" displayValue="{d>ratingText}" state="{d>ratingState}" width="100%"/>
+            </cells></ColumnListItem></items>
+          </Table>
+        </Panel>
+        <Panel headerText="{i18n>models}" visible="{= !!${d>/bsi} }" class="sapUiTinyMarginTop">
+          <Table items="{path:'d>/models', templateShareable:false}" noDataText="{i18n>models.noData}">
+            <columns><Column><Text text="{i18n>col.model}"/></Column><Column><Text text="{i18n>col.weights}"/></Column><Column hAlign="End" width="7rem"><Text text="{i18n>col.bsi}"/></Column><Column><Text text=""/></Column></columns>
+            <items><ColumnListItem><cells>
+              <ObjectIdentifier title="{d>model}"/><Text text="{d>weightsText}"/><Text text="{d>bsiText}"/>
+              <ProgressIndicator percentValue="{d>bsiPct}" displayValue="{d>bsiDisplay}" state="{d>state}" width="100%"/>
+            </cells></ColumnListItem></items>
+          </Table>
+        </Panel>
+        <Panel headerText="{i18n>formulas}" expandable="true" expanded="true" visible="{= !!${d>/bsi} }" class="sapUiTinyMarginTop">
+          <List items="{path:'d>/formulas', templateShareable:false}"><StandardListItem title="{d>t}"/></List>
+        </Panel>
+      </VBox>
       <Panel headerText="{i18n>crossMode}" class="sapUiTinyMarginTop">
-        <Table items="{path:'cm>/rows', templateShareable:false}">
-          <columns><Column><Text text="Mode"/></Column><Column hAlign="End" width="6rem"><Text text="Bridges"/></Column><Column hAlign="End" width="7rem"><Text text="Avg BSI"/></Column><Column hAlign="End" width="7rem"><Text text="Worst BSI"/></Column><Column hAlign="End" width="7rem"><Text text="Avg BHI"/></Column><Column><Text text=""/></Column></columns>
+        <Table items="{path:'cm>/rows', templateShareable:false}" busy="{ui>/cmBusy}" busyIndicatorDelay="0" noDataText="{i18n>crossMode.noData}">
+          <columns><Column><Text text="{i18n>col.mode}"/></Column><Column hAlign="End" width="6rem"><Text text="{i18n>col.bridges}"/></Column><Column hAlign="End" width="7rem"><Text text="{i18n>col.avgBsi}"/></Column><Column hAlign="End" width="7rem"><Text text="{i18n>col.worstBsi}"/></Column><Column hAlign="End" width="7rem"><Text text="{i18n>col.avgBhi}"/></Column><Column><Text text=""/></Column></columns>
           <items><ColumnListItem><cells>
             <ObjectIdentifier title="{cm>transportMode}"/><Text text="{cm>bridges}"/><Text text="{cm>avgBsi}"/><Text text="{cm>worstBsi}"/><Text text="{cm>avgBhi}"/>
-            <ProgressIndicator percentValue="{cm>bhiPct}" displayValue="BHI {cm>avgBhi}" state="{cm>state}" width="100%"/>
+            <ProgressIndicator percentValue="{cm>bhiPct}" displayValue="{cm>bhiDisplay}" state="{cm>state}" width="100%"/>
           </cells></ColumnListItem></items>
         </Table>
       </Panel>

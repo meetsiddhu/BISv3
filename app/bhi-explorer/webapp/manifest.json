@@ -3,8 +3,8 @@
   "sap.app": {
     "id": "BridgeManagement.bhiexplorer",
     "type": "application",
-    "title": "BHI / BSI Explorer",
-    "description": "Bridge Structure & Health Index \u2014 calculations, element breakdown, cross-mode normalisation",
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
     "i18n": "i18n/i18n.properties",
     "applicationVersion": {
       "version": "1.0.0"
@@ -23,7 +23,7 @@
         "BhiExplorer-display": {
           "semanticObject": "BhiExplorer",
           "action": "display",
-          "title": "BHI / BSI Explorer",
+          "title": "{{appTitle}}",
           "signature": {
             "parameters": {},
             "additionalParameters": "allowed"
