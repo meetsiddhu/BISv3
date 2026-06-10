@@ -25,6 +25,26 @@ service AdminService {
     action reactivate() returns Bridges;
   };
 
+  // ── Bridge value help — same source as the live Bridges register ──────────
+  // AdminService.Bridges injects status='Active' into collection reads with no
+  // explicit status filter (the register default). The Restrictions app value
+  // help reads THIS dedicated read-only projection on the SAME
+  // bridge.management.Bridges table, with no injector, so any bridge the
+  // register can show (Active or Inactive via its status filter) is linkable.
+  // Parity is asserted by test/restrictions-value-help.test.js.
+  @readonly
+  @cds.redirection.target: false
+  @restrict: [{ grant: 'READ', to: 'view' }]
+  entity BridgeValueHelp as projection on my.Bridges {
+    key ID,
+        bridgeId,
+        bridgeName,
+        state,
+        region,
+        transportMode,
+        status
+  };
+
   // ── Restrictions ── viewer: read | manager: create/update/soft-delete actions
   // Soft-delete only: no hard DELETE granted. Use the `deactivate` action.
   @restrict: [
@@ -498,3 +518,10 @@ service AdminService {
 
 annotate AdminService.Bridges     with { modifiedAt @odata.etag }
 annotate AdminService.Restrictions with { modifiedAt @odata.etag }
+
+// Free-text search for the bridge value-help dialog (Restrictions app).
+annotate AdminService.BridgeValueHelp with @cds.search: {
+  bridgeId,
+  bridgeName,
+  state
+};

@@ -678,6 +678,28 @@ annotate AdminService.BridgeRestrictions with {
   remarks               @title: 'Remarks'  @UI.MultiLineText;
   name                  @UI.Hidden;
   descr                 @UI.Hidden;
+  // ── NSW gazettal / NHVR per-type attributes (additive) ──
+  approvalDate           @title: 'Approval Date';
+  gazetteNumber          @title: 'Gazette Number';
+  gazettePublicationDate @title: 'Gazette Publication Date';
+  gazetteExpiryDate      @title: 'Gazette Expiry Date';
+  reviewDueDate          @title: 'Review Due Date';
+  restrictionReason      @title: 'Restriction Reason';
+  detourRoute            @title: 'Detour Route';
+  conditionTrigger       @title: 'Condition Trigger';
+  grossCombinationLimit  @title: 'Gross Combination (GCM) Limit (t)';
+  steerAxleLimit         @title: 'Steer Axle Limit (t)';
+  tandemAxleLimit        @title: 'Tandem Axle Group Limit (t)';
+  triAxleLimit           @title: 'Tri-Axle Group Limit (t)';
+  pilotVehicleCount      @title: 'Pilot Vehicle Count';
+  signageRequired        @title: 'Signage Required';
+  pbsClassApplicable @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'PbsApprovalClasses', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: pbsClassApplicable, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'PBS Class Applicable';
 };
 
 annotate AdminService.BridgeRestrictions with @(
@@ -786,6 +808,7 @@ annotate AdminService.BridgeRestrictions with @(
           // Temporary Condition sub-section shown only for Temporary restrictions (fields self-hide otherwise)
           {$Type: 'UI.ReferenceFacet', Label: 'Temporary Condition', Target: '@UI.FieldGroup#BRTemporary'},
           {$Type: 'UI.ReferenceFacet', Label: 'Approval & Legal',    Target: '@UI.FieldGroup#BRApproval'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Gazette & Review',    Target: '@UI.FieldGroup#BRGazette'},
           {$Type: 'UI.ReferenceFacet', Label: 'Enforcement',         Target: '@UI.FieldGroup#BREnforcement'},
         ]
       },
@@ -813,9 +836,12 @@ annotate AdminService.BridgeRestrictions with @(
     FieldGroup#BRApplicability: {
       Data: [
         {Value: appliesToVehicleClass},
+        {Value: pbsClassApplicable},
         {Value: direction},
         {Value: permitRequired},
         {Value: escortRequired},
+        {Value: pilotVehicleCount},
+        {Value: signageRequired},
         // 'temporary' boolean auto-derived from restrictionCategory — not shown in form
       ]
     },
@@ -823,6 +849,10 @@ annotate AdminService.BridgeRestrictions with @(
       Data: [
         {Value: grossMassLimit},
         {Value: axleMassLimit},
+        {Value: grossCombinationLimit},
+        {Value: steerAxleLimit},
+        {Value: tandemAxleLimit},
+        {Value: triAxleLimit},
       ]
     },
     FieldGroup#BRDimLimits: {
@@ -862,14 +892,27 @@ annotate AdminService.BridgeRestrictions with @(
     FieldGroup#BRApproval: {
       Data: [
         {Value: approvedBy},
+        {Value: approvalDate},
         {Value: approvalReference},
         {Value: legalReference},
         {Value: issuingAuthority},
       ]
     },
+    // NSW gazettal workflow attributes (ported from the nhvr model — additive)
+    FieldGroup#BRGazette: {
+      Data: [
+        {Value: gazetteNumber},
+        {Value: gazettePublicationDate},
+        {Value: gazetteExpiryDate},
+        {Value: reviewDueDate},
+      ]
+    },
     FieldGroup#BREnforcement: {
       Data: [
         {Value: enforcementAuthority},
+        {Value: restrictionReason},
+        {Value: detourRoute},
+        {Value: conditionTrigger},
         {Value: remarks},
       ]
     },

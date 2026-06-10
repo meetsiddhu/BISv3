@@ -48,6 +48,9 @@ annotate AdminService.Restrictions with @(
     { Value: effectiveFrom,           Label: 'From' },
     { Value: effectiveTo,             Label: 'To' },
     { Value: active,                  Label: 'Active' },
+    { Value: restrictionSeverity,     Label: 'Severity' },
+    { Value: gazetteExpiryDate,       Label: 'Gazette Expiry' },
+    { Value: reviewDueDate,           Label: 'Review Due' },
   ],
   UI.Identification: [
     {
@@ -91,7 +94,7 @@ annotate AdminService.Restrictions with @(
           {$Type: 'UI.ReferenceFacet', Label: 'Value',          Target: '@UI.FieldGroup#RstValue'},
         ]
       },
-      // ── Tab 2: Physical Limits (2 sub-sections) ──────────────────────────
+      // ── Tab 2: Physical Limits (4 sub-sections) ──────────────────────────
       {
         $Type : 'UI.CollectionFacet',
         Label : 'Physical Limits',
@@ -99,9 +102,11 @@ annotate AdminService.Restrictions with @(
         Facets: [
           {$Type: 'UI.ReferenceFacet', Label: 'Mass Limits (t)',    Target: '@UI.FieldGroup#RstMassLimits'},
           {$Type: 'UI.ReferenceFacet', Label: 'Dimensional Limits', Target: '@UI.FieldGroup#RstDimLimits'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Axle & Combination Limits (t)', Target: '@UI.FieldGroup#RstAxleLimits'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Lane Configuration', Target: '@UI.FieldGroup#RstLaneConfig'},
         ]
       },
-      // ── Tab 3: Validity & Approval (4 sub-sections) ──────────────────────
+      // ── Tab 3: Validity & Approval (5 sub-sections) ──────────────────────
       {
         $Type : 'UI.CollectionFacet',
         Label : 'Validity & Approval',
@@ -110,6 +115,7 @@ annotate AdminService.Restrictions with @(
           {$Type: 'UI.ReferenceFacet', Label: 'Effective Period',    Target: '@UI.FieldGroup#RstEffective'},
           {$Type: 'UI.ReferenceFacet', Label: 'Temporary Condition', Target: '@UI.FieldGroup#RstTemporary'},
           {$Type: 'UI.ReferenceFacet', Label: 'Approval & Legal',    Target: '@UI.FieldGroup#RstApproval'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Gazette & Review',    Target: '@UI.FieldGroup#RstGazette'},
           {$Type: 'UI.ReferenceFacet', Label: 'Enforcement',         Target: '@UI.FieldGroup#RstEnforcement'},
         ]
       },
@@ -133,9 +139,12 @@ annotate AdminService.Restrictions with @(
     FieldGroup#RstApplicability: {
       Data: [
         {Value: appliesToVehicleClass},
+        {Value: pbsClassApplicable},
         {Value: direction},
         {Value: permitRequired},
         {Value: escortRequired},
+        {Value: pilotVehicleCount},
+        {Value: signageRequired},
         // 'temporary' boolean is auto-derived from restrictionCategory — not shown in form
       ]
     },
@@ -159,6 +168,25 @@ annotate AdminService.Restrictions with @(
         {Value: widthLimit},
         {Value: lengthLimit},
         {Value: speedLimit},
+      ]
+    },
+    // New per-type limits (Axle Group Limit / Gross Combination Mass types)
+    FieldGroup#RstAxleLimits: {
+      Data: [
+        {Value: grossCombinationLimit},
+        {Value: steerAxleLimit},
+        {Value: tandemAxleLimit},
+        {Value: triAxleLimit},
+      ]
+    },
+    // Lane Restriction type attributes (parity with BridgeRestrictions)
+    FieldGroup#RstLaneConfig: {
+      Data: [
+        {Value: laneAvailability},
+        {Value: lanesOpen},
+        {Value: lanesTotal},
+        {Value: laneWidthLimit},
+        {Value: restrictionSeverity},
       ]
     },
 
@@ -192,14 +220,27 @@ annotate AdminService.Restrictions with @(
     FieldGroup#RstApproval: {
       Data: [
         {Value: approvedBy},
+        {Value: approvalDate},
         {Value: approvalReference},
         {Value: legalReference},
         {Value: issuingAuthority},
       ]
     },
+    // NSW gazettal workflow attributes (ported from the nhvr model — additive)
+    FieldGroup#RstGazette: {
+      Data: [
+        {Value: gazetteNumber},
+        {Value: gazettePublicationDate},
+        {Value: gazetteExpiryDate},
+        {Value: reviewDueDate},
+      ]
+    },
     FieldGroup#RstEnforcement: {
       Data: [
         {Value: enforcementAuthority},
+        {Value: restrictionReason},
+        {Value: detourRoute},
+        {Value: conditionTrigger},
       ]
     },
 
@@ -239,14 +280,21 @@ annotate AdminService.Restrictions with {
 
 annotate AdminService.Restrictions with {
   // Mandatory fields
+  // Value help reads BridgeValueHelp — the SAME bridge.management.Bridges table
+  // the register shows, WITHOUT the Active-only default injected on
+  // AdminService.Bridges collection reads. Any register bridge (incl. Inactive
+  // ones surfaced via the register's status filter) is therefore linkable here.
   bridgeRef @(
     Common.FieldControl: #Mandatory,
     Common.ValueList: {
-      CollectionPath : 'Bridges',
+      CollectionPath : 'BridgeValueHelp',
       SearchSupported: true,
       Parameters     : [
         { $Type: 'Common.ValueListParameterInOut',      ValueListProperty: 'bridgeId',   LocalDataProperty: bridgeRef },
         { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'bridgeName' },
+        { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'state' },
+        { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'transportMode' },
+        { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'status' },
       ],
     },
     Common.Text: bridge.bridgeName,
@@ -285,6 +333,20 @@ annotate AdminService.Restrictions with {
     Common.ValueListWithFixedValues
   )  @title: 'Direction';
 
+  // New coded fields (additive)
+  restrictionSeverity @(
+    ValueList.entity:'RestrictionSeverities',
+    Common.ValueListWithFixedValues
+  )  @title: 'Severity';
+  laneAvailability @(
+    ValueList.entity:'LaneAvailabilityTypes',
+    Common.ValueListWithFixedValues
+  )  @title: 'Lane Availability';
+  pbsClassApplicable @(
+    ValueList.entity:'PbsApprovalClasses',
+    Common.ValueListWithFixedValues
+  )  @title: 'PBS Class Applicable';
+
   // Labels + mandatory rules
   temporary            @UI.Hidden;  // auto-derived from restrictionCategory; not shown in form
   permitRequired       @title: 'Permit Required';
@@ -301,11 +363,29 @@ annotate AdminService.Restrictions with {
   temporaryTo          @title: 'Temporary To';
   temporaryReason      @title: 'Temporary Reason'  @UI.MultiLineText;
   approvedBy           @title: 'Approved By';
+  approvalDate         @title: 'Approval Date';
   approvalReference    @title: 'Approval Reference';
   legalReference       @title: 'Gazette / Legal Reference';
   issuingAuthority     @title: 'Issuing Authority';
   enforcementAuthority @title: 'Enforcement Authority';
   remarks              @title: 'Notes'  @UI.MultiLineText;
+  // New NSW/NHVR attributes (additive)
+  gazetteNumber          @title: 'Gazette Number';
+  gazettePublicationDate @title: 'Gazette Publication Date';
+  gazetteExpiryDate      @title: 'Gazette Expiry Date';
+  reviewDueDate          @title: 'Review Due Date';
+  restrictionReason      @title: 'Restriction Reason';
+  detourRoute            @title: 'Detour Route';
+  conditionTrigger       @title: 'Condition Trigger';
+  grossCombinationLimit  @title: 'Gross Combination (GCM) Limit (t)';
+  steerAxleLimit         @title: 'Steer Axle Limit (t)';
+  tandemAxleLimit        @title: 'Tandem Axle Group Limit (t)';
+  triAxleLimit           @title: 'Tri-Axle Group Limit (t)';
+  pilotVehicleCount      @title: 'Pilot Vehicle Count';
+  signageRequired        @title: 'Signage Required';
+  lanesOpen              @title: 'Lanes Open';
+  lanesTotal             @title: 'Lanes Total';
+  laneWidthLimit         @title: 'Lane Width Limit (m)';
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -319,6 +399,15 @@ annotate AdminService.Restrictions with {
   heightLimit    @assert.range: [0, 30]   @Common.QuickInfo: 'Valid range: 0 – 30 m';
   widthLimit     @assert.range: [0, 100]  @Common.QuickInfo: 'Valid range: 0 – 100 m';
   lengthLimit    @assert.range: [0, 1000] @Common.QuickInfo: 'Valid range: 0 – 1,000 m';
+  // New per-type limits (additive)
+  grossCombinationLimit @assert.range: [0, 1000] @Common.QuickInfo: 'Valid range: 0 – 1,000 t';
+  steerAxleLimit        @assert.range: [0, 500]  @Common.QuickInfo: 'Valid range: 0 – 500 t';
+  tandemAxleLimit       @assert.range: [0, 500]  @Common.QuickInfo: 'Valid range: 0 – 500 t';
+  triAxleLimit          @assert.range: [0, 500]  @Common.QuickInfo: 'Valid range: 0 – 500 t';
+  laneWidthLimit        @assert.range: [0, 100]  @Common.QuickInfo: 'Valid range: 0 – 100 m';
+  lanesOpen             @assert.range: [0, 99]   @Common.QuickInfo: 'Valid range: 0 – 99 lanes';
+  lanesTotal            @assert.range: [0, 99]   @Common.QuickInfo: 'Valid range: 0 – 99 lanes';
+  pilotVehicleCount     @assert.range: [0, 10]   @Common.QuickInfo: 'Valid range: 0 – 10 vehicles';
 };
 
 ////////////////////////////////////////////////////////////////////////////
