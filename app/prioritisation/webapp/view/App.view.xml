@@ -53,6 +53,26 @@
                                 text="{v>/confidenceText}" state="{v>/confidenceState}" visible="{= !!${v>/bridgeID} }" />
                 </HBox>
 
+                <!-- RULE ENGINE: governing model + read-only auto-bound criteria with provenance -->
+                <Panel headerText="Configured model: {v>/modelText} — auto criteria (read-only, from data)"
+                       visible="{= !!${v>/modelText} &amp;&amp; ${v>/autoCriteria}.length > 0 }" expandable="true" expanded="false" class="sapUiTinyMarginBottom">
+                  <Table items="{path:'v>/autoCriteria', templateShareable:false}" >
+                    <columns>
+                      <Column><Text text="Criterion" /></Column>
+                      <Column><Text text="Raw value" /></Column>
+                      <Column><Text text="Source (provenance)" /></Column>
+                      <Column hAlign="End" width="9rem"><Text text="Score (0–100)" /></Column>
+                      <Column hAlign="End" width="6rem"><Text text="Weight" /></Column>
+                    </columns>
+                    <items><ColumnListItem>
+                      <cells>
+                        <Text text="{v>code}" /><Text text="{v>rawText}" /><Text text="{v>source}" />
+                        <Text text="{v>scoreText}" /><Text text="{v>weight}" />
+                      </cells>
+                    </ColumnListItem></items>
+                  </Table>
+                </Panel>
+
                 <!-- federated read-only facts with provenance -->
                 <Panel headerText="Federated facts (read-only · from register / EAM / restrictions)" visible="{= !!${v>/bridgeID} }" class="sapUiTinyMarginBottom">
                   <l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0">

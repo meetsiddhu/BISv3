@@ -296,6 +296,14 @@ sap.ui.define([
           var fresh = f.conditionAsAtMonths;
           m.setProperty("/confidenceText", (f.inputsAvailable + " of " + f.inputsTotal + " inputs") + (fresh != null ? " · condition as-at " + fresh + " mo" : ""));
           m.setProperty("/confidenceState", (f.inputsAvailable < f.inputsTotal || (fresh != null && fresh > 12)) ? "Warning" : "Success");
+          // RULE ENGINE: resolved model + read-only auto criteria (value · source · score)
+          m.setProperty("/modelText", f.modelCode ? (f.modelCode + " v" + f.modelVersion + " · " + (f.aggregationMethod || "")) : "");
+          var auto;
+          try { auto = JSON.parse(f.autoCriteria || "[]"); } catch (_e) { auto = []; }
+          m.setProperty("/autoCriteria", auto.map(function (a) {
+            return { code: a.code, rawText: (a.raw == null ? "—" : String(a.raw)), source: a.source,
+              scoreText: (a.score == null ? (a.note || "missing → flagged") : String(a.score)), weight: a.weight };
+          }));
           self._recompute();
         })
         .catch(function (e) { MessageToast.show("Could not load bridge facts: " + e.message); });
@@ -338,6 +346,19 @@ sap.ui.define([
         [["dimSafety", "Safety"], ["dimNetwork", "Network"], ["dimFinancial", "Financial"], ["dimEnvironmental", "Environmental"], ["dimReputational", "Reputational"]].forEach(function (d) {
           var e = rub[d[0]]; if (e) items.push(new sap.m.Text({ text: d[1] + " " + e.level + " — " + e.text }).addStyleClass("sapUiContentLabelColor"));
         });
+      }
+      // RULE ENGINE: per-criterion model evaluation (configured model runs)
+      var bd; try { bd = JSON.parse(r.criterionBreakdown); } catch (_e) { bd = null; }
+      if (bd && bd.rows && !bd.delegated) {
+        items.push(new sap.m.Title({ text: "Model evaluation — " + (r.modelCode || "") + " v" + (r.modelVersion || "") + (bd.forceReview ? "  ·  REVIEW REQUIRED" : ""), level: "H6" }).addStyleClass("sapUiSmallMarginTop"));
+        bd.rows.filter(function (x) { return x.included !== false || x.note; }).slice(0, 24).forEach(function (x) {
+          items.push(new sap.m.Text({ text: x.code + ": " + (x.raw == null ? "—" : x.raw) + " → " + (x.score == null ? (x.note || "missing") : x.score) + " ×w" + x.weight + (x.confidence < 1 ? " ×conf" + x.confidence : "") + " = +" + (x.contribution || 0), wrapping: true }).addStyleClass("sapUiContentLabelColor"));
+        });
+        (bd.flags || []).forEach(function (fl) {
+          items.push(new sap.m.ObjectStatus({ text: fl, state: "Warning" }));
+        });
+      } else if (bd && bd.delegated) {
+        items.push(new sap.m.Text({ text: "Model: " + (r.modelCode || "NSW-RISK-V1") + " v" + (r.modelVersion || 1) + " (approved formula, delegated)", wrapping: true }).addStyleClass("sapUiTinyMarginTop sapUiContentLabelColor"));
       }
       items.push(new sap.m.Text({ text: methodology, wrapping: true }).addStyleClass("sapUiSmallMarginTop sapUiContentLabelColor"));
       var dlg = new sap.m.Dialog({

@@ -1,0 +1,98 @@
+<mvc:View
+  controllerName="BridgeManagement.bmsadmin.controller.PrioritisationModels"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  displayBlock="true">
+
+  <Page id="prioModelsPage" showHeader="true" title="{i18n>nav.prioModels}">
+    <customHeader>
+      <Bar>
+        <contentLeft>
+          <Title text="{i18n>prioModels.title}" level="H3" />
+        </contentLeft>
+        <contentRight>
+          <Label text="Model" class="sapUiTinyMarginEnd" />
+          <Select id="modelSelect" selectedKey="{pm>/selected}" change=".onModelChange" items="{path:'pm>/models', templateShareable:false}">
+            <core:Item xmlns:core="sap.ui.core" key="{pm>ID}" text="{pm>code} v{pm>version} · {pm>status}" />
+          </Select>
+          <Button icon="sap-icon://refresh" text="{i18n>btn.refresh}" press=".onRefresh" type="Transparent" class="sapUiSmallMarginBegin" />
+        </contentRight>
+      </Bar>
+    </customHeader>
+    <content>
+      <MessageStrip text="{i18n>prioModels.note}" type="Information" showIcon="true" class="sapUiSmallMargin" />
+      <ObjectStatus text="{pm>/detail/aggregationMethod} · sign-off: {pm>/detail/reviewedBy} {pm>/detail/reviewedAt}" state="Information" class="sapUiSmallMarginBegin" />
+      <IconTabBar id="pmTabs" expandable="false" class="sapUiResponsiveContentPadding">
+        <items>
+          <IconTabFilter text="{i18n>prioModels.tab.criteria}" key="criteria" icon="sap-icon://list">
+            <Table items="{path:'pm>/criteria', templateShareable:false}" growing="true" growingThreshold="60" noDataText="-">
+              <columns>
+                <Column><Text text="{i18n>prioModels.col.criterion}" /></Column>
+                <Column width="9rem"><Text text="{i18n>prioModels.col.category}" /></Column>
+                <Column><Text text="{i18n>prioModels.col.standard}" /></Column>
+                <Column><Text text="{i18n>prioModels.col.bindings}" /></Column>
+                <Column hAlign="Center" width="6rem"><Text text="{i18n>col.active}" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <ObjectIdentifier title="{pm>code}" text="{pm>name}" />
+                  <Text text="{pm>category}" />
+                  <Text text="{pm>standardRef}" />
+                  <Text text="{pm>bindingText}" />
+                  <Switch state="{pm>active}" change=".onCriterionActive" customTextOn=" " customTextOff=" " />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+          </IconTabFilter>
+          <IconTabFilter text="{i18n>prioModels.tab.weights}" key="weights" icon="sap-icon://weights">
+            <Table items="{path:'pm>/weights', templateShareable:false}" growing="true" growingThreshold="80" noDataText="-">
+              <columns>
+                <Column><Text text="{i18n>prioModels.col.criterion}" /></Column>
+                <Column width="11rem"><Text text="{i18n>prioModels.col.class}" /></Column>
+                <Column width="6rem"><Text text="{i18n>prioModels.col.mode}" /></Column>
+                <Column hAlign="End" width="8rem"><Text text="{i18n>prioModels.col.weight}" /></Column>
+                <Column hAlign="Center" width="6rem"><Text text="{i18n>prioModels.col.included}" /></Column>
+                <Column width="9rem"><Text text="{i18n>prioModels.col.policy}" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <Text text="{pm>criterionCode}" />
+                  <Text text="{pm>assetClass}" />
+                  <Text text="{pm>transportMode}" />
+                  <Input value="{pm>weight}" type="Number" textAlign="End" change=".onWeightChange" width="6rem" />
+                  <Switch state="{pm>included}" change=".onIncludedChange" customTextOn=" " customTextOff=" " />
+                  <Select selectedKey="{pm>missingDataPolicy}" change=".onPolicyChange" width="8rem">
+                    <core:Item xmlns:core="sap.ui.core" key="flag" text="flag" />
+                    <core:Item xmlns:core="sap.ui.core" key="neutral" text="neutral" />
+                    <core:Item xmlns:core="sap.ui.core" key="penalise" text="penalise" />
+                    <core:Item xmlns:core="sap.ui.core" key="exclude" text="exclude" />
+                  </Select>
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+          </IconTabFilter>
+          <IconTabFilter text="{i18n>prioModels.tab.rules}" key="rules" icon="sap-icon://warning">
+            <Table items="{path:'pm>/rules', templateShareable:false}" noDataText="-">
+              <columns>
+                <Column width="10rem"><Text text="{i18n>prioModels.col.ruleType}" /></Column>
+                <Column width="10rem"><Text text="{i18n>prioModels.col.criterion}" /></Column>
+                <Column><Text text="{i18n>prioModels.col.config}" /></Column>
+                <Column><Text text="{i18n>prioModels.col.rationale}" /></Column>
+                <Column hAlign="Center" width="6rem"><Text text="{i18n>col.active}" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <ObjectStatus text="{pm>ruleType}" state="Warning" />
+                  <Text text="{pm>criterionCode}" />
+                  <Text text="{pm>config}" />
+                  <Text text="{pm>rationale}" />
+                  <Switch state="{pm>active}" change=".onRuleActive" customTextOn=" " customTextOff=" " />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>

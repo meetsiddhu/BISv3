@@ -28,7 +28,8 @@ describe('Rule-engine schema + NSW-RISK-V1 seed (Phase 1)', () => {
 
   test('the approved five dimensions + likelihood are catalogue rows with rubrics', async () => {
     const db = await cds.connect.to('db')
-    const crits = await db.run(SELECT.from(C).where({ active: true }).orderBy('displayOrder'))
+    const m0 = await db.run(SELECT.one.from(M).where({ code: 'NSW-RISK-V1' }))
+    const crits = await db.run(SELECT.from(C).where({ active: true, model_ID: m0.ID }).orderBy('displayOrder'))
     expect(crits.map(c => c.code)).toEqual(['SAFETY', 'NETWORK', 'FINANCIAL', 'ENVIRONMENTAL', 'REPUTATIONAL', 'LIKELIHOOD'])
     for (const c of crits) {
       const rub = JSON.parse(c.rubric)
@@ -45,11 +46,12 @@ describe('Rule-engine schema + NSW-RISK-V1 seed (Phase 1)', () => {
     const db = await cds.connect.to('db')
     const cfgRow = await db.run(SELECT.one.from('bridge.management.PrioritisationConfig').where({ active: true }))
     const cfg = engine.resolveConfig(cfgRow || {})
-    const weights = await db.run(SELECT.from(W).orderBy('ID'))
+    const m1 = await db.run(SELECT.one.from(M).where({ code: 'NSW-RISK-V1' }))
+    const weights = await db.run(SELECT.from(W).where({ model_ID: m1.ID }).orderBy('ID'))
     expect(weights).toHaveLength(6)
     expect(weights.every(w => w.assetClass === '*' && w.transportMode === '*')).toBe(true)
     expect(weights.every(w => w.missingDataPolicy === 'flag')).toBe(true) // never silent-zero
-    const crits = await db.run(SELECT.from(C))
+    const crits = await db.run(SELECT.from(C).where({ model_ID: m1.ID }))
     const byCode = Object.fromEntries(weights.map(w => [crits.find(c => c.ID === w.criterion_ID).code, Number(w.weight)]))
     // dims normalised must equal the engine's normalised config weights exactly
     const dimCodes = ['SAFETY', 'NETWORK', 'FINANCIAL', 'ENVIRONMENTAL', 'REPUTATIONAL']
@@ -61,11 +63,14 @@ describe('Rule-engine schema + NSW-RISK-V1 seed (Phase 1)', () => {
 
   test('bindings + value bands seeded; likelihood has derived-default + manual bindings', async () => {
     const db = await cds.connect.to('db')
-    const binds = await db.run(SELECT.from(B))
+    const m2 = await db.run(SELECT.one.from(M).where({ code: 'NSW-RISK-V1' }))
+    const crit2 = await db.run(SELECT.from(C).where({ model_ID: m2.ID }))
+    const ids2 = crit2.map(c => c.ID)
+    const binds = (await db.run(SELECT.from(B))).filter(b => ids2.includes(b.criterion_ID))
     expect(binds).toHaveLength(7)
     expect(binds.filter(b => b.sourceType === 'Manual')).toHaveLength(6)
     expect(binds.find(b => b.sourceType === 'Derived').sourceRef).toBe('deriveLikelihood')
-    const bands = await db.run(SELECT.from(V))
+    const bands = (await db.run(SELECT.from(V))).filter(b => ids2.includes(b.criterion_ID))
     expect(bands).toHaveLength(30) // 6 criteria x 5 levels
     expect(bands.every(b => Number(b.score) >= 0 && Number(b.score) <= 100)).toBe(true)
   })
@@ -88,13 +93,49 @@ describe('Rule-engine schema + NSW-RISK-V1 seed (Phase 1)', () => {
       })))
     const id = created.ID || (created[0] && created[0].ID)
     const row = await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: id }))
-    // the additive columns exist and are simply null for legacy runs — nothing else changed
-    expect(row.modelCode).toBeNull()
-    expect(row.weightSetHash).toBeNull()
+    // the run is stamped with the DELEGATED default model — values byte-identical to the
+    // approved engine (the bridge has no assetClass, so it resolves the '*'/'*' fallback).
+    expect(row.modelCode).toBe('NSW-RISK-V1')
+    expect(row.modelVersion).toBe(1)
+    expect(row.weightSetHash).toMatch(/^[a-f0-9]{64}$/)
+    expect(JSON.parse(row.criterionBreakdown).delegated).toBe(true)
     // and the score equals the engine's direct output for the same inputs (unchanged path)
     const cfg = engine.resolveConfig(await db.run(SELECT.one.from('bridge.management.PrioritisationConfig').where({ active: true })) || {})
     const expected = engine.derivePriority({ dimSafety: 5, dimNetwork: 4, dimFinancial: 3, dimEnvironmental: 2, dimReputational: 4, likelihood: 4, strategy: 'Renew' }, cfg)
     expect(Number(row.priorityScore)).toBe(expected.priorityScore)
     expect(row.band).toBe(expected.band)
+  })
+
+  test('PACK MODEL end-to-end: a Road Bridge resolves NSW-PACK-V1; critical condition triggers the SafetyFloor', async () => {
+    const db = await cds.connect.to('db')
+    await db.run(cds.ql.INSERT.into('bridge.management.Bridges').entries({
+      ID: 990302, bridgeId: 'BRG-RE-PACK', bridgeName: 'Pack Demo Road Bridge',
+      assetClass: 'Road Bridge', transportMode: 'Road',
+      conditionRating: 2, structuralAdequacyRating: 3,         // Critical → BHI band 95 → SafetyFloor
+      loadRating: 30, lastInspectionDate: '2025-12-01',
+      averageDailyTraffic: 800, heavyVehiclePercent: 4, numberOfLanes: 2, importanceLevel: 2,
+      material: 'Timber', likelyFailureCostAud: 800000, mitigationCostAud: 300000
+    }))
+    const srv = await cds.connect.to('PrioritisationService')
+    const created = await srv.tx({ user: new cds.User({ id: 'mgr', roles: ['view', 'manage'] }) }, (tx) =>
+      tx.run(cds.ql.INSERT.into('PrioritisationService.Assessments').entries({
+        bridge_ID: 990302, dimSafety: 2, dimNetwork: 1, dimFinancial: 1,   // deliberately LOW judgement —
+        dimEnvironmental: 1, dimReputational: 1, likelihood: 5,            // the floor must still surface it
+        likelihoodOverrideReason: 'severe deterioration observed', strategy: 'Renew'
+      })))
+    const id = created.ID || (created[0] && created[0].ID)
+    const row = await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: id }))
+    expect(row.modelCode).toBe('NSW-PACK-V1')                  // class-specific model resolved
+    const bd = JSON.parse(row.criterionBreakdown)
+    expect(bd.delegated).toBe(false)
+    expect(bd.rows.length).toBeGreaterThan(10)                 // configured criteria evaluated
+    const bhi = bd.rows.find(r => r.code === 'BHI')
+    expect(bhi.raw).toBe(2)
+    expect(bhi.score).toBe(95)                                 // value-function applied
+    expect(bd.flags.join()).toMatch(/SafetyFloor/)             // non-compensatory floor fired
+    expect(['P1', 'P2']).toContain(row.band)                   // can't be buried below P2
+    // missing attribute-bound criteria are FLAGGED, never silently zeroed
+    expect(bd.flags.join()).toMatch(/missing/)
+    expect(row.weightSetHash).toMatch(/^[a-f0-9]{64}$/)
   })
 })

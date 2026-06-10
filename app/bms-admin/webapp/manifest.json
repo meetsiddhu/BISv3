@@ -6,18 +6,48 @@
     "title": "BMS Administration",
     "description": "Bridge Management System Administration",
     "i18n": "i18n/i18n.properties",
-    "applicationVersion": { "version": "1.1.1" },
+    "applicationVersion": {
+      "version": "1.2.0"
+    },
     "dataSources": {
-      "AdminService":      { "uri": "/odata/v4/admin/",    "type": "OData", "settings": { "odataVersion": "4.0" } },
-      "AuditService":      { "uri": "/audit/api/",         "type": "HTTP" },
-      "SystemService":     { "uri": "/system/api/",        "type": "HTTP" },
-      "BnacService":       { "uri": "/bnac/api/",          "type": "HTTP" },
-      "AttributesService": { "uri": "/attributes/api/",   "type": "HTTP" }
+      "AdminService": {
+        "uri": "/odata/v4/admin/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      },
+      "AuditService": {
+        "uri": "/audit/api/",
+        "type": "HTTP"
+      },
+      "SystemService": {
+        "uri": "/system/api/",
+        "type": "HTTP"
+      },
+      "BnacService": {
+        "uri": "/bnac/api/",
+        "type": "HTTP"
+      },
+      "AttributesService": {
+        "uri": "/attributes/api/",
+        "type": "HTTP"
+      },
+      "PrioritisationService": {
+        "uri": "/odata/v4/prioritisation/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      }
     },
     "crossNavigation": {
       "inbounds": {
         "BmsAdmin-manage": {
-          "signature": { "parameters": {}, "additionalParameters": "allowed" },
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
           "semanticObject": "BmsAdmin",
           "action": "manage",
           "title": "BMS Administration",
@@ -30,7 +60,11 @@
   "sap.ui": {
     "technology": "UI5",
     "fullWidth": true,
-    "deviceTypes": { "desktop": true, "phone": false, "tablet": true }
+    "deviceTypes": {
+      "desktop": true,
+      "phone": false,
+      "tablet": true
+    }
   },
   "sap.ui5": {
     "dependencies": {
@@ -47,17 +81,51 @@
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "uri": "i18n/i18n.properties",
-        "settings": { "supportedLocales": [""], "fallbackLocale": "" }
+        "settings": {
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
+        }
       },
       "appConfig": {
         "type": "sap.ui.model.json.JSONModel",
         "settings": {
           "data": {
-            "layerCategories": ["Weather","Flood","Traffic","Geology","Infrastructure","Environment","Emergency","Administrative","Custom"],
-            "layerTypes": ["WMS","XYZ","ArcGISRest","GeoJSON"],
-            "attributeDataTypes": ["Text","Integer","Decimal","Date","Boolean","SingleSelect","MultiSelect"],
-            "attributeObjectTypes": ["bridge","restriction"],
-            "attributeStatuses": ["Active","Inactive"]
+            "layerCategories": [
+              "Weather",
+              "Flood",
+              "Traffic",
+              "Geology",
+              "Infrastructure",
+              "Environment",
+              "Emergency",
+              "Administrative",
+              "Custom"
+            ],
+            "layerTypes": [
+              "WMS",
+              "XYZ",
+              "ArcGISRest",
+              "GeoJSON"
+            ],
+            "attributeDataTypes": [
+              "Text",
+              "Integer",
+              "Decimal",
+              "Date",
+              "Boolean",
+              "SingleSelect",
+              "MultiSelect"
+            ],
+            "attributeObjectTypes": [
+              "bridge",
+              "restriction"
+            ],
+            "attributeStatuses": [
+              "Active",
+              "Inactive"
+            ]
           }
         }
       }
@@ -74,33 +142,114 @@
         "viewPath": "BridgeManagement.bmsadmin.view",
         "controlId": "adminNavContainer",
         "controlAggregation": "pages",
-        "bypassed": { "target": "changeDocuments" }
+        "bypassed": {
+          "target": "changeDocuments"
+        }
       },
       "routes": [
-        { "pattern": "", "name": "home", "target": "changeDocuments" },
-        { "pattern": "change-documents", "name": "changeDocuments", "target": "changeDocuments" },
-        { "pattern": "system-config", "name": "systemConfig", "target": "systemConfig" },
-        { "pattern": "bnac-config", "name": "bnacConfig", "target": "bnacConfig" },
-        { "pattern": "attribute-config", "name": "attributeConfig", "target": "attributeConfig" },
-        { "pattern": "gis-config",       "name": "gisConfig",       "target": "gisConfig" },
-        { "pattern": "risk-bands",       "name": "riskBands",       "target": "riskBands" },
-        { "pattern": "risk-factors",     "name": "riskFactors",     "target": "riskFactors" },
-        { "pattern": "asset-strategy",   "name": "assetStrategy",   "target": "assetStrategy" },
-        { "pattern": "demo-mode",        "name": "demoMode",        "target": "demoMode" }
+        {
+          "pattern": "",
+          "name": "home",
+          "target": "changeDocuments"
+        },
+        {
+          "pattern": "change-documents",
+          "name": "changeDocuments",
+          "target": "changeDocuments"
+        },
+        {
+          "pattern": "system-config",
+          "name": "systemConfig",
+          "target": "systemConfig"
+        },
+        {
+          "pattern": "bnac-config",
+          "name": "bnacConfig",
+          "target": "bnacConfig"
+        },
+        {
+          "pattern": "attribute-config",
+          "name": "attributeConfig",
+          "target": "attributeConfig"
+        },
+        {
+          "pattern": "gis-config",
+          "name": "gisConfig",
+          "target": "gisConfig"
+        },
+        {
+          "pattern": "risk-bands",
+          "name": "riskBands",
+          "target": "riskBands"
+        },
+        {
+          "pattern": "risk-factors",
+          "name": "riskFactors",
+          "target": "riskFactors"
+        },
+        {
+          "pattern": "asset-strategy",
+          "name": "assetStrategy",
+          "target": "assetStrategy"
+        },
+        {
+          "pattern": "demo-mode",
+          "name": "demoMode",
+          "target": "demoMode"
+        },
+        {
+          "name": "prioritisationModels",
+          "pattern": "prioritisation-models",
+          "target": "prioritisationModels"
+        }
       ],
       "targets": {
-        "changeDocuments": { "viewName": "ChangeDocuments",  "viewLevel": 1 },
-        "systemConfig":    { "viewName": "SystemConfig",     "viewLevel": 1 },
-        "bnacConfig":      { "viewName": "BnacConfig",       "viewLevel": 1 },
-        "attributeConfig": { "viewName": "AttributeConfig",  "viewLevel": 1 },
-        "gisConfig":       { "viewName": "GisConfig",        "viewLevel": 1 },
-        "riskBands":       { "viewName": "RiskBands",        "viewLevel": 1 },
-        "riskFactors":     { "viewName": "RiskFactors",      "viewLevel": 1 },
-        "assetStrategy":   { "viewName": "AssetStrategy",    "viewLevel": 1 },
-        "demoMode":        { "viewName": "DemoMode",         "viewLevel": 1 }
+        "changeDocuments": {
+          "viewName": "ChangeDocuments",
+          "viewLevel": 1
+        },
+        "systemConfig": {
+          "viewName": "SystemConfig",
+          "viewLevel": 1
+        },
+        "bnacConfig": {
+          "viewName": "BnacConfig",
+          "viewLevel": 1
+        },
+        "attributeConfig": {
+          "viewName": "AttributeConfig",
+          "viewLevel": 1
+        },
+        "gisConfig": {
+          "viewName": "GisConfig",
+          "viewLevel": 1
+        },
+        "riskBands": {
+          "viewName": "RiskBands",
+          "viewLevel": 1
+        },
+        "riskFactors": {
+          "viewName": "RiskFactors",
+          "viewLevel": 1
+        },
+        "assetStrategy": {
+          "viewName": "AssetStrategy",
+          "viewLevel": 1
+        },
+        "demoMode": {
+          "viewName": "DemoMode",
+          "viewLevel": 1
+        },
+        "prioritisationModels": {
+          "viewName": "PrioritisationModels",
+          "viewLevel": 1
+        }
       }
     },
-    "contentDensities": { "compact": true, "cozy": true }
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    }
   },
   "sap.fiori": {
     "registrationIds": [],

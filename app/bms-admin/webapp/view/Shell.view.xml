@@ -27,6 +27,7 @@
             <tnt:NavigationListItem text="Risk Bands"        key="riskBands"       icon="sap-icon://measurement-document" />
             <tnt:NavigationListItem text="Risk Factors"      key="riskFactors"     icon="sap-icon://settings"      />
             <tnt:NavigationListItem text="Asset Class Strategy" key="assetStrategy" icon="sap-icon://example"     />
+            <tnt:NavigationListItem text="Prioritisation Models" key="prioritisationModels" icon="sap-icon://sort-descending" />
             <tnt:NavigationListItem text="Demo Mode"         key="demoMode"        icon="sap-icon://simulate"      />
           </tnt:NavigationList>
         </tnt:item>

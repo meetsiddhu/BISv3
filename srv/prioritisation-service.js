@@ -3,6 +3,7 @@ const { SELECT } = cds.ql
 const { writeChangeLogs } = require('./audit-log')
 const { getConfig } = require('./system-config')
 const engine = require('./lib/prioritisation')
+const ruleEngine = require('./lib/prioritisation-rule-engine')
 const { Pdf } = require('./lib/pdf')
 
 // Bridge Prioritisation service. Every output is computed SERVER-SIDE from the inputs + the
@@ -23,14 +24,93 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
     }
 
     // Active config row -> resolved numeric params (engine handles null/non-finite -> defaults).
-    const activeConfig = async () => {
-      let row = null
+    const activeConfigRow = async () => {
       try {
-        row = await db.run(SELECT.one.from('bridge.management.PrioritisationConfig')
+        return await db.run(SELECT.one.from('bridge.management.PrioritisationConfig')
           .where({ active: true }).orderBy({ modifiedAt: 'desc' }))
-      } catch (e) { log.warn('PrioritisationConfig load failed; using engine defaults:', e.message) }
-      return engine.resolveConfig(row || {})
+      } catch (e) { log.warn('PrioritisationConfig load failed; using engine defaults:', e.message); return null }
     }
+    const activeConfig = async () => engine.resolveConfig(await activeConfigRow() || {})
+
+    // ── RULE ENGINE: load Active models (full bundle) + resolve the model for an asset ──
+    const loadActiveModels = async () => {
+      const models = await db.run(SELECT.from('bridge.management.PrioritisationModel').where({ status: 'Active' }))
+      for (const m of models) {
+        m.criteria = await db.run(SELECT.from('bridge.management.ModelCriterion').where({ model_ID: m.ID, active: true }))
+        const ids = m.criteria.map(c => c.ID)
+        const binds = ids.length ? await db.run(SELECT.from('bridge.management.CriterionSourceBinding').where({ criterion_ID: { in: ids } })) : []
+        const bands = ids.length ? await db.run(SELECT.from('bridge.management.CriterionValueBand').where({ criterion_ID: { in: ids } })) : []
+        for (const c of m.criteria) {
+          c.bindings = binds.filter(b => b.criterion_ID === c.ID).sort((a, b) => String(a.ID).localeCompare(String(b.ID)))
+          c.bands = bands.filter(b => b.criterion_ID === c.ID)
+        }
+        m.classWeights = await db.run(SELECT.from('bridge.management.AssetClassCriterionWeight').where({ model_ID: m.ID }))
+        m.rules = await db.run(SELECT.from('bridge.management.AggregationRule').where({ model_ID: m.ID, active: true }))
+      }
+      return models
+    }
+    // Most-specific class/mode match wins; ties → highest version; ('*','*') is the legacy fallback.
+    const resolveModelFor = (models, assetClass, transportMode) => {
+      const PRE = [[assetClass || '*', transportMode || '*'], [assetClass || '*', '*'], ['*', transportMode || '*'], ['*', '*']]
+      for (const [ac, tm] of PRE) {
+        const hits = models.filter(m => (m.classWeights || []).some(w => (w.assetClass || '*') === ac && (w.transportMode || '*') === tm))
+        if (hits.length) return hits.sort((a, b) => (b.version || 0) - (a.version || 0))[0]
+      }
+      return null
+    }
+    // Context bundle for the pure engine (no I/O inside the engine itself).
+    const contextFor = async (bridge, manual) => {
+      const bid = bridge.ID
+      const [capacities, elements, defects, inspections, restrictions, attrRows] = await Promise.all([
+        db.run(SELECT.from('bridge.management.BridgeCapacities').where({ bridge_ID: bid })),
+        db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: bid })),
+        db.run(SELECT.from('bridge.management.BridgeDefects').where({ bridge_ID: bid })),
+        db.run(SELECT.from('bridge.management.BridgeInspections').where({ bridge_ID: bid })),
+        db.run(SELECT.from('bridge.management.BridgeRestrictions').where({ bridge_ID: bid, active: true })),
+        db.run(SELECT.from('bridge.management.AttributeValues')
+          .where({ objectType: { in: ['bridge', 'Bridge'] }, objectId: String(bid) }))
+      ])
+      const attributes = {}
+      for (const a of attrRows) {
+        attributes[a.attributeKey] = a.valueText ?? a.valueDecimal ?? a.valueInteger ?? (a.valueBoolean === null || a.valueBoolean === undefined ? null : String(a.valueBoolean)) ?? a.valueDate
+      }
+      return { bridge, manual, capacities, elements, defects, inspections, restrictions, attributes,
+        asAtMonths: { default: monthsSince(bridge.lastInspectionDate) } }
+    }
+    // Idempotent ensure of the parameter-pack attribute DEFINITIONS (insert-if-missing only — a
+    // CSV seed would TRUNCATE live attribute data on HDI deploy, so we never seed these tables).
+    const PACK_ATTRS = [
+      ['SCOUR_RATING', 'Scour rating (NBI Item 113)', 'Text'], ['FRACTURE_CRITICAL', 'Fracture-critical member', 'Boolean'],
+      ['FATIGUE_REMAINING_LIFE', 'Fatigue remaining life (years)', 'Decimal'], ['SEISMIC_VULNERABILITY', 'Seismic vulnerability (1-5)', 'Integer'],
+      ['EXPOSURE_CLASS', 'Environmental exposure class', 'Text'], ['LIFELINE_ROUTE', 'Network role (Lifeline/Strategic/Local)', 'Text'],
+      ['DETOUR_LENGTH_KM', 'Detour length (km)', 'Decimal'], ['STRUCTURAL_REDUNDANCY', 'Structural redundancy (None/Partial/Full)', 'Text'],
+      ['PT_SERVICES_COUNT', 'Public-transport services/day', 'Integer'], ['ACTIVE_TRANSPORT_EXPOSURE', 'Active-transport exposure (1-5)', 'Integer'],
+      ['FREIGHT_VALUE_CLASS', 'Freight economic value (High/Medium/Low)', 'Text'], ['ISOLATION_POPULATION', 'Population isolated on failure', 'Integer'],
+      ['CRITICAL_SERVICES_PROXIMITY', 'Critical services proximity', 'Text'], ['UTILITIES_COUNT', 'Third-party utilities carried', 'Integer'],
+      ['OVER_OCCUPIED_SPACE', 'Over occupied space / platform (importance 1-4)', 'Integer'], ['HERITAGE_LISTING', 'Heritage listing (State/Local/None)', 'Text'],
+      ['ENV_SENSITIVITY', 'Environmental sensitivity (High/Medium/Low)', 'Text'], ['CLIMATE_EXPOSURE_TREND', 'Climate exposure trend', 'Text'],
+      ['INCIDENT_COUNT_5Y', 'Safety incidents (5 years)', 'Integer'], ['STATUTORY_OBLIGATION', 'Statutory/contractual obligation', 'Text']
+    ]
+    const ensurePackAttributes = async () => {
+      try {
+        let grp = await db.run(SELECT.one.from('bridge.management.AttributeGroups').where({ objectType: 'bridge', internalKey: 'PRIORITISATION' }))
+        if (!grp) {
+          grp = { ID: cds.utils.uuid(), objectType: 'bridge', name: 'Prioritisation parameters', internalKey: 'PRIORITISATION', displayOrder: 90, status: 'Active' }
+          await db.run(cds.ql.INSERT.into('bridge.management.AttributeGroups').entries(grp))
+        }
+        const existing = await db.run(SELECT.from('bridge.management.AttributeDefinitions').columns('internalKey').where({ objectType: 'bridge' }))
+        const have = new Set(existing.map(e => e.internalKey))
+        const missing = PACK_ATTRS.filter(([k]) => !have.has(k))
+        if (missing.length) {
+          await db.run(cds.ql.INSERT.into('bridge.management.AttributeDefinitions').entries(missing.map(([k, n, t], i) => ({
+            ID: cds.utils.uuid(), group_ID: grp.ID, objectType: 'bridge', name: n, internalKey: k, dataType: t,
+            displayOrder: 900 + i, status: 'Active', helpText: 'Prioritisation rule-engine parameter (standards pack)'
+          }))))
+          log.info('Prioritisation pack attributes ensured', { created: missing.length })
+        }
+      } catch (e) { log.warn('ensurePackAttributes skipped:', e.message) }
+    }
+    ensurePackAttributes()
 
     const monthsSince = (date) => {
       if (!date) return null
@@ -72,9 +152,56 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       const f = await factsFor(req.data.bridgeID)
       if (!f) return req.reject(404, 'Bridge not found')
       const facts = Object.assign({}, f)
+      // RULE ENGINE: resolved model + read-only auto-criteria preview for the Assess screen.
+      try {
+        const models = await loadActiveModels()
+        const model = resolveModelFor(models, f.bridge.assetClass, f.bridge.transportMode)
+        if (model) {
+          facts.modelCode = model.code
+          facts.modelVersion = model.version
+          facts.modelName = model.name
+          facts.aggregationMethod = model.aggregationMethod
+          const context = await contextFor(f.bridge, {})
+          const ev = ruleEngine.evaluate({ model, assetClass: f.bridge.assetClass, transportMode: f.bridge.transportMode, context, cfg: await activeConfigRow() || {} })
+          facts.autoCriteria = JSON.stringify(
+            (ev.criterionBreakdown || []).filter(r => !String(r.source).startsWith('Manual'))
+              .map(r => ({ code: r.code, raw: r.raw, source: r.source, score: r.score, weight: r.weight, note: r.note })))
+        }
+      } catch (e) { log.warn('prefill model preview skipped:', e.message) }
       delete facts.bridge // strip the raw entity row — return only the federated facts
       return facts
     })
+
+    // ── Model Builder writes: validation + ChangeLog on every CUD (admin-gated in CDS) ──
+    const MODEL_ENTITIES = ['Models', 'ModelCriteria', 'ModelClassWeights', 'ModelRules', 'ModelBindings', 'ModelValueBands']
+    for (const en of MODEL_ENTITIES) {
+      const target = this.entities[en]
+      if (!target) continue
+      this.before(['CREATE', 'UPDATE'], target, (req) => {
+        const d = req.data || {}
+        if (en === 'ModelRules' && d.config !== undefined) {
+          try { JSON.parse(d.config || '{}') } catch (_e) { return req.reject(400, 'AggregationRule.config must be valid JSON.') }
+        }
+        if (en === 'ModelCriteria' && d.rubric) {
+          try { JSON.parse(d.rubric) } catch (_e) { return req.reject(400, 'ModelCriterion.rubric must be valid JSON ({"1":"…","5":"…"}).') }
+        }
+        if (en === 'Models' && d.status === 'Active' && d.code) {
+          // activating a model retires other Active versions of the SAME code (mirror config behaviour)
+          req._activateCode = d.code
+        }
+      })
+      this.after(['CREATE', 'UPDATE'], target, async (data, req) => {
+        try {
+          await writeChangeLogs(db, {
+            objectType: 'Prioritisation' + en, objectId: String(data.ID || (req.params && req.params[0] && req.params[0].ID) || ''),
+            objectName: data.code || data.name || en, source: 'PrioritisationModelBuilder',
+            changedBy: req.user?.id || 'system',
+            changes: Object.keys(req.data || {}).filter(k => k !== 'ID').slice(0, 12)
+              .map(k => ({ fieldName: k, oldValue: '', newValue: String(req.data[k]).slice(0, 120) }))
+          })
+        } catch (e) { log.warn('ModelBuilder ChangeLog skipped:', e.message) }
+      })
+    }
 
     // ── reportPdf: server-rendered, branded, paginated A4 exec one-pager ──
     // Figures are computed HERE from the immutable runs (not the client's view) so the document is
@@ -128,6 +255,8 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       doc.kv('Prepared (as-at)', today)
       doc.kv('Methodology owner', owner + ' · ' + formulaVersion + ' / config ' + version)
       doc.kv('Methodology versions', versions.join(', ') + (versions.length > 1 ? '  (mixed)' : ''))
+      const modelIds = Array.from(new Set(runs.map(r => (r.modelCode || 'NSW-RISK-V1') + ' v' + (r.modelVersion || 1))))
+      doc.kv('Scoring model(s)', modelIds.join(', ') + ' — criteria/weights per Model Builder (BMS Admin)')
       doc.kv('Endorsed by / date', '____________________ / __________')
       doc.heading('Methodology appendix (reproducible)')
       doc.paragraph('criticality = sum(dimension x weight), weights ' + w.join(' / ') + ' (safety/network/financial/environmental/reputational) normalised to 1. ' +
@@ -191,6 +320,35 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           }
         }
       }
+      // ── RULE ENGINE (Phase 6): resolve the governing model for this asset's class/mode and
+      // evaluate. RiskCritBlend-v1 (NSW-RISK-V1) delegates to the approved engine — the values
+      // already computed above are kept BYTE-IDENTICAL; only the model identity is stamped.
+      // Generic models (NSW-PACK-V1 …) overwrite score+band with the configured evaluation.
+      try {
+        const f2 = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: d.bridge_ID }))
+        const models = await loadActiveModels()
+        const model = resolveModelFor(models, f2 && f2.assetClass, f2 && f2.transportMode)
+        if (model) {
+          const context = await contextFor(f2, {
+            dimSafety: d.dimSafety, dimNetwork: d.dimNetwork, dimFinancial: d.dimFinancial,
+            dimEnvironmental: d.dimEnvironmental, dimReputational: d.dimReputational,
+            likelihood: d.likelihood, strategy: d.strategy
+          })
+          const ev = ruleEngine.evaluate({
+            model, assetClass: f2.assetClass, transportMode: f2.transportMode,
+            context, cfg: await activeConfigRow() || {}
+          })
+          d.modelCode = ev.modelCode
+          d.modelVersion = ev.modelVersion
+          d.weightSetHash = ev.weightSetHash
+          d.criterionBreakdown = JSON.stringify({
+            rows: ev.criterionBreakdown, flags: ev.flags, forceReview: ev.forceReview,
+            delegated: ev.delegated, baseScore: ev.baseScore ?? null
+          })
+          if (!ev.delegated) { d.priorityScore = ev.priorityScore; d.band = ev.band }
+          log.info('Prioritisation model applied', { model: ev.modelCode, v: ev.modelVersion, delegated: ev.delegated, band: d.band })
+        }
+      } catch (e) { log.error('Rule-engine evaluation failed (run keeps approved-engine values):', e.message) }
       // GAP #4 (ATOMIC): supersede prior active runs for this bridge IN THE SAME TRANSACTION as the
       // insert, stamping supersededBy = this run's id. Done in `before` (not `after`) so two active
       // runs can never coexist — even on a crash between insert and supersede. The new run isn't

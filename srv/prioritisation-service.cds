@@ -61,7 +61,52 @@ service PrioritisationService {
     inputsAvailable      : Integer;
     inputsTotal          : Integer;
     conditionAsAtMonths  : Integer;
+    // RULE-ENGINE (additive): the model resolved for this asset's class/mode + a read-only
+    // preview of the auto-bound criteria (raw value, source, value-function score) as JSON.
+    modelCode            : String;
+    modelVersion         : Integer;
+    modelName            : String;
+    aggregationMethod    : String;
+    autoCriteria         : LargeString;
   };
+
+  // ── Configurable rule engine — governed config (Model Builder backend). READ for view;
+  // writes admin-only; every CUD ChangeLogged; soft-delete via status/active. ──
+  @restrict: [
+    { grant: 'READ',               to: 'view'  },
+    { grant: ['CREATE', 'UPDATE'], to: 'admin' }
+  ]
+  entity Models as projection on my.PrioritisationModel;
+
+  @restrict: [
+    { grant: 'READ',               to: 'view'  },
+    { grant: ['CREATE', 'UPDATE'], to: 'admin' }
+  ]
+  entity ModelCriteria as projection on my.ModelCriterion;
+
+  @restrict: [
+    { grant: 'READ',               to: 'view'  },
+    { grant: ['CREATE', 'UPDATE'], to: 'admin' }
+  ]
+  entity ModelClassWeights as projection on my.AssetClassCriterionWeight;
+
+  @restrict: [
+    { grant: 'READ',               to: 'view'  },
+    { grant: ['CREATE', 'UPDATE'], to: 'admin' }
+  ]
+  entity ModelRules as projection on my.AggregationRule;
+
+  @restrict: [
+    { grant: 'READ',               to: 'view'  },
+    { grant: ['CREATE', 'UPDATE'], to: 'admin' }
+  ]
+  entity ModelBindings as projection on my.CriterionSourceBinding;
+
+  @restrict: [
+    { grant: 'READ',               to: 'view'  },
+    { grant: ['CREATE', 'UPDATE'], to: 'admin' }
+  ]
+  entity ModelValueBands as projection on my.CriterionValueBand;
 
   // Server-rendered, branded, paginated A4 PDF of the exec one-pager (figures computed server-side
   // from the immutable runs — reproducible, not the client's view). Returns base64 bytes so it
