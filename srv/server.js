@@ -2541,6 +2541,25 @@ cds.on('served', async () => {
   } catch (error) {
     LOG.error('Restriction codelist seeding failed (non-fatal):', error.message)
   }
+
+  // ── Model Builder seed — runtime INSERT-IF-MISSING (council v3.12 B9) ──────
+  // The nine rule-engine configuration tables (PrioritisationModel, ModelCriterion,
+  // CriterionSourceBinding, CriterionValueBand, AssetClassCriterionWeight,
+  // AggregationRule, UserTypes, UserTypeCriterionWeight, PrioritisationPreFilter)
+  // are ADMIN-WRITABLE via the Model Builder tile. Their former db/data CSVs
+  // generated hdbtabledata with include_filter:[] — HDI would TRUNCATE every
+  // admin-authored model/weight/rule on redeploy. The CSVs are gone; the seed
+  // now lives in srv/lib/model-builder-seed.js and is completed here at startup:
+  // only missing seed UUIDs are inserted, existing/admin-edited rows are never
+  // touched (audited via ChangeLog — rule 3).
+  try {
+    const { ensureModelBuilderSeed } = require('./lib/model-builder-seed')
+    const db = await cds.connect.to('db')
+    const seeded = await ensureModelBuilderSeed(db, { changedBy: 'system' })
+    if (seeded.inserted) LOG.info('Model Builder seed completed (insert-if-missing)', seeded)
+  } catch (error) {
+    LOG.error('Model Builder seeding failed (non-fatal):', error.message)
+  }
 })
 
 cds.on('served', async () => {
