@@ -66,3 +66,22 @@ Prioritisation worklist → run detail → deactivate (admin, soft-delete) for r
 ## Residual notes (non-blocking)
 - Mass-upload of the demo workbook + per-tile deep CRUD on Inspections/Defects/Capacity were render+read verified this run; full create flows on those tiles are covered by the existing automated UAT suite (192 tests) and prior live runs (v3.9.27–33).
 - Post-redeploy hard-refresh requirement (see Top findings #3).
+
+## §RBAC — end-user role matrix retest (separate roles)
+Enforced server-side by the same XSUAA scopes the live role collections map to (BMS_VIEWER→view,
+BMS_MANAGER→manage, BMS_ADMIN→admin, BMS_INTEGRATION→integration). Automated matrix
+(`test/rbac-matrix.test.js`, 5/5 green):
+
+| Operation (as end user) | Viewer | Manager | Admin | Integration | Anonymous |
+|---|---|---|---|---|---|
+| Read worklist / models / prefill | ✓ | ✓ | ✓ | 403 | 403 |
+| Create assessment (immutable run) | 403 | ✓ | ✓ | 403 | 403 |
+| Raise EAM work request | 403 | ✓ (QUEUED) | ✓ | 403 | 403 |
+| Deactivate run (soft-delete) | 403 | 403 | ✓ | 403 | 403 |
+| Write PrioritisationConfig | 403 | 403 | ✓ | 403 | 403 |
+| Edit model weights / models (Builder) | 403 | 403 | ✓ (ChangeLogged) | 403 | 403 |
+
+For a TRUE multi-login browser pass: BTP cockpit → Security → Role Collections → assign
+"BMS Viewer (592f5a7btrial-dev)" to a second user (or remove higher collections from a test user),
+then open the FLP in an incognito window as that user — the tiles render but every write surface
+above returns the same 403s (identical enforcement path).
