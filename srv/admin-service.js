@@ -181,14 +181,22 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     },
     Restrictions: {
       integer: [
-        ['speedLimit', 'Speed Limit']
+        ['speedLimit', 'Speed Limit'],
+        ['lanesOpen', 'Lanes Open'],
+        ['lanesTotal', 'Lanes Total'],
+        ['pilotVehicleCount', 'Pilot Vehicle Count']
       ],
       decimal: [
         ['grossMassLimit', 'Gross Mass Limit'],
         ['axleMassLimit', 'Axle Mass Limit'],
         ['heightLimit', 'Height Limit'],
         ['widthLimit', 'Width Limit'],
-        ['lengthLimit', 'Length Limit']
+        ['lengthLimit', 'Length Limit'],
+        ['grossCombinationLimit', 'Gross Combination Limit'],
+        ['tandemAxleLimit', 'Tandem Axle Limit'],
+        ['triAxleLimit', 'Tri-Axle Limit'],
+        ['steerAxleLimit', 'Steer Axle Limit'],
+        ['laneWidthLimit', 'Lane Width Limit']
       ],
       range: [
         ['grossMassLimit', 'Gross Mass Limit', 0, 9999999.99],
@@ -196,19 +204,35 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         ['heightLimit', 'Height Limit', 0, 9999999.99],
         ['widthLimit', 'Width Limit', 0, 9999999.99],
         ['lengthLimit', 'Length Limit', 0, 9999999.99],
-        ['speedLimit', 'Speed Limit', 0, 130]
+        ['speedLimit', 'Speed Limit', 0, 130],
+        ['grossCombinationLimit', 'Gross Combination Limit', 0, 9999999.99],
+        ['tandemAxleLimit', 'Tandem Axle Limit', 0, 9999999.99],
+        ['triAxleLimit', 'Tri-Axle Limit', 0, 9999999.99],
+        ['steerAxleLimit', 'Steer Axle Limit', 0, 9999999.99],
+        ['laneWidthLimit', 'Lane Width Limit', 0, 9999999.99],
+        ['lanesOpen', 'Lanes Open', 0, 99],
+        ['lanesTotal', 'Lanes Total', 0, 99],
+        ['pilotVehicleCount', 'Pilot Vehicle Count', 0, 10]
       ]
     },
     BridgeRestrictions: {
       integer: [
-        ['speedLimit', 'Speed Limit']
+        ['speedLimit', 'Speed Limit'],
+        ['lanesOpen', 'Lanes Open'],
+        ['lanesTotal', 'Lanes Total'],
+        ['pilotVehicleCount', 'Pilot Vehicle Count']
       ],
       decimal: [
         ['grossMassLimit', 'Gross Mass Limit'],
         ['axleMassLimit', 'Axle Mass Limit'],
         ['heightLimit', 'Height Limit'],
         ['widthLimit', 'Width Limit'],
-        ['lengthLimit', 'Length Limit']
+        ['lengthLimit', 'Length Limit'],
+        ['grossCombinationLimit', 'Gross Combination Limit'],
+        ['tandemAxleLimit', 'Tandem Axle Limit'],
+        ['triAxleLimit', 'Tri-Axle Limit'],
+        ['steerAxleLimit', 'Steer Axle Limit'],
+        ['laneWidthLimit', 'Lane Width Limit']
       ],
       range: [
         ['grossMassLimit', 'Gross Mass Limit', 0, 9999999.99],
@@ -216,7 +240,15 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         ['heightLimit', 'Height Limit', 0, 9999999.99],
         ['widthLimit', 'Width Limit', 0, 9999999.99],
         ['lengthLimit', 'Length Limit', 0, 9999999.99],
-        ['speedLimit', 'Speed Limit', 0, 130]
+        ['speedLimit', 'Speed Limit', 0, 130],
+        ['grossCombinationLimit', 'Gross Combination Limit', 0, 9999999.99],
+        ['tandemAxleLimit', 'Tandem Axle Limit', 0, 9999999.99],
+        ['triAxleLimit', 'Tri-Axle Limit', 0, 9999999.99],
+        ['steerAxleLimit', 'Steer Axle Limit', 0, 9999999.99],
+        ['laneWidthLimit', 'Lane Width Limit', 0, 9999999.99],
+        ['lanesOpen', 'Lanes Open', 0, 99],
+        ['lanesTotal', 'Lanes Total', 0, 99],
+        ['pilotVehicleCount', 'Pilot Vehicle Count', 0, 10]
       ]
     },
     BridgeCapacities: {
@@ -738,14 +770,13 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     await rollupElements(result?.bridge_ID || req.data?.bridge_ID, req)
   })
 
-  const TYPE_UNIT_MAP = {
-    'Speed Restriction': ['km/h'],
-    'Mass Limit':        ['t'],
-    'Dimension Limit':  ['m'],
-    'Access Restriction': ['approval']
-  }
-  const NUMERIC_TYPES = ['Mass Limit', 'Speed Restriction', 'Dimension Limit']
-  const NUMERIC_UNITS  = ['km/h', 'm', 't']
+  // Per-type unit rules + typed-value mapping come from the canonical catalogue
+  // (srv/lib/restriction-codelists.js — single source of truth for the full
+  // NSW/NHVR restriction-type set incl. closures, lane and axle-group types).
+  const { typeUnitMap, numericTypes, numericUnits, applyTypedValue } = require('./lib/restriction-codelists')
+  const TYPE_UNIT_MAP = typeUnitMap()
+  const NUMERIC_TYPES = numericTypes()
+  const NUMERIC_UNITS = numericUnits()
 
   const validateRestrictionTypeUnit = (data, req) => {
     const type  = data.restrictionType || ''
@@ -773,9 +804,9 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         })
         return false
       }
-      const numVal = parseFloat(value)
-      if (type === 'Mass Limit' && data.grossMassLimit == null) data.grossMassLimit = numVal
-      if (type === 'Speed Restriction' && data.speedLimit == null) data.speedLimit = Math.round(numVal)
+      // Auto-fill the typed limit column (grossMassLimit, speedLimit, heightLimit,
+      // grossCombinationLimit, axleMassLimit, lanesOpen …) from the numeric value.
+      applyTypedValue(data)
     }
     return true
   }
@@ -850,6 +881,10 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   this.before('UPDATE', Restrictions, async req => {
     await validateRequiredFieldsWithExisting(Restrictions, 'Restrictions', req)
   })
+  // Per-type unit validation + typed-value mapping for the Restrictions app —
+  // the same catalogue rules BridgeRestrictions already enforces (parity fix).
+  this.before('SAVE', Restrictions, req => { validateRestrictionTypeUnit(req.data, req) })
+  this.before(['CREATE', 'UPDATE'], Restrictions, req => { validateRestrictionTypeUnit(req.data, req) })
 
   const hideDraftRowsFromTileList = results => {
     if (!Array.isArray(results)) return

@@ -2527,6 +2527,23 @@ cds.on('bootstrap', (app) => {
 })
 
 cds.on('served', async () => {
+  // ── Restriction codelist completion — runtime INSERT-IF-MISSING (rule 1/4) ──
+  // The six restriction codelist tables have NO db/data CSVs (they are populated
+  // in deployed systems and hdbtabledata would TRUNCATE them on deploy). The
+  // canonical NSW/NHVR code set (srv/lib/restriction-codelists.js) is therefore
+  // completed at startup: existing/admin-customised rows are never touched; only
+  // missing canonical codes are inserted (audited via ChangeLog — rule 3).
+  try {
+    const { seedRestrictionCodelists } = require('./lib/restriction-codelists')
+    const db = await cds.connect.to('db')
+    const seeded = await seedRestrictionCodelists(db, { changedBy: 'system' })
+    if (seeded.inserted) LOG.info('Restriction codelists completed (insert-if-missing)', seeded)
+  } catch (error) {
+    LOG.error('Restriction codelist seeding failed (non-fatal):', error.message)
+  }
+})
+
+cds.on('served', async () => {
   // ── Launchpad routes — registered HERE so CDS XSUAA middleware runs first ───
   // Routes registered in cds.on('bootstrap') fire BEFORE CDS auth middleware, so
   // req.user / req.authInfo are always null there.  Registering on cds.app here

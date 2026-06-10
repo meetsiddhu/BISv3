@@ -1,4 +1,5 @@
 const cds = require('@sap/cds')
+const { DEFAULT_DIRECTION } = require('../lib/restriction-codelists')
 
 const deriveTemporaryFlag = (req) => {
     if (req.data.restrictionCategory) {
@@ -17,7 +18,8 @@ module.exports = function registerRestrictionHandlers (srv, { updateBridgePostin
 
     srv.before('CREATE', 'Restrictions', async req => {
         if (!req.data.restrictionStatus) req.data.restrictionStatus = 'Active'
-        if (!req.data.direction)          req.data.direction = 'Both'
+        // Default aligned to the RestrictionDirections codelist ('Both' was not a code).
+        if (!req.data.direction)          req.data.direction = DEFAULT_DIRECTION
         if (req.data.bridge_ID) {
             const db = await cds.connect.to('db')
             const bridge = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: req.data.bridge_ID }))

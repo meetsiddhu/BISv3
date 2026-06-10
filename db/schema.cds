@@ -122,6 +122,8 @@ entity Bridges : managed {
       sourceReferenceUrl : String(255);
       openDataReference : String(255);
       sourceRecordId : String(111);
+      // DEPRECATED (rule 1: kept, not removed): stale SINGULAR restriction link.
+      // Use the to-many `restrictions` association / the Restrictions register.
       restriction  : Association to Restrictions;
       capacities   : Association to many BridgeCapacities
                        on capacities.bridge = $self;
@@ -184,7 +186,8 @@ entity Restrictions : cuid, managed {
   effectiveFrom       : Date;
   effectiveTo         : Date;
   approvedBy          : String(111);
-  direction           : String(40) default 'Both';
+  // Default aligned to the RestrictionDirections codelist ('Both' was not a code).
+  direction           : String(40) default 'Both Directions';
   enforcementAuthority : String(111);
   temporaryFrom       : Date;
   temporaryTo         : Date;
@@ -246,6 +249,46 @@ entity BridgeRestrictions : cuid, managed {
   eamNotificationId   : String(12);
   eamSyncStatus       : String(20) default 'NOT_SYNCED';
   eamLastSyncAt       : Timestamp;
+}
+
+// ── NSW gazettal / NHVR per-type restriction attributes (additive — rule 1) ──
+// Ported from the deprecated nhvr.Restriction model (db/schema/restrictions.cds)
+// so the LIVE restriction entities carry the full NHVR attribute set. Shared by
+// Restrictions (Restrictions app) and BridgeRestrictions (Bridges register tab).
+aspect RestrictionNhvrAttributes {
+  // Gazettal & review (NSW gazette workflow)
+  gazetteNumber          : String(60);   // gazette number (e.g. NSW Gazette 2025/14)
+  gazettePublicationDate : Date;
+  gazetteExpiryDate      : Date;
+  reviewDueDate          : Date;         // next scheduled review of the restriction
+  approvalDate           : Date;         // when approvedBy signed off
+  // Cause / operations
+  restrictionReason      : String(255);  // engineering cause (defect, assessment, event)
+  detourRoute            : String(255);  // alternate-route guidance
+  conditionTrigger       : String(255);  // environmental trigger (e.g. flood level > 2.4m AHD)
+  // Vehicle / combination applicability
+  pbsClassApplicable     : String(40);   // PBS level the restriction applies to
+  grossCombinationLimit  : Decimal(9,2); // GCM limit (t)
+  tandemAxleLimit        : Decimal(9,2); // tandem axle group (t)
+  triAxleLimit           : Decimal(9,2); // tri-axle group (t)
+  steerAxleLimit         : Decimal(9,2); // steer axle (t)
+  // Escort / signage conditions
+  pilotVehicleCount      : Integer;      // pilot/escort vehicles required
+  signageRequired        : Boolean default false;
+}
+
+extend Restrictions with RestrictionNhvrAttributes;
+extend BridgeRestrictions with RestrictionNhvrAttributes;
+
+// Lane / severity parity for the Restrictions app (additive): BridgeRestrictions
+// already carries these Phase-1 fields; the Restrictions entity now does too so
+// the new Lane Restriction type and severity can be captured in BOTH apps.
+extend Restrictions with {
+  laneAvailability    : String(40);    // -> LaneAvailabilityTypes
+  lanesOpen           : Integer;
+  lanesTotal          : Integer;
+  laneWidthLimit      : Decimal(9,2);  // posted lane width (m)
+  restrictionSeverity : String(20);    // -> RestrictionSeverities
 }
 
 entity BridgeCapacities : cuid, managed {

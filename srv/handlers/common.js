@@ -1,5 +1,6 @@
 const cds = require('@sap/cds')
 const LOG  = cds.log('bms-common')
+const { derivePostingStatus } = require('../lib/restriction-codelists')
 
 module.exports = function registerCommonHelpers (_srv) {
 
@@ -39,9 +40,10 @@ module.exports = function registerCommonHelpers (_srv) {
             SELECT.from('bridge.management.Restrictions')
                   .where({ bridge_ID: bridgeID, restrictionStatus: 'Active', active: true })
         )
-        const updatedPostingStatus = activeRestrictions.length === 0 ? 'UNRESTRICTED'
-            : activeRestrictions.some(restriction => restriction.restrictionType === 'CLOSURE') ? 'CLOSED'
-            : 'RESTRICTED'
+        // Closure derivation is config-driven via the canonical type catalogue
+        // (recognises the seeded closure types + the legacy 'CLOSURE' code, which
+        // previously was the ONLY recognised code and never existed in the seeds).
+        const updatedPostingStatus = derivePostingStatus(activeRestrictions)
         await db.run(UPDATE('bridge.management.Bridges').set({ postingStatus: updatedPostingStatus }).where({ ID: bridgeID }))
     }
 
