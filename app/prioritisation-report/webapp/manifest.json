@@ -3,8 +3,8 @@
   "sap.app": {
     "id": "BridgeManagement.prioritisationreport",
     "type": "application",
-    "title": "Prioritisation Report",
-    "description": "Ranked portfolio report (Fiori Elements) on immutable prioritisation runs",
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
     "i18n": "i18n/i18n.properties",
     "applicationVersion": { "version": "1.0.0" },
     "dataSources": {
@@ -19,7 +19,7 @@
         "PrioritisationReport-display": {
           "semanticObject": "PrioritisationReport",
           "action": "display",
-          "title": "Prioritisation Report",
+          "title": "{{appTitle}}",
           "signature": { "parameters": {}, "additionalParameters": "allowed" }
         }
       }
@@ -44,7 +44,14 @@
           "type": "Component",
           "id": "RunsList",
           "name": "sap.fe.templates.ListReport",
-          "options": { "settings": { "contextPath": "/Runs", "initialLoad": "Enabled", "variantManagement": "Page" } }
+          "options": {
+            "settings": {
+              "contextPath": "/Runs",
+              "initialLoad": "Enabled",
+              "variantManagement": "Page",
+              "defaultTemplateAnnotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#Default"
+            }
+          }
         }
       }
     }
