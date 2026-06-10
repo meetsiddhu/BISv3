@@ -35,6 +35,12 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       return v === null || v === undefined ? true : (v === 'true' || v === '1' || v === 'yes')
     }
 
+    // B8: BSI/BHI mode weights + environmental coefficients are GOVERNED CONFIG (SystemConfig
+    // row 'bhiWeights', JSON) — refreshed at every computing entry point (60s-cached read).
+    // The documented defaults (the approved calculator's values) live in srv/lib/bhi.js; a
+    // missing/invalid row resolves to those defaults, so calculator parity holds untouched.
+    const refreshBhiConfig = async () => bhiLib.configure(await getConfig('bhiWeights'))
+
     // Active config row -> resolved numeric params (engine handles null/non-finite -> defaults).
     const activeConfigRow = async () => {
       try {
@@ -135,6 +141,23 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       } catch (e) { log.warn('ensurePackAttributes skipped:', e.message) }
     }
     ensurePackAttributes()
+    // B8: idempotent ensure of the 'bhiWeights' SystemConfig row so the BSI/BHI weight set is
+    // visible + editable in the admin config tile (insert-if-missing ONLY — same pattern as
+    // ensurePackAttributes; a CSV seed would truncate admin edits on HDI redeploy).
+    const ensureBhiConfigRow = async () => {
+      try {
+        const existing = await db.run(SELECT.one.from('bridge.management.SystemConfig').where({ configKey: 'bhiWeights' }))
+        if (existing) return
+        await db.run(cds.ql.INSERT.into('bridge.management.SystemConfig').entries({
+          configKey: 'bhiWeights', category: 'Prioritisation', label: 'BSI/BHI weights & coefficients (JSON)',
+          value: null, defaultValue: JSON.stringify(bhiLib.DEFAULT_BHI_CONFIG), dataType: 'string',
+          description: 'Per-transport-mode element weights, environmental/age/importance coefficients and the calibrated-mode list for the BSI/BHI engine. JSON; partial overrides merge over the documented defaults in srv/lib/bhi.js (the approved calculator values). Non-road modes stay road-derived until calibrated and are labelled accordingly in bhiDetail.',
+          isReadOnly: false, sortOrder: 95, modifiedAt: new Date().toISOString(), modifiedBy: 'system'
+        }))
+        log.info('SystemConfig bhiWeights ensured (defaults documented in srv/lib/bhi.js)')
+      } catch (e) { log.warn('ensureBhiConfigRow skipped:', e.message) }
+    }
+    ensureBhiConfigRow()
 
     const monthsSince = (date) => {
       if (!date) return null
@@ -178,6 +201,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       const facts = Object.assign({}, f)
       // RULE ENGINE: resolved model + read-only auto-criteria preview for the Assess screen.
       try {
+        await refreshBhiConfig() // B8: the derived BSI/BHI criteria read the governed weight set
         const models = await loadActiveModels()
         const model = resolveModelFor(models, f.bridge.assetClass, f.bridge.transportMode)
         if (model) {
@@ -215,6 +239,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
     }
     this.on('scoreFleet', async (req) => {
       if (!(await isEnabled())) return req.reject(403, 'The Bridge Prioritisation module is currently disabled.')
+      await refreshBhiConfig() // B8: the BSI/BHI derived criteria read the governed weight set
       const maxBridges = await getConfigInt('fleetScoreMaxBridges', FLEET_SCORE_MAX_DEFAULT)
       const pageSize = Math.max(1, await getConfigInt('fleetScorePageSize', FLEET_SCORE_PAGE_DEFAULT))
       const limit = Math.min(num(req.data.limit) || maxBridges, maxBridges)
@@ -388,15 +413,16 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
     })
     // ── BSI/BHI: compute + persist per bridge (gather) — feeds ConditionByMode (visualise) ──
     this.on('computeBhi', async (req) => {
+      const bhiCfg = await refreshBhiConfig() // B8: governed weights/coefficients
       const where = req.data.bridgeID ? { ID: req.data.bridgeID } : {}
       const bridges = await db.run(SELECT.from('bridge.management.Bridges').where(where).limit(1000))
       let updated = 0
       for (const b of bridges) {
         const elements = await db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: b.ID }))
         const env = bhiLib.envFromBridge(b)
-        const r = bhiLib.computeBSI(elements, b.transportMode, env)
+        const r = bhiLib.computeBSI(elements, b.transportMode, env, bhiCfg)
         if (r.bsi === null) continue
-        const bhi = bhiLib.computeBHI(r.bsi, env)
+        const bhi = bhiLib.computeBHI(r.bsi, env, bhiCfg)
         await db.run(cds.ql.UPDATE('bridge.management.Bridges').set({
           bsiScore: r.bsi, bhiScore: bhi, bsiPriority: bhiLib.bsiPriority(r.bsi), bhiComputedAt: new Date().toISOString()
         }).where({ ID: b.ID }))
@@ -409,15 +435,19 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
 
     // ── BHI/BSI explorer: full calculation transparency for one bridge (calculator parity) ──
     this.on('bhiDetail', async (req) => {
+      const bhiCfg = await refreshBhiConfig() // B8: governed weights/coefficients
+      const E = bhiCfg.env
       const b = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: req.data.bridgeID }))
       if (!b) return req.reject(404, 'Bridge not found')
       const elements = await db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: b.ID }))
       const env = bhiLib.envFromBridge(b)
       const mode = b.transportMode || 'Road'
-      const main = bhiLib.computeBSI(elements, mode, env)
-      const bhi = bhiLib.computeBHI(main.bsi, env)
+      const modeKey = bhiLib.modeKeyFor(mode, env.overWater)
+      const main = bhiLib.computeBSI(elements, mode, env, bhiCfg)
+      const bhi = bhiLib.computeBHI(main.bsi, env, bhiCfg)
+      const rsl = bhiLib.remainingServiceLife(main.bsi, env.age, bhiCfg)
       // element buckets actually used (worst per bucket) + the active weight set
-      const w = bhiLib.weightsFor(mode, env.overWater)
+      const w = bhiLib.weightsFor(mode, env.overWater, bhiCfg)
       const buckets = {}
       for (const e of elements) {
         const bk = bhiLib.bucketOf(e.elementType)
@@ -425,37 +455,46 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         if (Number.isFinite(r) && (bk in w)) buckets[bk] = buckets[bk] === undefined ? r : Math.min(buckets[bk], r)
       }
       const elementBreakdown = Object.entries(w).map(([k, wt]) => ({ bucket: k, weight: wt, rating: buckets[k] ?? null }))
-      // ALL FOUR mode weight-models on the same inputs — "how it is normalised across modes"
-      const models = Object.keys(bhiLib.MODE_WEIGHTS).map(mk => {
-        const mw = bhiLib.MODE_WEIGHTS[mk]
+      // B8 calibration honesty: the source calculator's weight sets are ROAD (NHVR/RMS)
+      // methodology — non-calibrated modes carry an explicit label until a defensible
+      // rail/pedestrian weight set is sourced (governed via bhiWeights.calibrated).
+      const CALIBRATION_NOTE = 'road-derived weights (calibrate)'
+      const calibrationOf = (mk) => bhiCfg.calibrated.includes(mk) ? null : CALIBRATION_NOTE
+      // ALL configured mode weight-models on the same inputs — "how it is normalised across modes"
+      const models = Object.keys(bhiCfg.modeWeights).map(mk => {
+        const mw = bhiCfg.modeWeights[mk]
         let n = 0, d = 0
         for (const [k, wt] of Object.entries(mw)) if (buckets[k] !== undefined) { n += buckets[k] * wt; d += wt }
         if (d === 0 && env.fallbackCondition !== null) { n = env.fallbackCondition; d = 1 }
         const raw = d > 0 ? n / d : null
         const score = raw === null ? null : Math.max(0, Math.min(10, raw * (main.ageFactor ?? 1) - (main.envPenalty ?? 0)))
-        return { model: mk, weights: mw, bsi: score === null ? null : Math.round(score * 100) / 100 }
+        return { model: mk, weights: mw, bsi: score === null ? null : Math.round(score * 100) / 100, calibrated: bhiCfg.calibrated.includes(mk), calibration: calibrationOf(mk) }
       })
       const fb = Object.keys(buckets).length === 0
+      // The substituted formulas print the ACTIVE coefficients (config-driven, B8) — what ran.
       const formulas = [
         'BSI_raw = ' + (fb ? ('register condition fallback = ' + env.fallbackCondition) : elementBreakdown.filter(x => x.rating !== null).map(x => x.rating + 'x' + x.weight).join(' + ') + ' / sum(w)'),
-        'ageFactor = max(0, 1 - (' + env.age + '/120)x0.3) = ' + main.ageFactor,
-        'envPenalty = (' + env.floodExp + '-1)x0.04 + (' + env.corrZone + '-1)x0.03 + ' + env.seismic + 'x0.02 = ' + main.envPenalty,
+        'ageFactor = max(0, 1 - (' + env.age + '/' + E.ageSpanYears + ')x' + E.ageWearMax + ') = ' + main.ageFactor,
+        'envPenalty = (' + env.floodExp + '-1)x' + E.floodStep + ' + (' + env.corrZone + '-1)x' + E.corrStep + ' + ' + env.seismic + 'x' + E.seismicStep + ' = ' + main.envPenalty,
         'BSI = clamp(BSI_raw x ageFactor - envPenalty) = ' + main.bsi + ' / 10',
-        'vulnerability = min(0.4, (' + env.age + '/100)x0.2 + envPenalty)',
-        'importFactor = 0.85 + (' + env.importClass + '-1)x0.03',
+        'vulnerability = min(' + E.vulnCap + ', (' + env.age + '/' + E.vulnAgeSpanYears + ')x' + E.vulnAgeShare + ' + envPenalty)',
+        'importFactor = ' + E.importBase + ' + (' + env.importClass + '-1)x' + E.importStep,
         'BHI = BSI x 10 x (1-vulnerability) x importFactor = ' + bhi + ' / 100',
-        'RSL = (BSI/10) x (100-' + env.age + ') x 0.6 = ' + bhiLib.remainingServiceLife(main.bsi, env.age) + ' years'
+        'RSL = (BSI/10) x (' + E.rslHorizonYears + '-' + env.age + ') x ' + E.rslUtilisation + ' = ' + rsl + ' years'
       ]
       return { detail: JSON.stringify({
         bridge: { ID: b.ID, name: b.bridgeName, ref: b.bridgeId, mode, assetClass: b.assetClass },
         env, coverage: main.coverage, usedFallback: fb,
-        bsi: main.bsi, bhi, rsl: bhiLib.remainingServiceLife(main.bsi, env.age), priority: bhiLib.bsiPriority(main.bsi),
+        bsi: main.bsi, bhi, rsl, priority: bhiLib.bsiPriority(main.bsi),
+        modeKey, calibrated: bhiCfg.calibrated.includes(modeKey), calibration: calibrationOf(modeKey),
+        weightsSource: 'SystemConfig:bhiWeights (defaults: srv/lib/bhi.js)',
         elementBreakdown, models, formulas
       }) }
     })
 
     // ── G8: portfolio data-readiness — % of fleet with a resolvable raw value per criterion ──
     this.on('dataReadiness', async () => {
+      await refreshBhiConfig() // B8: derived BSI/BHI bindings read the governed weight set
       const models = await loadActiveModels()
       const model = models.find(m => m.aggregationMethod !== 'RiskCritBlend-v1') || models[0]
       if (!model) return { criteria: '[]' }
@@ -629,6 +668,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       // already computed above are kept BYTE-IDENTICAL; only the model identity is stamped.
       // Generic models (NSW-PACK-V1 …) overwrite score+band with the configured evaluation.
       try {
+        await refreshBhiConfig() // B8: the derived BSI/BHI criteria read the governed weight set
         const f2 = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: d.bridge_ID }))
         const models = await loadActiveModels()
         const model = resolveModelFor(models, f2 && f2.assetClass, f2 && f2.transportMode)
