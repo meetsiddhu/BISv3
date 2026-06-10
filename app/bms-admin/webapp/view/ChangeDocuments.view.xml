@@ -68,7 +68,7 @@
               </f:content>
             </f:SimpleForm>
             <HBox justifyContent="End" class="sapUiSmallMarginTop sapUiSmallMarginBottom">
-              <Button text="Apply Filters" press=".onApplyFilters" type="Emphasized" />
+              <Button icon="sap-icon://play" text="Execute" press=".onApplyFilters" type="Emphasized" tooltip="Run the report with the selection criteria above (data is only read on Execute)" />
               <Button text="Reset" press=".onResetFilters" type="Transparent" class="sapUiSmallMarginBegin" />
             </HBox>
           </content>
@@ -132,7 +132,7 @@
 
         <VBox id="emptyState" alignItems="Center" justifyContent="Center" class="sapUiLargeMargin">
           <core:Icon src="sap-icon://history" size="5rem" color="Default" />
-          <Title text="Apply filters to view change documents" level="H4" class="sapUiSmallMarginTop" />
+          <Title text="Set selection criteria above and press Execute" level="H4" class="sapUiSmallMarginTop" />
           <Text text="Select object type, date range, or user and click Apply Filters." />
         </VBox>
 

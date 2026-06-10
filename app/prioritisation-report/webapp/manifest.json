@@ -6,12 +6,16 @@
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
     "i18n": "i18n/i18n.properties",
-    "applicationVersion": { "version": "1.0.0" },
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
     "dataSources": {
       "mainService": {
         "uri": "/odata/v4/prioritisation-analytics/",
         "type": "OData",
-        "settings": { "odataVersion": "4.0" }
+        "settings": {
+          "odataVersion": "4.0"
+        }
       }
     },
     "crossNavigation": {
@@ -20,25 +24,49 @@
           "semanticObject": "PrioritisationReport",
           "action": "display",
           "title": "{{appTitle}}",
-          "signature": { "parameters": {}, "additionalParameters": "allowed" }
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
         }
       }
     }
   },
   "sap.ui5": {
-    "dependencies": { "minUI5Version": "1.120.0", "libs": { "sap.fe.templates": {} } },
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.fe.templates": {}
+      }
+    },
     "models": {
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
-        "settings": { "bundleName": "BridgeManagement.prioritisationreport.i18n.i18n", "supportedLocales": [""], "fallbackLocale": "" }
+        "settings": {
+          "bundleName": "BridgeManagement.prioritisationreport.i18n.i18n",
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
+        }
       },
       "": {
         "dataSource": "mainService",
-        "settings": { "operationMode": "Server", "autoExpandSelect": true, "earlyRequests": true }
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
       }
     },
     "routing": {
-      "routes": [{ "name": "RunsList", "pattern": ":?query:", "target": "RunsList" }],
+      "routes": [
+        {
+          "name": "RunsList",
+          "pattern": ":?query:",
+          "target": "RunsList"
+        }
+      ],
       "targets": {
         "RunsList": {
           "type": "Component",
@@ -47,7 +75,7 @@
           "options": {
             "settings": {
               "contextPath": "/Runs",
-              "initialLoad": "Enabled",
+              "initialLoad": "Disabled",
               "variantManagement": "Page",
               "defaultTemplateAnnotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#Default"
             }
@@ -56,5 +84,8 @@
       }
     }
   },
-  "sap.fiori": { "registrationIds": [], "archeType": "analytical" }
+  "sap.fiori": {
+    "registrationIds": [],
+    "archeType": "analytical"
+  }
 }
