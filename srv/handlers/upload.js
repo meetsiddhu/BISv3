@@ -2,6 +2,9 @@ const cds  = require('@sap/cds')
 const path = require('path')
 const LOG  = cds.log('bms-upload')
 const { validateGeoJson } = require('../lib/geo')
+const { writeChangeLogs } = require('../audit-log')
+const { loadRestrictionLookups, validateRestrictionCodes, refreshBridgePostingStatus } = require('../lib/restriction-codelists')
+const { buildRestrictionsCsv } = require('../lib/csv-export')
 
 const ALLOWED_EXTENSIONS     = ['.xlsx', '.csv', '.xls']
 const MAX_FILE_SIZE_BYTES    = 50 * 1024 * 1024
@@ -66,7 +69,7 @@ const parseBoolean = rawValue => rawValue === 'true' || rawValue === 'TRUE' || r
         : null
 const parseDate    = rawValue => (rawValue && rawValue.trim()) ? rawValue.trim() : null
 
-module.exports = function registerUploadHandlers (srv) {
+module.exports = function registerUploadHandlers (srv, helpers = {}) {
 
     // ── massUploadBridges ────────────────────────────────────────────────────
     srv.on('massUploadBridges', async req => {
@@ -197,8 +200,22 @@ module.exports = function registerUploadHandlers (srv) {
             let succeeded = 0, failed = 0
             const errors = []
             const bridgeIntegerIdCache = new Map()
+            const affectedBridgeIds = new Set()
+            const batchId = cds.utils.uuid()
+            const changedBy = req.user?.id || 'system'
             const tx = cds.tx(req)
             try {
+                // Codelist validation reads the lookup TABLES (admin-extensible —
+                // rule 4), falling back to the canonical catalogue when empty.
+                const lookups = await loadRestrictionLookups(tx)
+
+                // Auto-generate restrictionRef (RST-NNNN) for rows without one —
+                // same sequence pattern as the AdminService NEW-draft handler.
+                const { cnt } = await tx.run(
+                    SELECT.one.from('bridge.management.Restrictions').columns('count(1) as cnt')
+                )
+                let nextRefSeq = (Number(cnt) || 0) + 1
+
                 for (const [rowIndex, row] of rows.entries()) {
                     try {
                         if (!parseString(row.restrictionType) || !parseString(row.restrictionValue) || !parseString(row.restrictionUnit)) {
@@ -228,6 +245,9 @@ module.exports = function registerUploadHandlers (srv) {
                             ID:                      cds.utils.uuid(),
                             bridge_ID:               bridgeIntegerID,
                             bridgeRef:               parseString(row.bridgeRef),
+                            restrictionRef:          parseString(row.restrictionRef),
+                            name:                    parseString(row.name),
+                            descr:                   parseString(row.descr),
                             restrictionType:         parseString(row.restrictionType),
                             restrictionValue:        parseString(row.restrictionValue),
                             restrictionUnit:         parseString(row.restrictionUnit),
@@ -248,17 +268,87 @@ module.exports = function registerUploadHandlers (srv) {
                             direction:               parseString(row.direction),
                             issuingAuthority:        parseString(row.issuingAuthority),
                             legalReference:          parseString(row.legalReference),
-                            remarks:                 parseString(row.remarks),
+                            // Previously-dropped columns (upload gap fix)
+                            approvedBy:              parseString(row.approvedBy),
+                            approvalReference:       parseString(row.approvalReference),
+                            enforcementAuthority:    parseString(row.enforcementAuthority),
+                            temporaryFrom:           parseDate(row.temporaryFrom),
+                            temporaryTo:             parseDate(row.temporaryTo),
+                            temporaryReason:         parseString(row.temporaryReason),
+                            // New NSW/NHVR attributes (additive)
+                            gazetteNumber:           parseString(row.gazetteNumber),
+                            gazettePublicationDate:  parseDate(row.gazettePublicationDate),
+                            gazetteExpiryDate:       parseDate(row.gazetteExpiryDate),
+                            reviewDueDate:           parseDate(row.reviewDueDate),
+                            approvalDate:            parseDate(row.approvalDate),
+                            restrictionReason:       parseString(row.restrictionReason),
+                            detourRoute:             parseString(row.detourRoute),
+                            conditionTrigger:        parseString(row.conditionTrigger),
+                            pbsClassApplicable:      parseString(row.pbsClassApplicable),
+                            grossCombinationLimit:   parseDecimal(row.grossCombinationLimit),
+                            tandemAxleLimit:         parseDecimal(row.tandemAxleLimit),
+                            triAxleLimit:            parseDecimal(row.triAxleLimit),
+                            steerAxleLimit:          parseDecimal(row.steerAxleLimit),
+                            pilotVehicleCount:       parseInteger(row.pilotVehicleCount),
+                            signageRequired:         parseBoolean(row.signageRequired) ?? false,
+                            restrictionSeverity:     parseString(row.restrictionSeverity),
+                            laneAvailability:        parseString(row.laneAvailability),
+                            lanesOpen:               parseInteger(row.lanesOpen),
+                            lanesTotal:              parseInteger(row.lanesTotal),
+                            laneWidthLimit:          parseDecimal(row.laneWidthLimit),
                             active:                  true,
                         }
+
+                        // Row-level codelist validation: blocking codes (type/
+                        // category/status) fail the row; soft codes (unit/
+                        // direction/vehicle class) are reported and cleared.
+                        const codeErrors = validateRestrictionCodes(entry, lookups)
+                        const blocking = codeErrors.filter(e => e.blocking)
+                        if (blocking.length) {
+                            failed++
+                            errors.push(`Row ${rowIndex + 2}: ${blocking.map(e => e.message).join('; ')}`)
+                            continue
+                        }
+                        for (const softError of codeErrors) {
+                            errors.push(`Row ${rowIndex + 2}: ${softError.message} — value cleared`)
+                            entry[softError.field] = null
+                        }
+
+                        if (!entry.restrictionRef) {
+                            entry.restrictionRef = `RST-${String(nextRefSeq++).padStart(4, '0')}`
+                        }
+                        if (!entry.name) entry.name = entry.restrictionRef || entry.restrictionType
 
                         Object.keys(entry).forEach(fieldName => {
                             if (entry[fieldName] === null) delete entry[fieldName]
                         })
 
                         await tx.run(INSERT.into('bridge.management.Restrictions').entries(entry))
+                        // Rule 3: ChangeLog on every CUD — bulk source fails loudly
+                        // inside the tx, so an audit miss rolls the upload back.
+                        await writeChangeLogs(tx, {
+                            objectType: 'Restriction',
+                            objectId:   entry.ID,
+                            objectName: entry.restrictionRef || entry.ID,
+                            source:     'MassUpload',
+                            batchId,
+                            changedBy,
+                            changes: Object.entries(entry)
+                                .filter(([, v]) => v !== null && v !== undefined && v !== '')
+                                .map(([k, v]) => ({ fieldName: k, oldValue: '', newValue: String(v) }))
+                        })
+                        if (entry.bridge_ID) affectedBridgeIds.add(entry.bridge_ID)
                         succeeded++
                     } catch (rowError) { failed++; errors.push(`Row ${rowIndex + 2}: ${rowError.message}`) }
+                }
+                // Recompute postingStatus for every bridge that gained restrictions
+                // (same derivation as the OData path — closure types => CLOSED).
+                if (helpers.updateBridgePostingStatus) {
+                    for (const bridgeId of affectedBridgeIds) {
+                        await helpers.updateBridgePostingStatus(bridgeId, tx, req)
+                    }
+                } else {
+                    await refreshBridgePostingStatus(tx, [...affectedBridgeIds])
                 }
                 await tx.commit()
             } catch (txError) {
@@ -304,6 +394,32 @@ module.exports = function registerUploadHandlers (srv) {
             csvData:     csv,
             filename:    `bridges_${state || 'all'}_${new Date().toISOString().split('T')[0]}.csv`,
             recordCount: bridges.length
+        }
+    })
+
+    // ── massDownloadRestrictions — round-trip extract for mass edit/upload ───
+    srv.on('massDownloadRestrictions', async req => {
+        const { state } = req.data || {}
+        const db = await cds.connect.to('db')
+        const [restrictions, bridges] = await Promise.all([
+            db.run(SELECT.from('bridge.management.Restrictions')),
+            db.run(SELECT.from('bridge.management.Bridges').columns('ID', 'bridgeId', 'bridgeName', 'state'))
+        ])
+        const bridgeById = new Map(bridges.map(bridge => [String(bridge.ID), bridge]))
+        let records = restrictions.map(restriction => {
+            const bridge = bridgeById.get(String(restriction.bridge_ID))
+            return {
+                ...restriction,
+                bridgeRef:  restriction.bridgeRef || bridge?.bridgeId || '',
+                bridgeName: bridge?.bridgeName || '',
+                state:      bridge?.state || ''
+            }
+        })
+        if (state) records = records.filter(record => record.state === state)
+        return {
+            csvData:     buildRestrictionsCsv(records),
+            filename:    `restrictions_${state || 'all'}_${new Date().toISOString().split('T')[0]}.csv`,
+            recordCount: records.length
         }
     })
 }

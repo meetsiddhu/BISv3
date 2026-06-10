@@ -107,7 +107,30 @@ const RESTRICTION_COLUMNS = [
   column('approvalReference', 'string'),
   column('issuingAuthority', 'string'),
   column('legalReference', 'string'),
-  column('remarks', 'string')
+  column('remarks', 'string'),
+  // ── New NSW/NHVR + lane/severity columns (additive). Marked `optional` so
+  // workbooks created before this release (without these headers) keep
+  // importing unchanged — absent optional columns are left untouched. ──
+  column('gazetteNumber', 'string', { optional: true }),
+  column('gazettePublicationDate', 'date', { optional: true }),
+  column('gazetteExpiryDate', 'date', { optional: true }),
+  column('reviewDueDate', 'date', { optional: true }),
+  column('approvalDate', 'date', { optional: true }),
+  column('restrictionReason', 'string', { optional: true }),
+  column('detourRoute', 'string', { optional: true }),
+  column('conditionTrigger', 'string', { optional: true }),
+  column('pbsClassApplicable', 'string', { optional: true }),
+  column('grossCombinationLimit', 'decimal', { optional: true }),
+  column('tandemAxleLimit', 'decimal', { optional: true }),
+  column('triAxleLimit', 'decimal', { optional: true }),
+  column('steerAxleLimit', 'decimal', { optional: true }),
+  column('pilotVehicleCount', 'integer', { optional: true }),
+  column('signageRequired', 'boolean', { optional: true }),
+  column('restrictionSeverity', 'string', { optional: true }),
+  column('laneAvailability', 'string', { optional: true }),
+  column('lanesOpen', 'integer', { optional: true }),
+  column('lanesTotal', 'integer', { optional: true }),
+  column('laneWidthLimit', 'decimal', { optional: true })
 ]
 
 // ── Risk configuration datasets (admin-only; pre-mortem MUST-FIX 3/12/13) ──
@@ -232,14 +255,28 @@ const REFERENCE_EXAMPLES = Object.freeze([
   { sheet: 'Restrictions', column: 'restrictionUnit', dataset: 'RestrictionUnits' },
   { sheet: 'Restrictions', column: 'restrictionStatus', dataset: 'RestrictionStatuses' },
   { sheet: 'Restrictions', column: 'appliesToVehicleClass', dataset: 'VehicleClasses' },
-  { sheet: 'Restrictions', column: 'direction', dataset: 'RestrictionDirections' }
+  { sheet: 'Restrictions', column: 'direction', dataset: 'RestrictionDirections' },
+  { sheet: 'Restrictions', column: 'pbsClassApplicable', dataset: 'PbsApprovalClasses' },
+  { sheet: 'Restrictions', column: 'laneAvailability', dataset: 'LaneAvailabilityTypes' },
+  { sheet: 'Restrictions', column: 'restrictionSeverity', dataset: 'RestrictionSeverities' }
+])
+
+// Reference-only lookup sheets in the generated workbook. These two tables are
+// CSV-seeded (db/data hdbtabledata reloads them on deploy), so they are NOT
+// importable datasets — runtime upserts would be silently lost on redeploy.
+const REFERENCE_ONLY_LOOKUPS = Object.freeze([
+  { name: 'LaneAvailabilityTypes', entity: 'bridge.management.LaneAvailabilityTypes' },
+  { name: 'RestrictionSeverities', entity: 'bridge.management.RestrictionSeverities' }
 ])
 
 function column(name, type, options = {}) {
   return {
     name,
     type,
-    required: Boolean(options.required)
+    required: Boolean(options.required),
+    // optional columns tolerate a missing sheet HEADER (older templates) —
+    // absent columns are simply not imported, never nulled out.
+    optional: Boolean(options.optional)
   }
 }
 
@@ -339,6 +376,23 @@ async function buildWorkbookTemplate() {
     } catch (_) {
       // Attribute tables may not exist in dev — skip gracefully
     }
+  }
+
+  // Reference-only lookup sheets (lane availability / severity) — included so
+  // the workbook documents the allowed codes; ignored by the importer.
+  for (const lookup of REFERENCE_ONLY_LOOKUPS) {
+    let lookupRows = []
+    try {
+      lookupRows = await db.run(SELECT.from(lookup.entity).columns('code', 'name', 'descr').orderBy('code'))
+    } catch (_e) { lookupRows = [] }
+    if (!lookupRows || !lookupRows.length) lookupRows = FALLBACK_LOOKUP_DATA.get(lookup.name) || []
+    datasetRowsByName.set(lookup.name, lookupRows)
+    const lookupSheet = XLSX.utils.aoa_to_sheet([
+      ['code', 'name', 'descr'],
+      ...lookupRows.map((row) => [row.code, row.name || '', row.descr || ''])
+    ])
+    lookupSheet['!cols'] = [{ wch: 18 }, { wch: 28 }, { wch: 60 }]
+    XLSX.utils.book_append_sheet(workbook, lookupSheet, lookup.name)
   }
 
   const referenceSheet = XLSX.utils.aoa_to_sheet(buildReferenceExamplesRows(datasetRowsByName))
@@ -1033,6 +1087,7 @@ async function importBridgeRows(tx, dataset, rows, warnings, auditContext) {
 }
 
 async function importRestrictionRows(tx, dataset, rows, warnings, auditContext) {
+  const { loadRestrictionLookups, validateRestrictionCodes, refreshBridgePostingStatus } = require('./lib/restriction-codelists')
   const normalized = normalizeRows(dataset, rows, warnings)
 
   if (!normalized.length) {
@@ -1041,8 +1096,31 @@ async function importRestrictionRows(tx, dataset, rows, warnings, auditContext) 
 
   await enrichRestrictionsWithBridgeKeys(tx, normalized, warnings, auditContext)
 
-  const ids = normalized.map((row) => row.ID).filter(Boolean)
-  const refs = normalized.map((row) => row.restrictionRef).filter(Boolean)
+  // Row-level codelist validation (config-driven: reads the lookup tables;
+  // falls back to the canonical catalogue when a table is empty). Blocking
+  // code errors (type/category/status) skip the row; soft code errors
+  // (unit/direction/vehicle class) clear the offending value with a warning.
+  const lookups = await loadRestrictionLookups(tx)
+  const validRows = []
+  for (const row of normalized) {
+    const codeErrors = validateRestrictionCodes(row, lookups)
+    const blocking = codeErrors.filter((e) => e.blocking)
+    if (blocking.length) {
+      if (warnings) warnings.push(`Restrictions row ${row.__rowNumber}: skipped — ${blocking.map((e) => e.message).join('; ')}.`)
+      continue
+    }
+    for (const softError of codeErrors) {
+      if (warnings) warnings.push(`Restrictions row ${row.__rowNumber}: ${softError.message} — value cleared.`)
+      row[softError.field] = null
+    }
+    validRows.push(row)
+  }
+  if (!validRows.length) {
+    return emptySummary(dataset)
+  }
+
+  const ids = validRows.map((row) => row.ID).filter(Boolean)
+  const refs = validRows.map((row) => row.restrictionRef).filter(Boolean)
   const existingRows = await readExistingRows(tx, dataset.entity, 'ID', ids, 'restrictionRef', refs)
 
   const existingById = new Map(existingRows.filter((row) => row.ID).map((row) => [row.ID, row]))
@@ -1051,7 +1129,7 @@ async function importRestrictionRows(tx, dataset, rows, warnings, auditContext) 
   const inserts = []
   const updates = []
 
-  for (const row of normalized) {
+  for (const row of validRows) {
     if (!row.name) {
       row.name = row.restrictionRef || row.restrictionType || 'Restriction'
     }
@@ -1121,6 +1199,10 @@ async function importRestrictionRows(tx, dataset, rows, warnings, auditContext) 
     }
   }
 
+  // Recompute Bridges.postingStatus for every affected bridge (closure types =>
+  // CLOSED) — same derivation as the OData create path.
+  await refreshBridgePostingStatus(tx, validRows.map((row) => row.bridge_ID))
+
   return buildSummary(dataset, normalized.length, inserts.length, updates.length)
 }
 
@@ -1181,6 +1263,9 @@ function normalizeRow(dataset, row, warnings) {
   const normalized = {}
 
   for (const columnDef of dataset.columns) {
+    // Optional column whose header is absent from this template — skip it
+    // (do not import OR clear it).
+    if (columnDef.optional && !(columnDef.name in row)) continue
     normalized[columnDef.name] = convertCellValue(row[columnDef.name], columnDef, dataset.name, row.__rowNumber, warnings)
   }
 
@@ -1237,6 +1322,7 @@ function parseSheetRows(sheet, dataset) {
   const normalizedHeaders = new Map(headers.map((header) => [String(header).replace(/^\uFEFF/, '').replace(/\*$/, '').trim().toLowerCase(), header]))
 
   for (const columnDef of dataset.columns) {
+    if (columnDef.optional) continue // optional columns: older templates may omit the header
     if (!normalizedHeaders.has(columnDef.name.toLowerCase())) {
       throw new Error(`Sheet "${dataset.name}" must contain a "${columnDef.name}" column.`)
     }
@@ -1246,6 +1332,9 @@ function parseSheetRows(sheet, dataset) {
     const mappedRow = { __rowNumber: index + 2 }
     for (const columnDef of dataset.columns) {
       const originalHeader = normalizedHeaders.get(columnDef.name.toLowerCase())
+      // Absent optional header => leave the key off entirely so updates never
+      // null out a column the template doesn't carry.
+      if (!originalHeader && columnDef.optional) continue
       mappedRow[columnDef.name] = originalHeader ? row[originalHeader] : null
     }
     return mappedRow
@@ -1546,41 +1635,31 @@ const FALLBACK_LOOKUP_DATA = new Map([
     { code: 'Level 5', name: 'PBS Level 5', descr: 'High mass limit combinations — strictly controlled networks and routes. Max length 53.5m, width 3.0m, GVM 100.0t.' },
     { code: 'Not Assessed', name: 'Not Assessed', descr: 'PBS approval class has not been assessed.' },
   ]],
-  ['RestrictionTypes', [
-    { code: 'Access Restriction', name: 'Access Restriction', descr: 'Restriction based on route or vehicle access conditions.' },
-    { code: 'Dimension Limit', name: 'Dimension Limit', descr: 'Restriction based on height, width, or length.' },
-    { code: 'Mass Limit', name: 'Mass Limit', descr: 'Restriction based on gross or axle mass.' },
-    { code: 'Speed Restriction', name: 'Speed Restriction', descr: 'Restriction based on permitted speed.' },
+  // The six restriction codelists come from the canonical catalogue
+  // (srv/lib/restriction-codelists.js — single source of truth; includes the
+  // full NSW/NHVR type set: closures, axle-group, lane, PBS, environmental).
+  ['RestrictionTypes', require('./lib/restriction-codelists').codelistRows('RestrictionTypes')],
+  ['RestrictionStatuses', require('./lib/restriction-codelists').codelistRows('RestrictionStatuses')],
+  ['VehicleClasses', require('./lib/restriction-codelists').codelistRows('VehicleClasses')],
+  ['RestrictionCategories', require('./lib/restriction-codelists').codelistRows('RestrictionCategories')],
+  ['RestrictionUnits', require('./lib/restriction-codelists').codelistRows('RestrictionUnits')],
+  ['RestrictionDirections', require('./lib/restriction-codelists').codelistRows('RestrictionDirections')],
+  // Phase-1 lane/severity lookups — mirror the db/data CSV seeds exactly so
+  // the generated workbook reference sheets match the deployed codes.
+  ['LaneAvailabilityTypes', [
+    { code: 'FULL', name: 'All lanes open', descr: 'No lane restriction' },
+    { code: 'ONE_OF_TWO', name: '1 of 2 lanes', descr: 'One of two lanes available' },
+    { code: 'ONE_OF_THREE', name: '1 of 3 lanes', descr: 'One of three lanes available' },
+    { code: 'TWO_OF_THREE', name: '2 of 3 lanes', descr: 'Two of three lanes available' },
+    { code: 'SINGLE', name: 'Single lane', descr: 'Single-lane operation' },
+    { code: 'CONTRAFLOW', name: 'Contraflow', descr: 'Contraflow operation' },
+    { code: 'SHOULDER', name: 'Shoulder only', descr: 'Shoulder running only' },
+    { code: 'CLOSED', name: 'Full closure', descr: 'Structure closed to traffic' },
   ]],
-  ['RestrictionStatuses', [
-    { code: 'Active', name: 'Active', descr: 'Restriction is currently active.' },
-    { code: 'Draft', name: 'Draft', descr: 'Restriction is being prepared.' },
-    { code: 'Retired', name: 'Retired', descr: 'Restriction is no longer in force.' },
-    { code: 'Suspended', name: 'Suspended', descr: 'Restriction is temporarily suspended.' },
-  ]],
-  ['VehicleClasses', [
-    { code: 'All Vehicles', name: 'All Vehicles', descr: 'Applies to all vehicles.' },
-    { code: 'B-Double', name: 'B-Double', descr: 'Applies to B-Double vehicles.' },
-    { code: 'Heavy Vehicles', name: 'Heavy Vehicles', descr: 'Applies to heavy vehicles.' },
-    { code: 'Oversize Overmass', name: 'Oversize Overmass', descr: 'Applies to oversize or overmass vehicles.' },
-    { code: 'PBS Vehicles', name: 'PBS Vehicles', descr: 'Applies to PBS-approved vehicles.' },
-  ]],
-  ['RestrictionCategories', [
-    { code: 'Permanent', name: 'Permanent', descr: 'Restriction is ongoing until changed or retired.' },
-    { code: 'Temporary', name: 'Temporary', descr: 'Restriction applies for a temporary period only.' },
-  ]],
-  ['RestrictionUnits', [
-    { code: 'approval', name: 'approval', descr: 'Restriction value is approval based.' },
-    { code: 'km/h', name: 'km/h', descr: 'Speed limit in kilometres per hour.' },
-    { code: 'm', name: 'metres (m)', descr: 'Dimensional limit in metres.' },
-    { code: 't', name: 'tonnes (t)', descr: 'Mass limit in tonnes.' },
-  ]],
-  ['RestrictionDirections', [
-    { code: 'Both Directions', name: 'Both Directions', descr: 'Restriction applies in both directions.' },
-    { code: 'Eastbound', name: 'Eastbound', descr: 'Restriction applies eastbound only.' },
-    { code: 'Northbound', name: 'Northbound', descr: 'Restriction applies northbound only.' },
-    { code: 'Southbound', name: 'Southbound', descr: 'Restriction applies southbound only.' },
-    { code: 'Westbound', name: 'Westbound', descr: 'Restriction applies westbound only.' },
+  ['RestrictionSeverities', [
+    { code: 'Critical', name: 'Critical', descr: 'Closure or safety-critical restriction' },
+    { code: 'Major', name: 'Major', descr: 'Significant capacity / access impact' },
+    { code: 'Minor', name: 'Minor', descr: 'Minor or advisory restriction' },
   ]],
 ])
 function buildSampleDataRow(dataset) {
@@ -1681,5 +1760,9 @@ module.exports = {
   getDatasets,
   getUploadHistory,
   importUpload,
-  validateUpload
+  validateUpload,
+  // exported for scripts/generate-mass-upload-workbook.js (lookup sheets fall
+  // back to these rows when no db/data CSV exists for a lookup).
+  FALLBACK_LOOKUP_DATA,
+  RESTRICTION_COLUMNS
 }
