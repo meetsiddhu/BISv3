@@ -121,8 +121,10 @@ service PrioritisationService {
 
 // G4/G8 (additive): fleet batch scoring + portfolio data-readiness.
 extend service PrioritisationService with {
+  // Council B2 (additive): the result now carries the ACTIVE-fleet denominator + a loud
+  // truncation flag so a capped run can never be mistaken for a full fleet ranking.
   @(requires: ['manage', 'admin'])
-  action scoreFleet(limit : Integer) returns { fleetRunId : String; scored : Integer; excluded : Integer; excludedDetail : LargeString; };
+  action scoreFleet(limit : Integer) returns { fleetRunId : String; scored : Integer; excluded : Integer; excludedDetail : LargeString; fleetTotal : Integer; truncated : Boolean; };
   function dataReadiness() returns { criteria : LargeString; };
   // BSI/BHI: compute + persist the element-weighted indices for one bridge (or all when null).
   @(requires: ['manage', 'admin'])

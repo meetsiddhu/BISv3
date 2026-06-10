@@ -1,11 +1,22 @@
 const cds = require('@sap/cds')
 const { SELECT } = cds.ql
 const { writeChangeLogs } = require('./audit-log')
-const { getConfig } = require('./system-config')
+const { getConfig, getConfigInt } = require('./system-config')
 const engine = require('./lib/prioritisation')
 const ruleEngine = require('./lib/prioritisation-rule-engine')
 const bhiLib = require('./lib/bhi')
 const { Pdf } = require('./lib/pdf')
+
+// B1 (council v3.12): module-scope numeric coercion helper — single source of truth for every
+// handler in this service (it was previously scoped inside reportPdf, crashing scoreFleet with
+// "num is not defined" on its first statement).
+const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
+
+// B2: fleet-scoring knobs are config-driven (SystemConfig) with documented code fallbacks —
+// same pattern as GIS_CRS_EPSG. The old hardcoded 2,000 cap silently truncated an 11,850-bridge
+// fleet; the default cap now covers the whole fleet and truncation is loud (log + return flag).
+const FLEET_SCORE_MAX_DEFAULT = 20000   // SystemConfig key: fleetScoreMaxBridges
+const FLEET_SCORE_PAGE_DEFAULT = 500    // SystemConfig key: fleetScorePageSize
 
 // Bridge Prioritisation service. Every output is computed SERVER-SIDE from the inputs + the
 // active config snapshot (clients never set scores), runs are APPEND-ONLY (no UPDATE/DELETE),
@@ -61,7 +72,19 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       }
       return null
     }
-    // Context bundle for the pure engine (no I/O inside the engine itself).
+    // Pure context assembly from pre-fetched child rows (single source of truth — used by the
+    // per-bridge contextFor AND by the set-based fleet path, so the attribute fold can't drift).
+    const buildContext = (bridge, manual, { capacities, elements, defects, inspections, restrictions, attrRows }) => {
+      const attributes = {}
+      for (const a of (attrRows || [])) {
+        attributes[a.attributeKey] = a.valueText ?? a.valueDecimal ?? a.valueInteger ?? (a.valueBoolean === null || a.valueBoolean === undefined ? null : String(a.valueBoolean)) ?? a.valueDate
+      }
+      return { bridge, manual,
+        capacities: capacities || [], elements: elements || [], defects: defects || [],
+        inspections: inspections || [], restrictions: restrictions || [], attributes,
+        asAtMonths: { default: monthsSince(bridge.lastInspectionDate) } }
+    }
+    // Context bundle for the pure engine (no I/O inside the engine itself) — single bridge.
     const contextFor = async (bridge, manual) => {
       const bid = bridge.ID
       const [capacities, elements, defects, inspections, restrictions, attrRows] = await Promise.all([
@@ -73,12 +96,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         db.run(SELECT.from('bridge.management.AttributeValues')
           .where({ objectType: { in: ['bridge', 'Bridge'] }, objectId: String(bid) }))
       ])
-      const attributes = {}
-      for (const a of attrRows) {
-        attributes[a.attributeKey] = a.valueText ?? a.valueDecimal ?? a.valueInteger ?? (a.valueBoolean === null || a.valueBoolean === undefined ? null : String(a.valueBoolean)) ?? a.valueDate
-      }
-      return { bridge, manual, capacities, elements, defects, inspections, restrictions, attributes,
-        asAtMonths: { default: monthsSince(bridge.lastInspectionDate) } }
+      return buildContext(bridge, manual, { capacities, elements, defects, inspections, restrictions, attrRows })
     }
     // Idempotent ensure of the parameter-pack attribute DEFINITIONS (insert-if-missing only — a
     // CSV seed would TRUNCATE live attribute data on HDI deploy, so we never seed these tables).
@@ -175,54 +193,125 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       return facts
     })
 
-    // ── G3/G4: pre-filter + FLEET BATCH SCORING (immutable ranked runs from data alone) ──
+    // ── G3/G4 (reworked for council B2): pre-filter + FLEET BATCH SCORING ──
+    // Deterministic paged job: WHERE active (soft-deleted bridges excluded), ORDER BY ID paging,
+    // ONE set-based read per child table per page (grouped in JS — no per-bridge N+1), batch
+    // INSERT of the ranked runs, and LOUD truncation when the cap cuts the fleet short.
     const loadPreFilters = () => db.run(SELECT.from('bridge.management.PrioritisationPreFilter').where({ active: true }))
+    // Soft-deleted bridges carry status 'Inactive' (admin deactivate action); anything else —
+    // including NULL from mass upload — is a live asset. `!=` is NULL-safe on @cap-js db services.
+    const ACTIVE_BRIDGE = { status: { '!=': 'Inactive' } }
+    const groupBy = (rows, key) => {
+      const m = new Map()
+      for (const r of rows) { const k = r[key]; const a = m.get(k); if (a) a.push(r); else m.set(k, [r]) }
+      return m
+    }
     this.on('scoreFleet', async (req) => {
       if (!(await isEnabled())) return req.reject(403, 'The Bridge Prioritisation module is currently disabled.')
-      const limit = Math.min(num(req.data.limit) || 500, 2000)
-      const bridges = await db.run(SELECT.from('bridge.management.Bridges').limit(limit))
+      const maxBridges = await getConfigInt('fleetScoreMaxBridges', FLEET_SCORE_MAX_DEFAULT)
+      const pageSize = Math.max(1, await getConfigInt('fleetScorePageSize', FLEET_SCORE_PAGE_DEFAULT))
+      const limit = Math.min(num(req.data.limit) || maxBridges, maxBridges)
+      // The fleet denominator: every ACTIVE bridge (the rank is meaningless against a slice).
+      const cnt = await db.run(SELECT.one`count(*) as n`.from('bridge.management.Bridges').where(ACTIVE_BRIDGE))
+      const fleetTotal = num(cnt && (cnt.n ?? cnt.N))
+      const truncated = fleetTotal > limit
+      if (truncated) {
+        // B2: fail LOUDLY — a truncated "fleet rank" is not a fleet rank. Surfaced in the log,
+        // the ChangeLog and the action result so no caller can mistake a slice for the fleet.
+        log.warn('FLEET SCORING TRUNCATED — ranking covers a SLICE, not the fleet', {
+          fleetTotal, limit, unscored: fleetTotal - limit,
+          hint: 'raise the limit parameter or SystemConfig fleetScoreMaxBridges'
+        })
+      }
       const models = await loadActiveModels()
       const filters = await loadPreFilters()
       const cfgRow = await activeConfigRow() || {}
       const fleetRunId = cds.utils.uuid()
-      const scored = []; const excluded = []
-      for (const b of bridges) {
-        const model = resolveModelFor(models, b.assetClass, b.transportMode)
-        if (!model || model.aggregationMethod === 'RiskCritBlend-v1') continue // data-only models only
-        const context = await contextFor(b, {})
-        const pf = ruleEngine.preFilter(context, filters)
-        if (pf.excluded) { excluded.push({ bridge: b.bridgeId, code: pf.code }); continue }
-        const ev = ruleEngine.evaluate({ model, assetClass: b.assetClass, transportMode: b.transportMode, context, cfg: cfgRow })
-        scored.push({ b, ev })
+      const scored = []; const excluded = []; let skipped = 0
+      // Deterministic paging: WHERE active, ORDER BY ID — same fleet ⇒ same scan order.
+      for (let offset = 0; offset < limit; offset += pageSize) {
+        const take = Math.min(pageSize, limit - offset)
+        const page = await db.run(SELECT.from('bridge.management.Bridges')
+          .where(ACTIVE_BRIDGE).orderBy('ID').limit(take, offset))
+        if (!page.length) break
+        // Set-based child reads: ONE query per child table for the whole page, grouped in JS.
+        const ids = page.map(b => b.ID)
+        const [caps, elems, defs, insps, restrs, attrs] = await Promise.all([
+          db.run(SELECT.from('bridge.management.BridgeCapacities').where({ bridge_ID: { in: ids } })),
+          db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: { in: ids } })),
+          db.run(SELECT.from('bridge.management.BridgeDefects').where({ bridge_ID: { in: ids } })),
+          db.run(SELECT.from('bridge.management.BridgeInspections').where({ bridge_ID: { in: ids } })),
+          db.run(SELECT.from('bridge.management.BridgeRestrictions').where({ bridge_ID: { in: ids }, active: true })),
+          db.run(SELECT.from('bridge.management.AttributeValues')
+            .where({ objectType: { in: ['bridge', 'Bridge'] }, objectId: { in: ids.map(String) } }))
+        ])
+        const byB = { caps: groupBy(caps, 'bridge_ID'), elems: groupBy(elems, 'bridge_ID'), defs: groupBy(defs, 'bridge_ID'),
+          insps: groupBy(insps, 'bridge_ID'), restrs: groupBy(restrs, 'bridge_ID'), attrs: groupBy(attrs, 'objectId') }
+        for (const b of page) {
+          const model = resolveModelFor(models, b.assetClass, b.transportMode)
+          if (!model || model.aggregationMethod === 'RiskCritBlend-v1') { skipped++; continue } // data-only models only
+          const context = buildContext(b, {}, {
+            capacities: byB.caps.get(b.ID), elements: byB.elems.get(b.ID), defects: byB.defs.get(b.ID),
+            inspections: byB.insps.get(b.ID), restrictions: byB.restrs.get(b.ID), attrRows: byB.attrs.get(String(b.ID))
+          })
+          const pf = ruleEngine.preFilter(context, filters)
+          if (pf.excluded) { excluded.push({ bridge: b.bridgeId, code: pf.code }); continue }
+          const ev = ruleEngine.evaluate({ model, assetClass: b.assetClass, transportMode: b.transportMode, context, cfg: cfgRow })
+          scored.push({ b, ev })
+        }
+        if (page.length < take) break // end of fleet
       }
-      scored.sort((x, y) => y.ev.priorityScore - x.ev.priorityScore)
-      let rank = 0
-      for (const s of scored) {
-        rank++
-        const id = cds.utils.uuid()
-        await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment').set({ active: false, supersededBy_ID: id }).where({ bridge_ID: s.b.ID, active: true }))
-        await db.run(cds.ql.INSERT.into('bridge.management.PrioritisationAssessment').entries({
-          ID: id, bridge_ID: s.b.ID, bridgeRef: s.b.bridgeId, bridgeName: s.b.bridgeName,
-          likelihood: ruleEngine.DERIVED.deriveLikelihood({ bridge: s.b }), likelihoodDerived: ruleEngine.DERIVED.deriveLikelihood({ bridge: s.b }),
+      // Deterministic ranking: score DESC, then bridge ID ASC as the tiebreak (same inputs ⇒ same ranks).
+      scored.sort((x, y) => (y.ev.priorityScore - x.ev.priorityScore) || (num(x.b.ID) - num(y.b.ID)))
+      const assessedAt = new Date().toISOString()
+      const assessedBy = req.user?.id || 'system'
+      const entries = scored.map((s, i) => {
+        const lk = ruleEngine.DERIVED.deriveLikelihood({ bridge: s.b })
+        return {
+          ID: cds.utils.uuid(), bridge_ID: s.b.ID, bridgeRef: s.b.bridgeId, bridgeName: s.b.bridgeName,
+          likelihood: lk, likelihoodDerived: lk,
           strategy: 'Maintain', restrictionFlag: false,
           priorityScore: s.ev.priorityScore, band: s.ev.band,
           modelCode: s.ev.modelCode, modelVersion: s.ev.modelVersion, weightSetHash: s.ev.weightSetHash,
           criterionBreakdown: JSON.stringify({ rows: s.ev.criterionBreakdown, flags: s.ev.flags, forceReview: s.ev.forceReview, delegated: false, baseScore: s.ev.baseScore, fleet: true }),
-          fleetRunId, fleetRank: rank,
+          fleetRunId, fleetRank: i + 1,
           likelyFailureCostAud: s.b.likelyFailureCostAud ?? null, mitigationCostAud: s.b.mitigationCostAud ?? null,
           inputsAvailable: null, inputsTotal: null, conditionAsAtMonths: monthsSince(s.b.lastInspectionDate),
           configVersion: (cfgRow && cfgRow.version) || 'v1', formulaVersion: 'rule-engine-v1',
           paramSnapshot: JSON.stringify({ fleetRunId, model: s.ev.modelCode, v: s.ev.modelVersion }),
-          assessedBy: req.user?.id || 'system', assessedAt: new Date().toISOString(), active: true
-        }))
+          assessedBy, assessedAt, active: true
+        }
+      })
+      // Batched writes per page-sized chunk: ONE prior-run lookup + ONE batch INSERT per chunk.
+      // Supersession keeps the per-run supersededBy linkage (audit contract), so the deactivate
+      // UPDATE is issued per bridge THAT HAS prior active runs (detected set-based, never blind).
+      for (let i = 0; i < entries.length; i += pageSize) {
+        const chunk = entries.slice(i, i + pageSize)
+        const priors = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
+          .columns('ID', 'bridge_ID').where({ bridge_ID: { in: chunk.map(e => e.bridge_ID) }, active: true }))
+        const priorByBridge = groupBy(priors, 'bridge_ID')
+        for (const e of chunk) {
+          const pIds = (priorByBridge.get(e.bridge_ID) || []).map(p => p.ID)
+          if (pIds.length) {
+            await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment')
+              .set({ active: false, supersededBy_ID: e.ID }).where({ ID: { in: pIds } }))
+          }
+        }
+        await db.run(cds.ql.INSERT.into('bridge.management.PrioritisationAssessment').entries(chunk))
       }
       try {
         await writeChangeLogs(db, { objectType: 'PrioritisationFleetRun', objectId: fleetRunId, objectName: 'Fleet scoring run',
-          source: 'Prioritisation', changedBy: req.user?.id || 'system',
-          changes: [{ fieldName: 'scored', oldValue: '', newValue: String(scored.length) }, { fieldName: 'excluded', oldValue: '', newValue: String(excluded.length) }] })
+          source: 'Prioritisation', changedBy: assessedBy,
+          changes: [
+            { fieldName: 'scored', oldValue: '', newValue: String(scored.length) },
+            { fieldName: 'excluded', oldValue: '', newValue: String(excluded.length) },
+            { fieldName: 'fleetTotal', oldValue: '', newValue: String(fleetTotal) },
+            { fieldName: 'truncated', oldValue: '', newValue: String(truncated) }
+          ] })
       } catch (e) { log.warn('fleet ChangeLog skipped', e.message) }
-      log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length })
-      return { fleetRunId, scored: scored.length, excluded: excluded.length, excludedDetail: JSON.stringify(excluded.slice(0, 50)) }
+      log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length, skipped, fleetTotal, truncated })
+      return { fleetRunId, scored: scored.length, excluded: excluded.length,
+        excludedDetail: JSON.stringify(excluded.slice(0, 50)), fleetTotal, truncated }
     })
     // ── BSI/BHI: compute + persist per bridge (gather) — feeds ConditionByMode (visualise) ──
     this.on('computeBhi', async (req) => {
@@ -355,7 +444,6 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       let totalBridges = runs.length
       try { const c = await db.run(SELECT.one`count(*) as n`.from('bridge.management.Bridges')); totalBridges = (c && (c.n ?? c.N)) || runs.length } catch (_e) { /* keep */ }
 
-      const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
       const counts = { P1: 0, P2: 0, P3: 0, P4: 0, P5: 0 }
       let stale = 0
       runs.forEach(r => { if (counts[r.band] != null) counts[r.band]++; if (r.conditionAsAtMonths != null && r.conditionAsAtMonths > 12) stale++ })
