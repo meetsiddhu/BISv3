@@ -772,6 +772,9 @@ entity PrioritisationConfig : cuid, managed {
   // { "dimSafety": {"1":"...","5":"..."}, ... } — surfaced as on-screen scoring guidance.
   rubrics             : LargeString;
   methodologyOwner    : String(111);          // governance: methodology owner (board sign-off)
+  // RULE-ENGINE (Phase 1, additive): knobs may be scoped to one PrioritisationModel.
+  // null = the global default row (today's behaviour — unchanged).
+  modelCode           : String(40);
   notes               : LargeString;
 }
 
@@ -816,6 +819,13 @@ entity PrioritisationAssessment : cuid, managed {
   formulaVersion           : String(20);
   paramSnapshot            : LargeString;            // JSON of the exact params used
   rubricSnapshot           : LargeString;            // frozen rubric wording for the chosen dim levels
+  // ── RULE-ENGINE reproducibility (Phase 1, additive). null modelCode = legacy run, interpreted
+  // as the seeded default model NSW-RISK-V1 (identical behaviour by construction). ──
+  modelCode                : String(40);
+  modelVersion             : Integer;
+  weightSetHash            : String(64);             // SHA-256 of the resolved criteria+weights+bands
+  criterionBreakdown       : LargeString;            // JSON: per-criterion raw, source(+as-at), score,
+                                                     //   weight, confidence, contribution, missing-policy
   assessedBy               : String(111);
   assessedAt               : Timestamp;
   // ── Lifecycle ──
@@ -845,4 +855,97 @@ entity EamWorkRequest : cuid, managed {
   raisedBy        : String(111);
   raisedAt        : Timestamp;
   active          : Boolean default true;               // soft-delete
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONFIGURABLE PRIORITISATION RULE ENGINE (Phase 1 — additive; docs/prioritisation/
+// PHASE0-RULE-ENGINE-ANALYSIS.md). Criteria, weights, value-functions, source bindings and
+// aggregation rules are GOVERNED CONFIG ROWS, per asset class + transport mode. The approved
+// five-dimension design is seeded as the default model NSW-RISK-V1 whose aggregation method
+// 'RiskCritBlend-v1' DELEGATES to srv/lib/prioritisation.js — byte-identical, zero regression.
+// All soft-delete; ChangeLog on every CUD (admin service, Phase 3); XSUAA admin writes.
+// ════════════════════════════════════════════════════════════════════════════
+
+// A versioned, governed scoring model. version is immutable once Active — a change = clone to a
+// new version (mirrors PrioritisationConfig retire-on-new behaviour). Soft-delete via status.
+entity PrioritisationModel : cuid, managed {
+  code              : String(40);            // e.g. NSW-RISK-V1 (seeded default), RAIL-V1
+  name              : String(120);
+  version           : Integer default 1;
+  status            : String(20) default 'Draft';   // Draft | Active | Retired
+  // Named aggregation pipelines (Phase 0 Q1): RiskCritBlend-v1 = the approved formula via
+  // delegation; WeightedSum / WeightedSumWithRules = the generic engine for new models.
+  aggregationMethod : String(30) default 'WeightedSumWithRules';
+  description       : LargeString;
+  reviewedBy        : String(111);           // sign-off (mirrors RiskBand governance)
+  reviewedAt        : Date;
+  reviewSource      : String(255);
+  criteria          : Composition of many ModelCriterion on criteria.model = $self;
+  classWeights      : Composition of many AssetClassCriterionWeight on classWeights.model = $self;
+  rules             : Composition of many AggregationRule on rules.model = $self;
+}
+
+// The shared criteria catalogue (rows = parameters; the standards-based pack seeds here).
+entity ModelCriterion : cuid, managed {
+  model        : Association to PrioritisationModel;
+  code         : String(40);                 // SCOUR | LOAD_RATING | SAFETY | BHI ...
+  name         : String(120);
+  category     : String(24);                 // Likelihood | Consequence | Vulnerability | Criticality | Modifier
+  valueType    : String(16) default 'Level1to5';   // Numeric | Discrete | Level1to5 (drives band validation + UI)
+  standardRef  : String(80);                 // e.g. "FHWA NBI Item 113", "AASHTO MBE", "AS 5100.2"
+  description  : LargeString;
+  rubric       : LargeString;                // per-level descriptors for Manual criteria (JSON {"1":..,"5":..})
+  displayOrder : Integer default 0;
+  active       : Boolean default true;       // soft-delete (retire, never remove)
+  bindings     : Composition of many CriterionSourceBinding on bindings.criterion = $self;
+  bands        : Composition of many CriterionValueBand on bands.criterion = $self;
+}
+
+// Where the raw value resolves from. Adding a NEW parameter = bind to an AttributeDefinitions
+// characteristic (sourceType=Attribute, sourceRef=internalKey) — no schema change, no deploy.
+// 'Derived' selects from a TESTED code registry (estimatedRulYears, benefitCostRatio,
+// conditionTrend, maxOpenDefectSeverity, minElementCondition ...): selection is config, math is code.
+// 'External' (MVP, Phase 0 Q5) = Attribute-backed recorded value with provenance — no live calls.
+entity CriterionSourceBinding : cuid {
+  criterion  : Association to ModelCriterion;
+  sourceType : String(24);   // BridgeField | Capacity | Element | Defect | Inspection | Restriction
+                             //  | Attribute | Derived | Manual | External
+  sourceRef  : String(120);  // field name, AttributeDefinitions.internalKey, or registry key
+  unit       : String(20);
+  transform  : String(120);  // optional aggregation over child rows, e.g. "min(conditionRating)"
+}
+
+// Value-function: raw value -> normalised score 0..100 (discrete XOR numeric per valueType;
+// numeric bands validated non-overlapping on write — Phase 3 service).
+entity CriterionValueBand : cuid {
+  criterion    : Association to ModelCriterion;
+  lowerBound   : Decimal(14,3);              // numeric band (null for discrete)
+  upperBound   : Decimal(14,3);
+  textValue    : String(60);                 // discrete band (e.g. "Scour-critical")
+  score        : Decimal(6,2) @assert.range: [0, 100];
+  label        : String(120);
+  displayOrder : Integer default 0;
+}
+
+// Per asset class (+ transport mode) criterion selection + bounded weight. '*' wildcard mirrors
+// the AssetClassStrategy seed convention. missingDataPolicy is EXPLICIT — never a silent zero.
+entity AssetClassCriterionWeight : cuid {
+  model             : Association to PrioritisationModel;
+  assetClass        : String(40);            // -> AssetClasses ('*' = all classes)
+  transportMode     : String(40);            // -> TransportModes ('*'/null = all modes)
+  criterion         : Association to ModelCriterion;
+  included          : Boolean default true;
+  weight            : Decimal(5,2) default 1 @assert.range: [0, 10];
+  missingDataPolicy : String(16) default 'flag';   // flag | neutral | penalise | exclude
+}
+
+// Non-compensatory + modifier rules — config, not code. Evaluated in priority order (Phase 2).
+entity AggregationRule : cuid {
+  model     : Association to PrioritisationModel;
+  ruleType  : String(24);                    // SafetyFloor | Veto | Escalate | HurdleMin | ConfidenceWeight | Normalise
+  criterion : Association to ModelCriterion; // trigger criterion (null = global)
+  config    : LargeString;                   // JSON per ruleType, schema-validated on write (Phase 3)
+  rationale : LargeString;                   // auditable justification (mandatory for safety rules)
+  priority  : Integer default 0;
+  active    : Boolean default true;          // soft-delete
 }
