@@ -1,0 +1,53 @@
+{
+  "_version": "1.8.0",
+  "sap.app": {
+    "id": "BridgeManagement.prioritisationreport",
+    "type": "application",
+    "title": "Prioritisation Report",
+    "description": "Ranked portfolio report (Fiori Elements) on immutable prioritisation runs",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": { "version": "1.0.0" },
+    "dataSources": {
+      "mainService": {
+        "uri": "/odata/v4/prioritisation-analytics/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "PrioritisationReport-display": {
+          "semanticObject": "PrioritisationReport",
+          "action": "display",
+          "title": "Prioritisation Report",
+          "signature": { "parameters": {}, "additionalParameters": "allowed" }
+        }
+      }
+    }
+  },
+  "sap.ui5": {
+    "dependencies": { "minUI5Version": "1.120.0", "libs": { "sap.fe.templates": {} } },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": { "bundleName": "BridgeManagement.prioritisationreport.i18n.i18n", "supportedLocales": [""], "fallbackLocale": "" }
+      },
+      "": {
+        "dataSource": "mainService",
+        "settings": { "operationMode": "Server", "autoExpandSelect": true, "earlyRequests": true }
+      }
+    },
+    "routing": {
+      "routes": [{ "name": "RunsList", "pattern": ":?query:", "target": "RunsList" }],
+      "targets": {
+        "RunsList": {
+          "type": "Component",
+          "id": "RunsList",
+          "name": "sap.fe.templates.ListReport",
+          "options": { "settings": { "contextPath": "/Runs", "initialLoad": "Enabled", "variantManagement": "Page" } }
+        }
+      }
+    }
+  },
+  "sap.fiori": { "registrationIds": [], "archeType": "analytical" }
+}

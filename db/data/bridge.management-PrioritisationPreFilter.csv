@@ -1,0 +1,4 @@
+ID,code,name,sourceType,sourceRef,condition,rationale,active
+00000000-0000-4000-9900-000000000001,PF_FAUNA,Fauna crossings excluded,BridgeField,structureType,==Fauna Crossing,Fauna crossings are not investment-prioritisable structures (TfNSW pre-filter).,true
+00000000-0000-4000-9900-000000000002,PF_APPROVED,Already approved for renewal,Attribute,RENEWAL_APPROVED,==true,Bridges already approved for renewal/replacement are excluded until delivery completes.,true
+00000000-0000-4000-9900-000000000003,PF_RECENT,Recently upgraded,Attribute,RECENT_MAJOR_UPGRADE,==true,Major capital investment within the past year; meets long-term service needs.,true

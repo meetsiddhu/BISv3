@@ -814,6 +814,11 @@ entity PrioritisationAssessment : cuid, managed {
   // reports the $ cost of the top decile reproducibly per immutable run.
   likelyFailureCostAud     : Decimal(15,2);
   mitigationCostAud        : Decimal(15,2);
+  // G4 fleet batch scoring (additive): runs created by scoreFleet share a fleetRunId + carry the
+  // full-portfolio rank; G1 user-type factor breakdown JSON for transparency.
+  fleetRunId               : String(36);
+  fleetRank                : Integer;
+  userTypeBreakdown        : LargeString;
   // ── Reproducibility stamp ──
   configVersion            : String(20);
   formulaVersion           : String(20);
@@ -948,4 +953,32 @@ entity AggregationRule : cuid {
   rationale : LargeString;                   // auditable justification (mandatory for safety rules)
   priority  : Integer default 0;
   active    : Boolean default true;          // soft-delete
+}
+
+// ── RULE-ENGINE G1/G2/G3/G4 (additive): customer user-type axis (TfNSW PS224353), over/under-
+// bridge dimension, pre-filter eligibility gates, fleet batch-run stamps. ──
+entity UserTypes : cuid, managed {                 // the 9 TfNSW customer user types (config rows)
+  code      : String(40);                          // ROAD_PASS | ROAD_HV23 | ROAD_HV1 | RAIL_PASS ...
+  name      : String(120);
+  weighting : Decimal(5,2) default 1 @assert.range: [0, 10];  // e.g. active transport 0.5
+  active    : Boolean default true;
+}
+// Per-criterion user-type applicability + weight, with the Over/Under-bridge axis ('*' = both).
+entity UserTypeCriterionWeight : cuid {
+  model      : Association to PrioritisationModel;
+  criterion  : Association to ModelCriterion;
+  userType   : String(40);                         // -> UserTypes.code
+  overUnder  : String(10) default '*';             // Over | Under | '*'
+  applicable : Boolean default true;
+  weight     : Decimal(5,2) default 1 @assert.range: [0, 10];
+}
+// Pre-filter: excluded from prioritisation BEFORE scoring (config, with auditable rationale).
+entity PrioritisationPreFilter : cuid, managed {
+  code      : String(40);
+  name      : String(120);
+  sourceType : String(24);                         // BridgeField | Attribute
+  sourceRef : String(120);
+  condition : String(60);                          // e.g. "==Fauna" / "<50" (same mini-grammar as rules)
+  rationale : LargeString;
+  active    : Boolean default true;
 }

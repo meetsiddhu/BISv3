@@ -46,6 +46,8 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         }
         m.classWeights = await db.run(SELECT.from('bridge.management.AssetClassCriterionWeight').where({ model_ID: m.ID }))
         m.rules = await db.run(SELECT.from('bridge.management.AggregationRule').where({ model_ID: m.ID, active: true }))
+        m.userTypeWeights = await db.run(SELECT.from('bridge.management.UserTypeCriterionWeight').where({ model_ID: m.ID }))
+        m.userTypes = await db.run(SELECT.from('bridge.management.UserTypes').where({ active: true }))
       }
       return models
     }
@@ -170,6 +172,75 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       } catch (e) { log.warn('prefill model preview skipped:', e.message) }
       delete facts.bridge // strip the raw entity row — return only the federated facts
       return facts
+    })
+
+    // ── G3/G4: pre-filter + FLEET BATCH SCORING (immutable ranked runs from data alone) ──
+    const loadPreFilters = () => db.run(SELECT.from('bridge.management.PrioritisationPreFilter').where({ active: true }))
+    this.on('scoreFleet', async (req) => {
+      if (!(await isEnabled())) return req.reject(403, 'The Bridge Prioritisation module is currently disabled.')
+      const limit = Math.min(num(req.data.limit) || 500, 2000)
+      const bridges = await db.run(SELECT.from('bridge.management.Bridges').limit(limit))
+      const models = await loadActiveModels()
+      const filters = await loadPreFilters()
+      const cfgRow = await activeConfigRow() || {}
+      const fleetRunId = cds.utils.uuid()
+      const scored = []; const excluded = []
+      for (const b of bridges) {
+        const model = resolveModelFor(models, b.assetClass, b.transportMode)
+        if (!model || model.aggregationMethod === 'RiskCritBlend-v1') continue // data-only models only
+        const context = await contextFor(b, {})
+        const pf = ruleEngine.preFilter(context, filters)
+        if (pf.excluded) { excluded.push({ bridge: b.bridgeId, code: pf.code }); continue }
+        const ev = ruleEngine.evaluate({ model, assetClass: b.assetClass, transportMode: b.transportMode, context, cfg: cfgRow })
+        scored.push({ b, ev })
+      }
+      scored.sort((x, y) => y.ev.priorityScore - x.ev.priorityScore)
+      let rank = 0
+      for (const s of scored) {
+        rank++
+        const id = cds.utils.uuid()
+        await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment').set({ active: false, supersededBy_ID: id }).where({ bridge_ID: s.b.ID, active: true }))
+        await db.run(cds.ql.INSERT.into('bridge.management.PrioritisationAssessment').entries({
+          ID: id, bridge_ID: s.b.ID, bridgeRef: s.b.bridgeId, bridgeName: s.b.bridgeName,
+          likelihood: ruleEngine.DERIVED.deriveLikelihood({ bridge: s.b }), likelihoodDerived: ruleEngine.DERIVED.deriveLikelihood({ bridge: s.b }),
+          strategy: 'Maintain', restrictionFlag: false,
+          priorityScore: s.ev.priorityScore, band: s.ev.band,
+          modelCode: s.ev.modelCode, modelVersion: s.ev.modelVersion, weightSetHash: s.ev.weightSetHash,
+          criterionBreakdown: JSON.stringify({ rows: s.ev.criterionBreakdown, flags: s.ev.flags, forceReview: s.ev.forceReview, delegated: false, baseScore: s.ev.baseScore, fleet: true }),
+          fleetRunId, fleetRank: rank,
+          likelyFailureCostAud: s.b.likelyFailureCostAud ?? null, mitigationCostAud: s.b.mitigationCostAud ?? null,
+          inputsAvailable: null, inputsTotal: null, conditionAsAtMonths: monthsSince(s.b.lastInspectionDate),
+          configVersion: (cfgRow && cfgRow.version) || 'v1', formulaVersion: 'rule-engine-v1',
+          paramSnapshot: JSON.stringify({ fleetRunId, model: s.ev.modelCode, v: s.ev.modelVersion }),
+          assessedBy: req.user?.id || 'system', assessedAt: new Date().toISOString(), active: true
+        }))
+      }
+      try {
+        await writeChangeLogs(db, { objectType: 'PrioritisationFleetRun', objectId: fleetRunId, objectName: 'Fleet scoring run',
+          source: 'Prioritisation', changedBy: req.user?.id || 'system',
+          changes: [{ fieldName: 'scored', oldValue: '', newValue: String(scored.length) }, { fieldName: 'excluded', oldValue: '', newValue: String(excluded.length) }] })
+      } catch (e) { log.warn('fleet ChangeLog skipped', e.message) }
+      log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length })
+      return { fleetRunId, scored: scored.length, excluded: excluded.length, excludedDetail: JSON.stringify(excluded.slice(0, 50)) }
+    })
+    // ── G8: portfolio data-readiness — % of fleet with a resolvable raw value per criterion ──
+    this.on('dataReadiness', async () => {
+      const models = await loadActiveModels()
+      const model = models.find(m => m.aggregationMethod !== 'RiskCritBlend-v1') || models[0]
+      if (!model) return { criteria: '[]' }
+      const bridges = await db.run(SELECT.from('bridge.management.Bridges').limit(500))
+      const counts = {}
+      for (const b of bridges) {
+        const context = await contextFor(b, {})
+        for (const c of model.criteria) {
+          if ((c.bindings || []).every(x => x.sourceType === 'Manual')) continue
+          const { raw } = ruleEngine.bindRaw(c, context)
+          counts[c.code] = counts[c.code] || { code: c.code, name: c.name, withData: 0, total: 0 }
+          counts[c.code].total++; if (raw !== null && raw !== undefined && raw !== '') counts[c.code].withData++
+        }
+      }
+      const rows = Object.values(counts).map(r => Object.assign(r, { pct: r.total ? Math.round(r.withData / r.total * 100) : 0 }))
+      return { criteria: JSON.stringify(rows.sort((a, b) => a.pct - b.pct)) }
     })
 
     // ── Model Builder writes: validation + ChangeLog on every CUD (admin-gated in CDS) ──

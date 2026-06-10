@@ -69,7 +69,7 @@
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
                     "title": "Bridge Prioritisation",
-                    "subtitle": "Ranked worklist · assess · reports",
+                    "subtitle": "Ranked worklist \u00b7 assess \u00b7 reports",
                     "icon": "sap-icon://sort-descending",
                     "targetURL": "#Prioritisation-display"
                   }
@@ -219,6 +219,16 @@
                     "subtitle": "Audit & Attribute History",
                     "icon": "sap-icon://history",
                     "targetURL": "#ChangeDocuments-display&/ChangeDocumentReport"
+                  }
+                },
+                {
+                  "id": "PrioritisationReport",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Prioritisation Report",
+                    "subtitle": "Ranked portfolio (FE)",
+                    "icon": "sap-icon://table-chart",
+                    "targetURL": "#PrioritisationReport-display"
                   }
                 }
               ]
@@ -486,6 +496,20 @@
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.prioritisation",
                 "url": "/BridgeManagementprioritisation"
+              }
+            },
+            "PrioritisationReport-display": {
+              "semanticObject": "PrioritisationReport",
+              "action": "display",
+              "title": "Prioritisation Report",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.prioritisationreport",
+                "url": "/BridgeManagementprioritisationreport"
               }
             }
           }

@@ -118,3 +118,17 @@ service PrioritisationService {
     docId          : String;
   };
 }
+
+// G4/G8 (additive): fleet batch scoring + portfolio data-readiness.
+extend service PrioritisationService with {
+  @(requires: ['manage', 'admin'])
+  action scoreFleet(limit : Integer) returns { fleetRunId : String; scored : Integer; excluded : Integer; excludedDetail : LargeString; };
+  function dataReadiness() returns { criteria : LargeString; };
+
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE'], to: 'admin' }]
+  entity UserTypesConfig as projection on my.UserTypes;
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE'], to: 'admin' }]
+  entity ModelUserTypeWeights as projection on my.UserTypeCriterionWeight;
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE'], to: 'admin' }]
+  entity PreFilters as projection on my.PrioritisationPreFilter;
+}

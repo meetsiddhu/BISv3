@@ -218,9 +218,12 @@ function evaluate ({ model, assetClass, transportMode, context, cfg }) {
       if (pol.flag) { flags.push(r.criterion.code + ': ' + pol.flag); note = pol.flag }
     }
     const c = confidenceFor(r.criterion.code, context, confRule)
-    const contribution = (include && has(score) && r.weight > 0) ? score * r.weight * c : 0
+    // G1/G2: user-type factor (1 when the criterion has no user-type rows configured)
+    const present = context._presentUserTypes || (context._presentUserTypes = bridgeUserTypes(context))
+    const utw = userTypeFactor(r.criterion, model.userTypeWeights, model.userTypes || [], present, context.overUnder)
+    const contribution = (include && has(score) && r.weight > 0) ? score * r.weight * c * utw.factor : 0
     if (include && has(score) && r.weight > 0) { sumContrib += contribution; sumWeight += r.weight }
-    rows.push({ code: r.criterion.code, category: r.criterion.category, raw: has(raw) ? raw : null, unit, source, score: has(score) ? Math.round(score * 100) / 100 : null, weight: r.weight, confidence: Math.round(c * 1000) / 1000, contribution: Math.round(contribution * 1000) / 1000, included: include && r.weight > 0, note })
+    rows.push({ code: r.criterion.code, category: r.criterion.category, raw: has(raw) ? raw : null, unit, source, score: has(score) ? Math.round(score * 100) / 100 : null, weight: r.weight, confidence: Math.round(c * 1000) / 1000, utFactor: Math.round(utw.factor * 1000) / 1000, userTypes: utw.rows, contribution: Math.round(contribution * 1000) / 1000, included: include && r.weight > 0, note })
   }
   const baseScore = sumWeight > 0 ? sumContrib / sumWeight : 0
   let priorityScore = Math.round(baseScore)
@@ -253,7 +256,51 @@ function evaluate ({ model, assetClass, transportMode, context, cfg }) {
   }
 }
 
+
+// ── G1/G2: customer user-type axis (TfNSW PS224353). Which user types are present at the asset,
+// derived from register facts + attributes (config data, no hardcoded asset logic beyond mapping).
+function bridgeUserTypes (ctx) {
+  const b = ctx.bridge || {}; const a = ctx.attributes || {}
+  const modes = (String(b.transportMode || '') + ',' + String(b.secondaryModes || '')).toLowerCase()
+  const out = new Set()
+  if (modes.includes('road')) {
+    out.add('ROAD_PASS')
+    if (num(b.heavyVehiclePercent, 0) > 0 || b.freightRoute) { out.add('ROAD_HV23'); }
+    if (b.hmlApproved || b.overMassRoute) out.add('ROAD_HV1')
+  }
+  if (modes.includes('rail') || modes.includes('lightrail')) { out.add('RAIL_PASS'); if (b.freightRoute) out.add('RAIL_FREIGHT') }
+  if (modes.includes('pedestrian') || modes.includes('active') || num(a.ACTIVE_TRANSPORT_EXPOSURE, 0) > 0) { out.add('AT_PED'); out.add('AT_CYCLE') }
+  if (modes.includes('marine') || String(a.NAVIGABLE_WATER).toLowerCase() === 'true') { out.add('WATER_PASS'); out.add('WATER_FREIGHT') }
+  if (!out.size) out.add('ROAD_PASS') // conservative default reference user type (per TfNSW note)
+  return out
+}
+// Effective user-type factor for one criterion: weighted mean of applicable per-user-type weights
+// over the user types PRESENT, scaled by UserTypes.weighting (active transport 0.5 etc.).
+// No rows configured for the criterion => factor 1 (criterion is user-type-agnostic).
+function userTypeFactor (criterion, utRows, userTypes, present, overUnder) {
+  const rows = (utRows || []).filter(r =>
+    (r.criterion_ID ? r.criterion_ID === criterion.ID : true) && r.applicable !== false &&
+    present.has(r.userType) && ((r.overUnder || '*') === '*' || (overUnder || '*') === '*' || r.overUnder === overUnder))
+  if (!rows.length) return { factor: 1, rows: [] }
+  let wSum = 0; let denom = 0
+  for (const r of rows) {
+    const tw = num((userTypes.find(u => u.code === r.userType) || {}).weighting, 1)
+    wSum += num(r.weight, 1) * tw; denom += tw
+  }
+  return { factor: denom > 0 ? (wSum / denom) : 1, rows: rows.map(r => r.userType + (r.overUnder && r.overUnder !== '*' ? ':' + r.overUnder : '')) }
+}
+// ── G3: pre-filter eligibility gates — excluded BEFORE scoring, with the matching rationale.
+function preFilter (ctx, filters) {
+  for (const f of (filters || [])) {
+    if (f.active === false) continue
+    const raw = f.sourceType === 'Attribute' ? (ctx.attributes || {})[f.sourceRef] : (ctx.bridge || {})[f.sourceRef]
+    if (has(raw) && parseCond(f.condition)(raw)) return { excluded: true, code: f.code, rationale: f.rationale || f.name }
+  }
+  return { excluded: false }
+}
+
 module.exports = {
   evaluate, resolveModelCriteria, bindRaw, valueFunction, applyMissingPolicy,
+  bridgeUserTypes, userTypeFactor, preFilter,
   confidenceFor, parseCond, weightSetHash, DERIVED
 }
