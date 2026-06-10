@@ -164,7 +164,7 @@ function canonical (v) {
   if (v && typeof v === 'object') return Object.keys(v).sort().reduce((o, k) => { o[k] = canonical(v[k]); return o }, {})
   return v
 }
-function weightSetHash (model, resolved) {
+function weightSetHash (model, resolved, extras) {
   const basis = canonical({
     code: model.code, version: model.version, aggregationMethod: model.aggregationMethod,
     criteria: resolved.map(r => ({
@@ -172,13 +172,23 @@ function weightSetHash (model, resolved) {
       bands: (r.criterion.bands || []).map(b => ({ l: b.lowerBound, u: b.upperBound, t: b.textValue, s: b.score })),
       bindings: (r.criterion.bindings || []).map(b => ({ st: b.sourceType, sr: b.sourceRef, tr: b.transform }))
     })),
-    rules: (model.rules || []).filter(r => r.active !== false).map(r => ({ t: r.ruleType, c: r.config, p: r.priority }))
+    rules: (model.rules || []).filter(r => r.active !== false).map(r => ({ t: r.ruleType, c: r.config, p: r.priority })),
+    // Council B6: the hash basis covers EVERYTHING that moves a score — the user-type weighting
+    // axis (G1/G2 factor inputs) and, when the caller applies them (fleet runs), the pre-filter
+    // set. Two runs share a weightSetHash only if the full resolved parameter set is identical.
+    userTypeWeights: (model.userTypeWeights || []).filter(u => u.applicable !== false)
+      .map(u => ({ ut: u.userType, c: u.criterion_ID, ou: u.overUnder, w: u.weight })),
+    userTypes: (model.userTypes || []).filter(u => u.active !== false).map(u => ({ c: u.code, w: u.weighting })),
+    preFilters: ((extras && extras.preFilters) || []).filter(f => f.active !== false)
+      .map(f => ({ c: f.code, st: f.sourceType, sr: f.sourceRef, cond: f.condition }))
   })
   return crypto.createHash('sha256').update(JSON.stringify(basis)).digest('hex')
 }
 
 // ── the evaluation pipeline ──
-function evaluate ({ model, assetClass, transportMode, context, cfg }) {
+// `preFilters` (optional) = the eligibility-gate set the CALLER applied before scoring (fleet
+// runs); it enters the weightSetHash basis so the hash proves the full resolved parameter set.
+function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters }) {
   const conf = base.resolveConfig(cfg || {})
   const ladder = conf.bandThresholds
 
@@ -199,7 +209,7 @@ function evaluate ({ model, assetClass, transportMode, context, cfg }) {
     return Object.assign({}, out, {
       modelCode: model.code, modelVersion: model.version, delegated: true,
       criterionBreakdown: breakdown, flags: [], forceReview: false,
-      weightSetHash: weightSetHash(model, resolved)
+      weightSetHash: weightSetHash(model, resolved, { preFilters })
     })
   }
 
@@ -254,7 +264,7 @@ function evaluate ({ model, assetClass, transportMode, context, cfg }) {
     priorityScore, band, baseScore: Math.round(baseScore * 100) / 100,
     modelCode: model.code, modelVersion: model.version, delegated: false,
     criterionBreakdown: rows, flags, forceReview,
-    weightSetHash: weightSetHash(model, resolved),
+    weightSetHash: weightSetHash(model, resolved, { preFilters }),
     formulaVersion: 'rule-engine-v1'
   }
 }

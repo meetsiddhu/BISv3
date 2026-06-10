@@ -193,10 +193,14 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       return facts
     })
 
-    // ── G3/G4 (reworked for council B2): pre-filter + FLEET BATCH SCORING ──
+    // ── G3/G4 (reworked for council B2, governed per B3–B6): pre-filter + FLEET BATCH SCORING ──
     // Deterministic paged job: WHERE active (soft-deleted bridges excluded), ORDER BY ID paging,
     // ONE set-based read per child table per page (grouped in JS — no per-bridge N+1), batch
     // INSERT of the ranked runs, and LOUD truncation when the cap cuts the fleet short.
+    // Governance: runs are stamped runType='fleet' (data-only — no fabricated judgement fields),
+    // only ever supersede prior FLEET runs (engineer runs are never retired by a batch), each
+    // supersession is ChangeLogged per run id, ranking is band-first (P5 never above P1), and
+    // every run freezes the RESOLVED model bundle + the applied pre-filter set for replay.
     const loadPreFilters = () => db.run(SELECT.from('bridge.management.PrioritisationPreFilter').where({ active: true }))
     // Soft-deleted bridges carry status 'Inactive' (admin deactivate action); anything else —
     // including NULL from mass upload — is a live asset. `!=` is NULL-safe on @cap-js db services.
@@ -227,6 +231,36 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       const filters = await loadPreFilters()
       const cfgRow = await activeConfigRow() || {}
       const fleetRunId = cds.utils.uuid()
+      // B5: the band-severity ladder (P1 first) from the ACTIVE config — rank sorts band-first so
+      // a non-compensatory rule (SafetyFloor/Escalate/HurdleMin) that raises a band also raises
+      // the rank. The rank can never contradict the band again.
+      const ladder = engine.resolveConfig(cfgRow).bandThresholds
+      const bandRank = new Map(ladder.slice().sort((a, b) => num(b.min) - num(a.min)).map((b, i) => [b.code, i]))
+      const bandIdx = (band) => bandRank.has(band) ? bandRank.get(band) : ladder.length
+      // B6: the RESOLVED model bundle frozen onto every run's paramSnapshot — criteria (with
+      // bindings + value bands), per-class weights, rules, user-type weights AND the pre-filter
+      // set actually applied. A past fleet run replays from THIS copy even after the live model
+      // config is edited (the old snapshot was a mutable pointer: {model, v} only).
+      const bundleCache = new Map()
+      const resolvedBundle = (model) => {
+        if (!bundleCache.has(model.ID)) {
+          bundleCache.set(model.ID, JSON.stringify({
+            fleetRunId, model: model.code, v: model.version, aggregationMethod: model.aggregationMethod,
+            configVersion: (cfgRow && cfgRow.version) || 'v1',
+            criteria: (model.criteria || []).map(c => ({
+              code: c.code, category: c.category, valueType: c.valueType,
+              bindings: (c.bindings || []).map(x => ({ sourceType: x.sourceType, sourceRef: x.sourceRef, transform: x.transform })),
+              bands: (c.bands || []).map(x => ({ lowerBound: x.lowerBound, upperBound: x.upperBound, textValue: x.textValue, score: x.score, label: x.label }))
+            })),
+            weights: (model.classWeights || []).map(w => ({ assetClass: w.assetClass, transportMode: w.transportMode, criterion_ID: w.criterion_ID, included: w.included, weight: w.weight, missingDataPolicy: w.missingDataPolicy })),
+            rules: (model.rules || []).filter(r => r.active !== false).map(r => ({ ruleType: r.ruleType, criterion_ID: r.criterion_ID, config: r.config, priority: r.priority })),
+            userTypeWeights: (model.userTypeWeights || []).map(u => ({ userType: u.userType, criterion_ID: u.criterion_ID, overUnder: u.overUnder, applicable: u.applicable, weight: u.weight })),
+            userTypes: (model.userTypes || []).map(u => ({ code: u.code, weighting: u.weighting })),
+            preFilters: filters.map(f => ({ code: f.code, sourceType: f.sourceType, sourceRef: f.sourceRef, condition: f.condition }))
+          }))
+        }
+        return bundleCache.get(model.ID)
+      }
       const scored = []; const excluded = []; let skipped = 0
       // Deterministic paging: WHERE active, ORDER BY ID — same fleet ⇒ same scan order.
       for (let offset = 0; offset < limit; offset += pageSize) {
@@ -255,14 +289,20 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
             inspections: byB.insps.get(b.ID), restrictions: byB.restrs.get(b.ID), attrRows: byB.attrs.get(String(b.ID))
           })
           const pf = ruleEngine.preFilter(context, filters)
-          if (pf.excluded) { excluded.push({ bridge: b.bridgeId, code: pf.code }); continue }
-          const ev = ruleEngine.evaluate({ model, assetClass: b.assetClass, transportMode: b.transportMode, context, cfg: cfgRow })
-          scored.push({ b, ev })
+          if (pf.excluded) { excluded.push({ bridge: b.bridgeId, code: pf.code, rationale: pf.rationale || null }); continue }
+          const ev = ruleEngine.evaluate({ model, assetClass: b.assetClass, transportMode: b.transportMode, context, cfg: cfgRow, preFilters: filters })
+          // B4: restrictionFlag from the LOADED context (active 'Active' restrictions) — the prior
+          // hardcoded `false` fabricated an engineer-looking judgement field on data-only runs.
+          const restrictionFlag = (context.restrictions || []).some(r => (r.restrictionStatus || 'Active') === 'Active')
+          scored.push({ b, ev, model, restrictionFlag })
         }
         if (page.length < take) break // end of fleet
       }
-      // Deterministic ranking: score DESC, then bridge ID ASC as the tiebreak (same inputs ⇒ same ranks).
-      scored.sort((x, y) => (y.ev.priorityScore - x.ev.priorityScore) || (num(x.b.ID) - num(y.b.ID)))
+      // B5 deterministic, band-coherent ranking: band severity FIRST (P1 before P2 … — so a
+      // non-compensatory band raise also raises the rank), then score DESC within the band, then
+      // bridge ID ASC as the tiebreak (same inputs ⇒ same ranks).
+      scored.sort((x, y) => (bandIdx(x.ev.band) - bandIdx(y.ev.band)) ||
+        (y.ev.priorityScore - x.ev.priorityScore) || (num(x.b.ID) - num(y.b.ID)))
       const assessedAt = new Date().toISOString()
       const assessedBy = req.user?.id || 'system'
       const entries = scored.map((s, i) => {
@@ -270,7 +310,10 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         return {
           ID: cds.utils.uuid(), bridge_ID: s.b.ID, bridgeRef: s.b.bridgeId, bridgeName: s.b.bridgeName,
           likelihood: lk, likelihoodDerived: lk,
-          strategy: 'Maintain', restrictionFlag: false,
+          // B3/B4: honest data-only stamp — runType discriminates the batch run, strategy stays
+          // NULL (no engineer chose one; 'Maintain' was fabricated) and restrictionFlag comes
+          // from the loaded restriction context, never a hardcoded false.
+          runType: 'fleet', strategy: null, restrictionFlag: s.restrictionFlag,
           priorityScore: s.ev.priorityScore, band: s.ev.band,
           modelCode: s.ev.modelCode, modelVersion: s.ev.modelVersion, weightSetHash: s.ev.weightSetHash,
           criterionBreakdown: JSON.stringify({ rows: s.ev.criterionBreakdown, flags: s.ev.flags, forceReview: s.ev.forceReview, delegated: false, baseScore: s.ev.baseScore, fleet: true }),
@@ -278,26 +321,48 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           likelyFailureCostAud: s.b.likelyFailureCostAud ?? null, mitigationCostAud: s.b.mitigationCostAud ?? null,
           inputsAvailable: null, inputsTotal: null, conditionAsAtMonths: monthsSince(s.b.lastInspectionDate),
           configVersion: (cfgRow && cfgRow.version) || 'v1', formulaVersion: 'rule-engine-v1',
-          paramSnapshot: JSON.stringify({ fleetRunId, model: s.ev.modelCode, v: s.ev.modelVersion }),
+          // B6: the snapshot is the resolved bundle COPY (reproducible), not a mutable pointer.
+          paramSnapshot: resolvedBundle(s.model),
           assessedBy, assessedAt, active: true
         }
       })
       // Batched writes per page-sized chunk: ONE prior-run lookup + ONE batch INSERT per chunk.
-      // Supersession keeps the per-run supersededBy linkage (audit contract), so the deactivate
-      // UPDATE is issued per bridge THAT HAS prior active runs (detected set-based, never blind).
+      // B3: a fleet run only ever supersedes prior FLEET runs (runType 'fleet'; legacy fleet rows
+      // pre-dating the runType column are identified by their fleetRunId). Engineer (manual)
+      // judgement runs are NEVER retired by a batch job — they stay active alongside.
+      let supersededCount = 0
       for (let i = 0; i < entries.length; i += pageSize) {
         const chunk = entries.slice(i, i + pageSize)
         const priors = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
-          .columns('ID', 'bridge_ID').where({ bridge_ID: { in: chunk.map(e => e.bridge_ID) }, active: true }))
-        const priorByBridge = groupBy(priors, 'bridge_ID')
+          .columns('ID', 'bridge_ID', 'bridgeRef', 'bridgeName', 'runType', 'fleetRunId')
+          .where({ bridge_ID: { in: chunk.map(e => e.bridge_ID) }, active: true }))
+        const priorByBridge = groupBy(priors.filter(p => p.runType === 'fleet' || p.fleetRunId), 'bridge_ID')
+        const audits = []
         for (const e of chunk) {
-          const pIds = (priorByBridge.get(e.bridge_ID) || []).map(p => p.ID)
-          if (pIds.length) {
+          const ps = priorByBridge.get(e.bridge_ID) || []
+          if (ps.length) {
             await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment')
-              .set({ active: false, supersededBy_ID: e.ID }).where({ ID: { in: pIds } }))
+              .set({ active: false, supersededBy_ID: e.ID }).where({ ID: { in: ps.map(p => p.ID) } }))
+            for (const p of ps) audits.push({ prior: p, byId: e.ID })
           }
         }
         await db.run(cds.ql.INSERT.into('bridge.management.PrioritisationAssessment').entries(chunk))
+        // B3 (audit): one ChangeLog PER SUPERSEDED RUN ID (parity with the manual-run path) —
+        // the count-only fleet log could not answer "who retired run X, and what replaced it?".
+        supersededCount += audits.length
+        for (const a of audits) {
+          try {
+            await writeChangeLogs(db, {
+              objectType: 'PrioritisationAssessment', objectId: String(a.prior.ID),
+              objectName: a.prior.bridgeName || a.prior.bridgeRef || String(a.prior.ID),
+              source: 'Prioritisation', changedBy: assessedBy, batchId: fleetRunId,
+              changes: [
+                { fieldName: 'active', oldValue: 'true', newValue: 'false' },
+                { fieldName: 'supersededBy', oldValue: '', newValue: String(a.byId) }
+              ]
+            })
+          } catch (e) { log.warn('fleet supersede audit skipped', { run: a.prior.ID, error: e.message }) }
+        }
       }
       try {
         await writeChangeLogs(db, { objectType: 'PrioritisationFleetRun', objectId: fleetRunId, objectName: 'Fleet scoring run',
@@ -305,11 +370,16 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           changes: [
             { fieldName: 'scored', oldValue: '', newValue: String(scored.length) },
             { fieldName: 'excluded', oldValue: '', newValue: String(excluded.length) },
+            // B6: the FULL per-bridge exclusion detail (code + rationale) is PERSISTED on the
+            // audit trail — not just returned transiently to the caller — so a past fleet run's
+            // population is reconstructible.
+            { fieldName: 'exclusions', oldValue: '', newValue: JSON.stringify(excluded) },
+            { fieldName: 'superseded', oldValue: '', newValue: String(supersededCount) },
             { fieldName: 'fleetTotal', oldValue: '', newValue: String(fleetTotal) },
             { fieldName: 'truncated', oldValue: '', newValue: String(truncated) }
           ] })
       } catch (e) { log.warn('fleet ChangeLog skipped', e.message) }
-      log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length, skipped, fleetTotal, truncated })
+      log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length, skipped, superseded: supersededCount, fleetTotal, truncated })
       return { fleetRunId, scored: scored.length, excluded: excluded.length,
         excludedDetail: JSON.stringify(excluded.slice(0, 50)), fleetTotal, truncated }
     })
@@ -512,7 +582,10 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       }
       const out = engine.derivePriority(inputs, cfg)
       // Overwrite ANY client-supplied outputs — the server is the source of truth.
+      // B3/B4: every service CREATE is an engineer-judgement run; runType 'fleet' is reserved
+      // for the scoreFleet batch path (a client cannot masquerade a manual POST as a fleet run).
       Object.assign(d, {
+        runType: 'manual',
         criticality: out.criticality, tier: out.tier, residual: out.residual,
         riskN: out.riskN, critN: out.critN, stratN: out.stratN,
         priorityScore: out.priorityScore, band: out.band,

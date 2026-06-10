@@ -868,6 +868,11 @@ entity PrioritisationAssessment : cuid, managed {
   fleetRunId               : String(36);
   fleetRank                : Integer;
   userTypeBreakdown        : LargeString;
+  // Council B3/B4 (additive): run-type discriminator. 'manual' = engineer-judgement run (the
+  // Assess screen); 'fleet' = data-only batch run (scoreFleet) — scored from register data with
+  // NO engineer judgement, badged "data-only" in every UI. Fleet runs only ever supersede prior
+  // FLEET runs; engineer runs are never silently retired by a batch job. NULL = legacy manual run.
+  runType                  : String(10) default 'manual';
   // ── Reproducibility stamp ──
   configVersion            : String(20);
   formulaVersion           : String(20);
