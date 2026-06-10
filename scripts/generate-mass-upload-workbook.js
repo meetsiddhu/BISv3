@@ -19,6 +19,11 @@ const XLSX = require('xlsx')
 const DATA_DIR = path.join(__dirname, '..', 'db', 'data')
 const OUT_FILE = path.join(DATA_DIR, 'BMS-MassUpload-Complete.xlsx')
 
+// Canonical lookup rows — used when no db/data CSV exists for a lookup (the six
+// restriction codelists are deliberately NOT CSV-seeded: hdbtabledata would
+// truncate the already-populated tables on deploy). Single source of truth.
+const { FALLBACK_LOOKUP_DATA } = require('../srv/mass-upload')
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -40,9 +45,15 @@ function parseCsv(filePath) {
 
 function lookupRows(name) {
   const file = path.join(DATA_DIR, `bridge.management-${name}.csv`)
-  const rows = parseCsv(file)
-  // normalise to { code, name, descr }
-  return rows.map((r) => [r.code ?? '', r.name ?? '', r.descr ?? ''])
+  if (fs.existsSync(file)) {
+    const rows = parseCsv(file)
+    // normalise to { code, name, descr }
+    return rows.map((r) => [r.code ?? '', r.name ?? '', r.descr ?? ''])
+  }
+  // No CSV seed (runtime-seeded codelist) — use the canonical catalogue rows.
+  const fallback = FALLBACK_LOOKUP_DATA.get(name)
+  if (!fallback) throw new Error(`No CSV and no fallback rows for lookup "${name}"`)
+  return fallback.map((r) => [r.code ?? '', r.name ?? '', r.descr ?? ''])
 }
 
 function appendLookupSheet(wb, sheetName) {
@@ -77,6 +88,20 @@ function mapDec(v) {
 // ---------------------------------------------------------------------------
 function buildBridgeRows() {
   const src = path.join(DATA_DIR, 'mass-upload-bridges-australia.csv')
+
+  if (!fs.existsSync(src)) {
+    // Source CSV removed — carry the Bridges sheet over from the existing
+    // workbook so regeneration never loses the curated example rows.
+    if (fs.existsSync(OUT_FILE)) {
+      const existing = XLSX.readFile(OUT_FILE, { type: 'file', raw: true })
+      const sheet = existing.Sheets['Bridges']
+      if (sheet) {
+        const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
+        return aoa.slice(1) // drop the header row — BRIDGE_HEADERS is re-emitted
+      }
+    }
+    return []
+  }
 
   // The file uses comma as separator but values contain quoted commas.
   // Use XLSX's CSV parser to handle quoting correctly.
@@ -196,7 +221,7 @@ function buildRestrictionRows() {
     ['RST-SA-001', 'BRG-SA-002', '', 'Permanent', 'Mass Limit', '5', 't', 'Active', 'All Vehicles', 5, '', '', '', '', '', true, false, false, true, '2016-01-01', '', 'DIT SA', 'Both Directions', 'Department for Infrastructure and Transport SA', '', '', '', '', 'Department for Infrastructure and Transport SA', '', 'Gross mass limit 5t. Heritage bridge on old Ghan railway route.'],
   ]
 
-  return rows.map((r) => [
+  const legacyMapped = rows.map((r) => [
     '',         // ID
     '',         // parent_ID
     r[0],       // restrictionRef *
@@ -231,8 +256,52 @@ function buildRestrictionRows() {
     r[27],      // approvalReference
     r[28],      // issuingAuthority
     r[29],      // legalReference
-    r[30]       // remarks
+    r[30],      // remarks
+    // new NSW/NHVR + lane/severity columns — empty for legacy sample rows
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
   ])
+
+  // Example rows for the NEW restriction types (full column order — shows how
+  // closures, axle-group, GCM and lane restrictions carry their attributes).
+  const newTypeExamples = [
+    // Full Closure with gazette + detour (drives postingStatus = CLOSED)
+    ['', '', 'RST-NSW-008', 'BRG-NSW-003', '', 'Full closure for emergency repairs', '', 'Temporary', 'Full Closure', 'Closed', 'n/a', 'Active', 'All Vehicles',
+      '', '', '', '', '', '', false, false, true, true, '2026-02-01', '2026-06-30', 'TfNSW', 'Both Directions', 'Transport for NSW',
+      '2026-02-01', '2026-06-30', 'Emergency deck repairs after flood damage', 'APR-NSW-2026-02', 'Transport for NSW', 'NSW Gazette 2026/05',
+      'Bridge fully closed. Use signed detour.',
+      'NSW Gazette 2026/05', '2026-01-28', '2026-06-30', '2026-05-31', '2026-01-27', 'Flood damage — deck repairs', 'Detour via Moss Vale Rd (add 12 km)', '', '',
+      '', '', '', '', '', true, 'Critical', 'CLOSED', 0, 2, ''],
+    // Gross Combination Mass limit with PBS applicability
+    ['', '', 'RST-NSW-009', 'BRG-NSW-016', '', 'GCM limit 62.5t', '', 'Permanent', 'Gross Combination Mass', '62.5', 't', 'Active', 'Road Train',
+      '', '', '', '', '', '', true, false, false, true, '2025-09-01', '', 'Chief Bridge Engineer', 'Both Directions', 'Transport for NSW',
+      '', '', '', 'APR-NSW-2025-31', 'Transport for NSW', 'NSW Gazette 2025/44',
+      'Gross combination mass limited to 62.5t for road trains.',
+      'NSW Gazette 2025/44', '2025-08-20', '', '2027-08-31', '2025-08-15', 'Load rating assessment AS 5100.7', '', '', 'Level 3',
+      62.5, '', '', '', '', false, 'Major', '', '', '', ''],
+    // Lane Restriction — single-lane operation
+    ['', '', 'RST-NSW-010', 'BRG-NSW-021', '', 'Single-lane operation', '', 'Permanent', 'Lane Restriction', '1', 'lanes', 'Active', 'All Vehicles',
+      '', '', '', '', '', '', false, false, false, true, '2025-11-15', '', 'TfNSW', 'Both Directions', 'Transport for NSW',
+      '', '', '', '', 'Transport for NSW', '',
+      'One lane operating under alternating signals.',
+      '', '', '', '2026-11-15', '', 'Deck width insufficient for two heavy lanes', '', '', '',
+      '', '', '', '', '', true, 'Major', 'SINGLE', 1, 2, 3.2],
+    // Axle Group Limit with tandem/tri detail
+    ['', '', 'RST-QLD-003', 'BRG-QLD-001', '', 'Axle group limit', '', 'Permanent', 'Axle Group Limit', '8.5', 't/axle', 'Active', 'Heavy Vehicles',
+      '', 8.5, '', '', '', '', false, false, false, true, '2025-07-01', '', 'BCC', 'Both Directions', 'Brisbane City Council',
+      '', '', '', '', 'Brisbane City Council', '',
+      'Axle group limits derived from fatigue assessment.',
+      '', '', '', '2027-07-01', '2025-06-20', 'Fatigue assessment AS 5100.7 S11', '', '', '',
+      '', 14, 19, 6, '', false, 'Minor', '', '', '', ''],
+    // Environmental / flood-trigger restriction
+    ['', '', 'RST-NSW-011', 'BRG-NSW-024', '', 'Flood closure trigger', '', 'Conditional', 'Environmental Restriction', '', 'n/a', 'Active', 'All Vehicles',
+      '', '', '', '', '', '', false, false, false, true, '2025-10-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW',
+      '', '', '', '', 'Transport for NSW', '',
+      'Bridge closes when the Darling River exceeds the trigger level.',
+      '', '', '', '2026-10-01', '', 'Scour vulnerability at pier 3', 'Detour via Barrier Hwy (add 40 km)', 'Flood level > 6.2 m AHD at Wilcannia gauge', '',
+      '', '', '', '', '', true, 'Critical', '', '', '', '']
+  ]
+
+  return [...legacyMapped, ...newTypeExamples]
 }
 
 // ---------------------------------------------------------------------------
@@ -261,7 +330,13 @@ const RESTRICTION_HEADERS = [
   'heightLimit', 'widthLimit', 'lengthLimit', 'speedLimit', 'permitRequired', 'escortRequired',
   'temporary', 'active', 'effectiveFrom', 'effectiveTo', 'approvedBy', 'direction',
   'enforcementAuthority', 'temporaryFrom', 'temporaryTo', 'temporaryReason',
-  'approvalReference', 'issuingAuthority', 'legalReference', 'remarks'
+  'approvalReference', 'issuingAuthority', 'legalReference', 'remarks',
+  // New NSW/NHVR + lane/severity columns (optional — older templates still import)
+  'gazetteNumber', 'gazettePublicationDate', 'gazetteExpiryDate', 'reviewDueDate', 'approvalDate',
+  'restrictionReason', 'detourRoute', 'conditionTrigger', 'pbsClassApplicable',
+  'grossCombinationLimit', 'tandemAxleLimit', 'triAxleLimit', 'steerAxleLimit',
+  'pilotVehicleCount', 'signageRequired', 'restrictionSeverity', 'laneAvailability',
+  'lanesOpen', 'lanesTotal', 'laneWidthLimit'
 ]
 
 // ---------------------------------------------------------------------------
@@ -300,15 +375,19 @@ function main() {
     ['RestrictionCategories', '', 'restrictionCategory'],
     ['RestrictionUnits', '', 'restrictionUnit'],
     ['RestrictionDirections', '', 'direction'],
+    ['PbsApprovalClasses', '', 'pbsClassApplicable'],
+    ['LaneAvailabilityTypes', '', 'laneAvailability'],
+    ['RestrictionSeverities', '', 'restrictionSeverity'],
   ]
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instructions), 'Instructions')
 
-  // All 15 lookup sheets
+  // All lookup sheets (incl. the previously-missing lane/severity references)
   const lookups = [
     'AssetClasses', 'States', 'Regions', 'StructureTypes', 'DesignLoads',
     'PostingStatuses', 'ConditionStates', 'PbsApprovalClasses',
     'RestrictionTypes', 'RestrictionStatuses', 'VehicleClasses',
-    'RestrictionCategories', 'RestrictionUnits', 'RestrictionDirections'
+    'RestrictionCategories', 'RestrictionUnits', 'RestrictionDirections',
+    'LaneAvailabilityTypes', 'RestrictionSeverities'
   ]
   for (const name of lookups) {
     appendLookupSheet(wb, name)
