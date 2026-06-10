@@ -98,7 +98,37 @@ sap.ui.define([
         { key: "effectiveTo",           labelKey: "effectiveTo",           type: "date",    editable: true,  minWidth: 130 },
         { key: "approvedBy",            labelKey: "approvedBy",            type: "text",    editable: true,  minWidth: 140 },
         { key: "direction",             labelKey: "direction",             type: "select",  editable: true,  minWidth: 115, optionsPath: "/options/restrictionDirections" },
-        { key: "remarks",               labelKey: "remarks",               type: "text",    editable: true,  minWidth: 180 }
+        { key: "remarks",               labelKey: "remarks",               type: "text",    editable: true,  minWidth: 180 },
+        // Previously missing editable columns (mass-edit gap fix)
+        { key: "issuingAuthority",      labelKey: "issuingAuthority",      type: "text",    editable: true,  minWidth: 150 },
+        { key: "legalReference",        labelKey: "legalReference",        type: "text",    editable: true,  minWidth: 150 },
+        { key: "approvalReference",     labelKey: "approvalReference",     type: "text",    editable: true,  minWidth: 150 },
+        { key: "enforcementAuthority",  labelKey: "enforcementAuthority",  type: "text",    editable: true,  minWidth: 160 },
+        { key: "temporaryFrom",         labelKey: "temporaryFrom",         type: "date",    editable: true,  minWidth: 130 },
+        { key: "temporaryTo",           labelKey: "temporaryTo",           type: "date",    editable: true,  minWidth: 130 },
+        { key: "temporaryReason",       labelKey: "temporaryReason",       type: "text",    editable: true,  minWidth: 170 },
+        { key: "descr",                 labelKey: "descr",                 type: "text",    editable: true,  minWidth: 180 },
+        // New NSW/NHVR + lane/severity attributes (additive)
+        { key: "restrictionSeverity",   labelKey: "restrictionSeverity",   type: "select",  editable: true,  minWidth: 120, optionsPath: "/options/restrictionSeverities" },
+        { key: "laneAvailability",      labelKey: "laneAvailability",      type: "select",  editable: true,  minWidth: 145, optionsPath: "/options/laneAvailabilityTypes" },
+        { key: "lanesOpen",             labelKey: "lanesOpen",             type: "number",  editable: true,  minWidth:  95 },
+        { key: "lanesTotal",            labelKey: "lanesTotal",            type: "number",  editable: true,  minWidth:  95 },
+        { key: "laneWidthLimit",        labelKey: "laneWidthLimit",        type: "decimal", editable: true,  minWidth: 110 },
+        { key: "gazetteNumber",         labelKey: "gazetteNumber",         type: "text",    editable: true,  minWidth: 130 },
+        { key: "gazettePublicationDate",labelKey: "gazettePublicationDate",type: "date",    editable: true,  minWidth: 150 },
+        { key: "gazetteExpiryDate",     labelKey: "gazetteExpiryDate",     type: "date",    editable: true,  minWidth: 140 },
+        { key: "reviewDueDate",         labelKey: "reviewDueDate",         type: "date",    editable: true,  minWidth: 130 },
+        { key: "approvalDate",          labelKey: "approvalDate",          type: "date",    editable: true,  minWidth: 130 },
+        { key: "restrictionReason",     labelKey: "restrictionReason",     type: "text",    editable: true,  minWidth: 160 },
+        { key: "detourRoute",           labelKey: "detourRoute",           type: "text",    editable: true,  minWidth: 150 },
+        { key: "conditionTrigger",      labelKey: "conditionTrigger",      type: "text",    editable: true,  minWidth: 150 },
+        { key: "pbsClassApplicable",    labelKey: "pbsClassApplicable",    type: "select",  editable: true,  minWidth: 150, optionsPath: "/options/pbsApprovalClasses" },
+        { key: "grossCombinationLimit", labelKey: "grossCombinationLimit", type: "decimal", editable: true,  minWidth: 125 },
+        { key: "tandemAxleLimit",       labelKey: "tandemAxleLimit",       type: "decimal", editable: true,  minWidth: 120 },
+        { key: "triAxleLimit",          labelKey: "triAxleLimit",          type: "decimal", editable: true,  minWidth: 115 },
+        { key: "steerAxleLimit",        labelKey: "steerAxleLimit",        type: "decimal", editable: true,  minWidth: 120 },
+        { key: "pilotVehicleCount",     labelKey: "pilotVehicleCount",     type: "number",  editable: true,  minWidth: 115 },
+        { key: "signageRequired",       labelKey: "signageRequired",       type: "boolean", editable: true,  minWidth: 110 }
       ]
     },
     INSPECTION: {
@@ -267,6 +297,7 @@ sap.ui.define([
           structureTypes: [], pbsApprovalClasses: [],
           restrictionCategories: [], restrictionTypes: [], restrictionStatuses: [],
           restrictionUnits: [], restrictionDirections: [], vehicleClasses: [],
+          restrictionSeverities: [], laneAvailabilityTypes: [],
           activeStatuses: [{ key: "", text: "-" }, { key: "true", text: "Active" }, { key: "false", text: "Inactive" }],
           bulkFields: [], bulkFieldOptions: []
         }

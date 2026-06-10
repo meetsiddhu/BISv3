@@ -88,7 +88,37 @@ const MASS_EDIT_RESTRICTION_COLUMNS = [
   'effectiveTo',
   'approvedBy',
   'direction',
-  'remarks'
+  'remarks',
+  // Previously missing editable columns (mass-edit gap fix)
+  'issuingAuthority',
+  'legalReference',
+  'approvalReference',
+  'enforcementAuthority',
+  'temporaryFrom',
+  'temporaryTo',
+  'temporaryReason',
+  'descr',
+  // New NSW/NHVR + lane/severity attributes (additive)
+  'restrictionSeverity',
+  'laneAvailability',
+  'lanesOpen',
+  'lanesTotal',
+  'laneWidthLimit',
+  'gazetteNumber',
+  'gazettePublicationDate',
+  'gazetteExpiryDate',
+  'reviewDueDate',
+  'approvalDate',
+  'restrictionReason',
+  'detourRoute',
+  'conditionTrigger',
+  'pbsClassApplicable',
+  'grossCombinationLimit',
+  'tandemAxleLimit',
+  'triAxleLimit',
+  'steerAxleLimit',
+  'pilotVehicleCount',
+  'signageRequired'
 ]
 
 const MASS_EDIT_INSPECTION_COLUMNS = [
@@ -202,7 +232,37 @@ const MASS_EDIT_RESTRICTION_FIELD_TYPES = {
   effectiveTo: 'date',
   approvedBy: 'string',
   direction: 'string',
-  remarks: 'string'
+  remarks: 'string',
+  // Previously missing editable columns (mass-edit gap fix)
+  issuingAuthority: 'string',
+  legalReference: 'string',
+  approvalReference: 'string',
+  enforcementAuthority: 'string',
+  temporaryFrom: 'date',
+  temporaryTo: 'date',
+  temporaryReason: 'string',
+  descr: 'string',
+  // New NSW/NHVR + lane/severity attributes (additive)
+  restrictionSeverity: 'string',
+  laneAvailability: 'string',
+  lanesOpen: 'integer',
+  lanesTotal: 'integer',
+  laneWidthLimit: 'decimal',
+  gazetteNumber: 'string',
+  gazettePublicationDate: 'date',
+  gazetteExpiryDate: 'date',
+  reviewDueDate: 'date',
+  approvalDate: 'date',
+  restrictionReason: 'string',
+  detourRoute: 'string',
+  conditionTrigger: 'string',
+  pbsClassApplicable: 'string',
+  grossCombinationLimit: 'decimal',
+  tandemAxleLimit: 'decimal',
+  triAxleLimit: 'decimal',
+  steerAxleLimit: 'decimal',
+  pilotVehicleCount: 'integer',
+  signageRequired: 'boolean'
 }
 
 const MASS_EDIT_INSPECTION_FIELD_TYPES = {
@@ -288,7 +348,10 @@ const MASS_EDIT_DROPDOWN_DATASETS = [
   { key: 'VehicleClasses', label: 'Vehicle Classes', entity: 'bridge.management.VehicleClasses' },
   { key: 'RestrictionCategories', label: 'Restriction Categories', entity: 'bridge.management.RestrictionCategories' },
   { key: 'RestrictionUnits', label: 'Restriction Units', entity: 'bridge.management.RestrictionUnits' },
-  { key: 'RestrictionDirections', label: 'Restriction Directions', entity: 'bridge.management.RestrictionDirections' }
+  { key: 'RestrictionDirections', label: 'Restriction Directions', entity: 'bridge.management.RestrictionDirections' },
+  // Phase-1 lane/severity lookups — back the new restriction mass-edit dropdowns
+  { key: 'RestrictionSeverities', label: 'Restriction Severities', entity: 'bridge.management.RestrictionSeverities' },
+  { key: 'LaneAvailabilityTypes', label: 'Lane Availability Types', entity: 'bridge.management.LaneAvailabilityTypes' }
 ]
 
 const MASS_EDIT_DROPDOWN_DATASET_BY_KEY = new Map(MASS_EDIT_DROPDOWN_DATASETS.map((dataset) => [dataset.key, dataset]))
@@ -304,7 +367,9 @@ const MASS_EDIT_LOOKUP_OPTION_MAP = [
   ['restrictionStatuses', 'RestrictionStatuses'],
   ['restrictionUnits', 'RestrictionUnits'],
   ['restrictionDirections', 'RestrictionDirections'],
-  ['vehicleClasses', 'VehicleClasses']
+  ['vehicleClasses', 'VehicleClasses'],
+  ['restrictionSeverities', 'RestrictionSeverities'],
+  ['laneAvailabilityTypes', 'LaneAvailabilityTypes']
 ]
 
 // P1-001/P2-001: the pure coercion logic now lives in srv/lib/mass-edit.js (unit-tested).
@@ -500,7 +565,17 @@ async function loadMassEditRestrictions() {
     permitRequired: Boolean(restriction.permitRequired),
     escortRequired: Boolean(restriction.escortRequired),
     temporary: Boolean(restriction.temporary),
-    active: Boolean(restriction.active)
+    active: Boolean(restriction.active),
+    // New NSW/NHVR + lane/severity attributes (additive)
+    grossCombinationLimit: restriction.grossCombinationLimit == null ? null : Number(restriction.grossCombinationLimit),
+    tandemAxleLimit: restriction.tandemAxleLimit == null ? null : Number(restriction.tandemAxleLimit),
+    triAxleLimit: restriction.triAxleLimit == null ? null : Number(restriction.triAxleLimit),
+    steerAxleLimit: restriction.steerAxleLimit == null ? null : Number(restriction.steerAxleLimit),
+    laneWidthLimit: restriction.laneWidthLimit == null ? null : Number(restriction.laneWidthLimit),
+    lanesOpen: restriction.lanesOpen == null ? null : Number(restriction.lanesOpen),
+    lanesTotal: restriction.lanesTotal == null ? null : Number(restriction.lanesTotal),
+    pilotVehicleCount: restriction.pilotVehicleCount == null ? null : Number(restriction.pilotVehicleCount),
+    signageRequired: Boolean(restriction.signageRequired)
   }))
 }
 
@@ -828,6 +903,16 @@ async function saveMassEditRestrictions(updates, { user } = {}) {
   } catch (error) {
     await tx.rollback(error)
     throw error
+  }
+
+  // Recompute Bridges.postingStatus for every bridge whose restrictions were
+  // edited (status/active/type changes affect the derivation — closure types
+  // => CLOSED). Guarded: a refresh failure must not fail the committed edit.
+  try {
+    const { refreshBridgePostingStatus } = require('./lib/restriction-codelists')
+    await refreshBridgePostingStatus(db, validUpdates.map(({ oldRecord }) => oldRecord?.bridge_ID))
+  } catch (error) {
+    LOG.warn('Posting-status refresh after restriction mass edit failed:', error.message)
   }
 
   return { updated }
