@@ -319,27 +319,45 @@ sap.ui.define([
     // Render one run's FROZEN detail (works for active OR superseded runs — full auditability).
     _openRunDialog: function (r) {
       var self = this;
+      var rb = this.getView().getModel("i18n").getResourceBundle();
+      // Council B4 (UI honesty): a fleet batch run is DATA-ONLY — say so up front, and never
+      // render its empty judgement fields (strategy) as if an engineer chose them.
+      var isFleet = r.runType === "fleet";
       var snap; try { snap = JSON.parse(r.paramSnapshot); } catch (_e) { snap = null; }
       var rub; try { rub = JSON.parse(r.rubricSnapshot); } catch (_e) { rub = null; }
       var L = function (k, val) { return new sap.m.HBox({ justifyContent: "SpaceBetween" }).addItem(new sap.m.Label({ text: k })).addItem(new sap.m.Text({ text: String(val == null ? "—" : val) })); };
       var dims = "S " + r.dimSafety + " · N " + r.dimNetwork + " · F " + r.dimFinancial + " · E " + r.dimEnvironmental + " · R " + r.dimReputational;
-      var methodology = snap
-        ? "criticality weights " + (snap.dimWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; priority " + (snap.priorityWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; bands " + (snap.bandThresholds || []).map(function (b) { return b.code + "≥" + b.min; }).join(", ")
-        : "snapshot unavailable";
+      var methodology;
+      if (snap && isFleet) {
+        // B6: fleet runs freeze the RESOLVED model bundle — summarise what was captured.
+        methodology = rb.getText("runDetail.fleetBundle", [snap.model, snap.v,
+          (snap.criteria || []).length, (snap.weights || []).length, (snap.rules || []).length,
+          (snap.userTypeWeights || []).length, (snap.preFilters || []).length]);
+      } else if (snap) {
+        methodology = "criticality weights " + (snap.dimWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; priority " + (snap.priorityWeights || []).map(function (x) { return Math.round(x * 100) / 100; }).join("/") + "; bands " + (snap.bandThresholds || []).map(function (b) { return b.code + "≥" + b.min; }).join(", ");
+      } else {
+        methodology = "snapshot unavailable";
+      }
       var items = [
-        new sap.m.ObjectStatus({ text: r.band + " · score " + r.priorityScore + (r.active === false ? " · SUPERSEDED" : ""), state: r.bandState, inverted: true }).addStyleClass("sapUiTinyMarginBottom"),
+        new sap.m.ObjectStatus({ text: r.band + " · score " + r.priorityScore + (r.active === false ? " · SUPERSEDED" : ""), state: r.bandState, inverted: true }).addStyleClass("sapUiTinyMarginBottom")
+      ];
+      if (isFleet) {
+        items.push(new sap.m.ObjectStatus({ text: rb.getText("runDetail.fleetNote"), state: "Information" }).addStyleClass("sapUiTinyMarginBottom"));
+      }
+      items = items.concat([
+        L(rb.getText("runDetail.runType"), rb.getText(isFleet ? "runDetail.runTypeFleet" : "runDetail.runTypeManual")),
         L("Criticality dimensions (1-5)", dims),
         L("Criticality · tier", r.critTier),
         L("Likelihood", r.likelihood + (r.likelihoodOverridden ? " (override of " + r.likelihoodDerived + ")" : " (derived)")),
         L("Override reason", r.likelihoodOverrideReason || (r.likelihoodOverridden ? "(missing)" : "n/a")),
         L("Residual", r.residualText),
-        L("Strategy", r.strategy),
+        L("Strategy", isFleet ? rb.getText("runDetail.noStrategy") : r.strategy),
         L("Active restriction (flag)", r.restrictionFlag ? "Yes — treatment, not a score input" : "No"),
         L("Likely failure / mitigation $", (r.likelyFailureCostAud != null ? "$" + r.likelyFailureCostAud : "—") + " / " + (r.mitigationCostAud != null ? "$" + r.mitigationCostAud : "—")),
         L("Confidence", r.confidence),
         L("Assessed by · at", (r.assessedBy || "—") + " · " + r.assessedAtText),
         L("Methodology", r.formulaVersion + " / config " + r.configVersion)
-      ];
+      ]);
       // FROZEN rubric wording used at assess time (gap: reproduced runs must show what a level MEANT).
       if (rub) {
         items.push(new sap.m.Title({ text: "Scoring rubric used (frozen)", level: "H6" }).addStyleClass("sapUiSmallMarginTop"));

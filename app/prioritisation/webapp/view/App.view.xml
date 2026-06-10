@@ -27,8 +27,14 @@
                 <items>
                   <ColumnListItem type="Active">
                     <cells>
-                      <!-- band carries LABEL + NUMBER + semantic state (never colour-only) -->
-                      <ObjectStatus text="{wl>band}" state="{wl>bandState}" inverted="true" />
+                      <!-- band carries LABEL + NUMBER + semantic state (never colour-only);
+                           fleet batch runs are badged "data-only" (council B4: UI honesty) -->
+                      <HBox alignItems="Center">
+                        <ObjectStatus text="{wl>band}" state="{wl>bandState}" inverted="true" />
+                        <ObjectStatus text="{i18n>worklist.dataOnly}" state="Information"
+                                      visible="{= ${wl>runType} === 'fleet' }"
+                                      tooltip="{i18n>worklist.dataOnlyTooltip}" class="sapUiTinyMarginBegin" />
+                      </HBox>
                       <ObjectIdentifier title="{wl>bridgeName}" text="{wl>bridgeRef}" />
                       <ObjectNumber number="{wl>priorityScore}" />
                       <Text text="{wl>confidence}" />

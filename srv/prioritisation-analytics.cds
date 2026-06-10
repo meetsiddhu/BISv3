@@ -10,6 +10,10 @@ service PrioritisationAnalyticsService @(path: '/odata/v4/prioritisation-analyti
   entity Runs as projection on my.PrioritisationAssessment {
     key ID,
     bridgeRef, bridgeName, modelCode, modelVersion, band, priorityScore,
+    // Council B4: run-type discriminator exposed to every consumer — 'fleet' = data-only batch
+    // run (no engineer judgement), 'manual'/null = engineer-judgement run. SAC/DSP stories can
+    // (and should) slice on it instead of mistaking batch scores for assessments.
+    runType,
     fleetRunId, fleetRank, criticality, tier, residual, likelihood,
     likelihoodOverridden, restrictionFlag,
     inputsAvailable, inputsTotal, conditionAsAtMonths,
@@ -60,13 +64,14 @@ service PrioritisationAnalyticsService @(path: '/odata/v4/prioritisation-analyti
 
 annotate PrioritisationAnalyticsService.Runs with @(UI: {
   HeaderInfo: { TypeName: 'Prioritisation Run', TypeNamePlural: 'Prioritisation Runs', Title: { Value: bridgeName } },
-  SelectionFields: [ band, modelCode, assetClass, transportMode, region, fleetRunId, active ],
+  SelectionFields: [ band, modelCode, assetClass, transportMode, region, runType, fleetRunId, active ],
   LineItem: [
     { Value: fleetRank,        Label: 'Rank' },
     { Value: band,             Label: 'Band', Criticality: bandCriticality },
     { Value: bridgeRef,        Label: 'Bridge' },
     { Value: bridgeName,       Label: 'Name' },
     { Value: priorityScore,    Label: 'Score' },
+    { Value: runType,          Label: 'Run type' },
     { Value: assetClass,       Label: 'Asset class' },
     { Value: transportMode,    Label: 'Mode' },
     { Value: modelCode,        Label: 'Model' },
@@ -75,7 +80,8 @@ annotate PrioritisationAnalyticsService.Runs with @(UI: {
     { Value: assessedAt,       Label: 'Assessed' }
   ]
 }) {
-  band @Common.Label: 'Priority band';
+  band    @Common.Label: 'Priority band';
+  runType @Common.Label: 'Run type (manual = engineer judgement, fleet = data-only batch)';
 };
 extend projection PrioritisationAnalyticsService.Runs with {
   // 1=red P1/P2, 2=amber P3, 3=green P4/P5 — FE criticality colouring (label always shown too)
