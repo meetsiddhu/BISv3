@@ -127,6 +127,9 @@ extend service PrioritisationService with {
   // BSI/BHI: compute + persist the element-weighted indices for one bridge (or all when null).
   @(requires: ['manage', 'admin'])
   action computeBhi(bridgeID : Integer) returns { updated : Integer; };
+  // BHI/BSI explorer detail: per-bridge factors, element buckets, all-mode model comparison and
+  // the substituted formulas (mirrors the approved calculator page). Read-only.
+  function bhiDetail(bridgeID : Integer) returns { detail : LargeString; };
 
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE'], to: 'admin' }]
   entity UserTypesConfig as projection on my.UserTypes;

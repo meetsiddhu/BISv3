@@ -1,6 +1,6 @@
 _schema-version: 3.3.0
 ID: BridgeManagement
-version: 3.11.1
+version: 3.12.0
 description: "Bridge Management System — NSW standalone"
 parameters:
   enable-parallel-deployments: true
@@ -120,6 +120,10 @@ modules:
           artifacts:
             - prioritisation-report.zip
           target-path: app/
+        - name: BridgeManagementbhiexplorer
+          artifacts:
+            - bhi-explorer.zip
+          target-path: app/
     requires:
       - name: BridgeManagement-auth
       - name: srv-api
@@ -231,6 +235,17 @@ modules:
   - name: BridgeManagementprioritisationreport
     type: html5
     path: app/prioritisation-report
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm ci
+        - npm run build
+      supported-platforms: []
+
+  - name: BridgeManagementbhiexplorer
+    type: html5
+    path: app/bhi-explorer
     build-parameters:
       build-result: dist
       builder: custom

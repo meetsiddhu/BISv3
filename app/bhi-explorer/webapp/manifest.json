@@ -1,0 +1,89 @@
+{
+  "_version": "1.8.0",
+  "sap.app": {
+    "id": "BridgeManagement.bhiexplorer",
+    "type": "application",
+    "title": "BHI / BSI Explorer",
+    "description": "Bridge Structure & Health Index \u2014 calculations, element breakdown, cross-mode normalisation",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "dataSources": {
+      "PrioritisationService": {
+        "uri": "/odata/v4/prioritisation/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "BhiExplorer-display": {
+          "semanticObject": "BhiExplorer",
+          "action": "display",
+          "title": "BHI / BSI Explorer",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "fullWidth": true,
+    "deviceTypes": {
+      "desktop": true,
+      "phone": false,
+      "tablet": true
+    }
+  },
+  "sap.ui5": {
+    "dependencies": {
+      "minUI5Version": "1.136.0",
+      "libs": {
+        "sap.m": {},
+        "sap.f": {},
+        "sap.ui.layout": {},
+        "sap.ui.core": {}
+      }
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "uri": "i18n/i18n.properties",
+        "settings": {
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": "",
+          "bundleName": "BridgeManagement.bhiexplorer.i18n.i18n"
+        }
+      },
+      "": {
+        "dataSource": "PrioritisationService",
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "groupId": "$auto"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "BridgeManagement.bhiexplorer.view.App",
+      "type": "XML",
+      "id": "bhiApp"
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    }
+  },
+  "sap.fiori": {
+    "registrationIds": [],
+    "archeType": "transactional"
+  }
+}

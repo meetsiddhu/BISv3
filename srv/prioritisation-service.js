@@ -245,6 +245,53 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       return { updated }
     })
 
+    // ── BHI/BSI explorer: full calculation transparency for one bridge (calculator parity) ──
+    this.on('bhiDetail', async (req) => {
+      const b = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: req.data.bridgeID }))
+      if (!b) return req.reject(404, 'Bridge not found')
+      const elements = await db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: b.ID }))
+      const env = bhiLib.envFromBridge(b)
+      const mode = b.transportMode || 'Road'
+      const main = bhiLib.computeBSI(elements, mode, env)
+      const bhi = bhiLib.computeBHI(main.bsi, env)
+      // element buckets actually used (worst per bucket) + the active weight set
+      const w = bhiLib.weightsFor(mode, env.overWater)
+      const buckets = {}
+      for (const e of elements) {
+        const bk = bhiLib.bucketOf(e.elementType)
+        const r = Number(e.conditionRating)
+        if (Number.isFinite(r) && (bk in w)) buckets[bk] = buckets[bk] === undefined ? r : Math.min(buckets[bk], r)
+      }
+      const elementBreakdown = Object.entries(w).map(([k, wt]) => ({ bucket: k, weight: wt, rating: buckets[k] ?? null }))
+      // ALL FOUR mode weight-models on the same inputs — "how it is normalised across modes"
+      const models = Object.keys(bhiLib.MODE_WEIGHTS).map(mk => {
+        const mw = bhiLib.MODE_WEIGHTS[mk]
+        let n = 0, d = 0
+        for (const [k, wt] of Object.entries(mw)) if (buckets[k] !== undefined) { n += buckets[k] * wt; d += wt }
+        if (d === 0 && env.fallbackCondition !== null) { n = env.fallbackCondition; d = 1 }
+        const raw = d > 0 ? n / d : null
+        const score = raw === null ? null : Math.max(0, Math.min(10, raw * (main.ageFactor ?? 1) - (main.envPenalty ?? 0)))
+        return { model: mk, weights: mw, bsi: score === null ? null : Math.round(score * 100) / 100 }
+      })
+      const fb = Object.keys(buckets).length === 0
+      const formulas = [
+        'BSI_raw = ' + (fb ? ('register condition fallback = ' + env.fallbackCondition) : elementBreakdown.filter(x => x.rating !== null).map(x => x.rating + 'x' + x.weight).join(' + ') + ' / sum(w)'),
+        'ageFactor = max(0, 1 - (' + env.age + '/120)x0.3) = ' + main.ageFactor,
+        'envPenalty = (' + env.floodExp + '-1)x0.04 + (' + env.corrZone + '-1)x0.03 + ' + env.seismic + 'x0.02 = ' + main.envPenalty,
+        'BSI = clamp(BSI_raw x ageFactor - envPenalty) = ' + main.bsi + ' / 10',
+        'vulnerability = min(0.4, (' + env.age + '/100)x0.2 + envPenalty)',
+        'importFactor = 0.85 + (' + env.importClass + '-1)x0.03',
+        'BHI = BSI x 10 x (1-vulnerability) x importFactor = ' + bhi + ' / 100',
+        'RSL = (BSI/10) x (100-' + env.age + ') x 0.6 = ' + bhiLib.remainingServiceLife(main.bsi, env.age) + ' years'
+      ]
+      return { detail: JSON.stringify({
+        bridge: { ID: b.ID, name: b.bridgeName, ref: b.bridgeId, mode, assetClass: b.assetClass },
+        env, coverage: main.coverage, usedFallback: fb,
+        bsi: main.bsi, bhi, rsl: bhiLib.remainingServiceLife(main.bsi, env.age), priority: bhiLib.bsiPriority(main.bsi),
+        elementBreakdown, models, formulas
+      }) }
+    })
+
     // ── G8: portfolio data-readiness — % of fleet with a resolvable raw value per criterion ──
     this.on('dataReadiness', async () => {
       const models = await loadActiveModels()

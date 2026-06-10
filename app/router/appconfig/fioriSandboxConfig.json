@@ -218,6 +218,16 @@
                     "icon": "sap-icon://table-chart",
                     "targetURL": "#PrioritisationReport-display"
                   }
+                },
+                {
+                  "id": "BhiExplorer",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "BHI / BSI Explorer",
+                    "subtitle": "Condition health & calculations",
+                    "icon": "sap-icon://stethoscope",
+                    "targetURL": "#BhiExplorer-display"
+                  }
                 }
               ]
             }
@@ -498,6 +508,20 @@
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.prioritisationreport",
                 "url": "/BridgeManagementprioritisationreport"
+              }
+            },
+            "BhiExplorer-display": {
+              "semanticObject": "BhiExplorer",
+              "action": "display",
+              "title": "BHI / BSI Explorer",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.bhiexplorer",
+                "url": "/BridgeManagementbhiexplorer"
               }
             }
           }
