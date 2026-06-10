@@ -231,8 +231,11 @@ function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters 
       if (pol.flag) { flags.push(r.criterion.code + ': ' + pol.flag); note = pol.flag }
     }
     const c = confidenceFor(r.criterion.code, context, confRule)
-    // G1/G2: user-type factor (1 when the criterion has no user-type rows configured)
+    // G1/G2: user-type factor (1 when the criterion has no user-type rows configured).
+    // B7: the Over/Under axis is DERIVED into the context (attribute OVER_UNDER or register
+    // heuristic) unless the caller supplied it — axis-scoped rows no longer match everything.
     const present = context._presentUserTypes || (context._presentUserTypes = bridgeUserTypes(context))
+    if (context.overUnder === undefined) context.overUnder = deriveOverUnder(context)
     const utw = userTypeFactor(r.criterion, model.userTypeWeights, model.userTypes || [], present, context.overUnder)
     const contribution = (include && has(score) && r.weight > 0) ? score * r.weight * c * utw.factor : 0
     if (include && has(score) && r.weight > 0) { sumContrib += contribution; sumWeight += r.weight }
@@ -287,20 +290,58 @@ function bridgeUserTypes (ctx) {
   if (!out.size) out.add('ROAD_PASS') // conservative default reference user type (per TfNSW note)
   return out
 }
-// Effective user-type factor for one criterion: weighted mean of applicable per-user-type weights
-// over the user types PRESENT, scaled by UserTypes.weighting (active transport 0.5 etc.).
-// No rows configured for the criterion => factor 1 (criterion is user-type-agnostic).
+// G2/B7: derive the Over/Under-bridge axis for the CONTEXT — which side of the structure the
+// scored customers are on. Resolution order (config data first, then register heuristic):
+//   1. Admin attribute OVER_UNDER ('Over' | 'Under' | 'Both') — explicit engineering call.
+//   2. secondaryModes present (shared/crossing structure, e.g. Road over Rail): customers exist
+//      on BOTH axes (the primary mode rides over; the secondary passes under).
+//   3. A single-mode structure's customers travel ON it → 'Over'.
+//   4. No register mode at all → null (axis unknown).
+// Axis-scoped weight rows match ONLY their axis ('Both' matches either; '*' rows always match;
+// an unknown axis matches '*' rows only) — so an 'Under' row can no longer match every bridge.
+function deriveOverUnder (ctx) {
+  const b = (ctx && ctx.bridge) || {}; const a = (ctx && ctx.attributes) || {}
+  const explicit = String(a.OVER_UNDER ?? '').trim().toLowerCase()
+  if (explicit === 'over') return 'Over'
+  if (explicit === 'under') return 'Under'
+  if (explicit === 'both') return 'Both'
+  if (String(b.secondaryModes || '').trim()) return 'Both'
+  return String(b.transportMode || '').trim() ? 'Over' : null
+}
+const axisMatch = (rowAxis, ctxAxis) => {
+  const r = rowAxis || '*'
+  if (r === '*') return true
+  if (!ctxAxis) return false // unknown axis: axis-scoped rows do NOT apply (council B7)
+  return ctxAxis === 'Both' || r === ctxAxis
+}
+// Effective user-type factor for one criterion (council B7 — MONOTONE, replacing the
+// anti-monotone weighted mean that LOWERED priority when a bridge served more user groups):
+//
+//   factor = 1 + Σ over present applicable rows of ( typeWeighting × (rowWeight − 1) ) / 10
+//   clamped to [0.5, 2]
+//
+// Properties (the TfNSW PS224353 intent — more relevant customer types can only maintain or
+// RAISE a structure's priority, never lower it):
+//   • no rows configured for the criterion ⇒ factor 1 (criterion is user-type-agnostic);
+//   • a present type with rowWeight 1 is neutral (adds 0) — presence alone never penalises;
+//   • a present type with rowWeight > 1 ADDS uplift scaled by its UserTypes.weighting, so the
+//     active-transport 0.5 weighting now DAMPENS the uplift instead of self-cancelling in a
+//     weighted-mean denominator;
+//   • MONOTONICITY: with rowWeights ≥ 1 (the governed seed range), adding a present user type
+//     never lowers the factor — golden-vector tested in test/user-type-factor.test.js;
+//   • the /10 scale keeps the axis a moderating factor (a 1.5-weight type adds 5%), and the
+//     [0.5, 2] clamp bounds the total influence of the axis on any one criterion.
 function userTypeFactor (criterion, utRows, userTypes, present, overUnder) {
   const rows = (utRows || []).filter(r =>
     (r.criterion_ID ? r.criterion_ID === criterion.ID : true) && r.applicable !== false &&
-    present.has(r.userType) && ((r.overUnder || '*') === '*' || (overUnder || '*') === '*' || r.overUnder === overUnder))
+    present.has(r.userType) && axisMatch(r.overUnder, overUnder))
   if (!rows.length) return { factor: 1, rows: [] }
-  let wSum = 0; let denom = 0
+  let factor = 1
   for (const r of rows) {
     const tw = num((userTypes.find(u => u.code === r.userType) || {}).weighting, 1)
-    wSum += num(r.weight, 1) * tw; denom += tw
+    factor += tw * (num(r.weight, 1) - 1) / 10
   }
-  return { factor: denom > 0 ? (wSum / denom) : 1, rows: rows.map(r => r.userType + (r.overUnder && r.overUnder !== '*' ? ':' + r.overUnder : '')) }
+  return { factor: Math.min(2, Math.max(0.5, factor)), rows: rows.map(r => r.userType + (r.overUnder && r.overUnder !== '*' ? ':' + r.overUnder : '')) }
 }
 // ── G3: pre-filter eligibility gates — excluded BEFORE scoring, with the matching rationale.
 function preFilter (ctx, filters) {
@@ -314,6 +355,6 @@ function preFilter (ctx, filters) {
 
 module.exports = {
   evaluate, resolveModelCriteria, bindRaw, valueFunction, applyMissingPolicy,
-  bridgeUserTypes, userTypeFactor, preFilter,
+  bridgeUserTypes, userTypeFactor, deriveOverUnder, preFilter,
   confidenceFor, parseCond, weightSetHash, DERIVED
 }

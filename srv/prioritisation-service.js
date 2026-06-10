@@ -110,7 +110,10 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       ['CRITICAL_SERVICES_PROXIMITY', 'Critical services proximity', 'Text'], ['UTILITIES_COUNT', 'Third-party utilities carried', 'Integer'],
       ['OVER_OCCUPIED_SPACE', 'Over occupied space / platform (importance 1-4)', 'Integer'], ['HERITAGE_LISTING', 'Heritage listing (State/Local/None)', 'Text'],
       ['ENV_SENSITIVITY', 'Environmental sensitivity (High/Medium/Low)', 'Text'], ['CLIMATE_EXPOSURE_TREND', 'Climate exposure trend', 'Text'],
-      ['INCIDENT_COUNT_5Y', 'Safety incidents (5 years)', 'Integer'], ['STATUTORY_OBLIGATION', 'Statutory/contractual obligation', 'Text']
+      ['INCIDENT_COUNT_5Y', 'Safety incidents (5 years)', 'Integer'], ['STATUTORY_OBLIGATION', 'Statutory/contractual obligation', 'Text'],
+      // B7: explicit Over/Under-bridge axis for the user-type weighting (Over | Under | Both).
+      // When unset, the engine derives it from the register (secondaryModes heuristic).
+      ['OVER_UNDER', 'Over/Under-bridge axis (Over/Under/Both)', 'Text']
     ]
     const ensurePackAttributes = async () => {
       try {
