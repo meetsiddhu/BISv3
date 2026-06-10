@@ -76,6 +76,12 @@ entity Bridges : managed {
       // Manual | DerivedFromInspection (FIT-002 auto from latest inspection) | DerivedFromElements.
       conditionSource       : String(20) default 'Manual';
       worstElementCondition : Integer @assert.range: [1, 10];
+      // BSI/BHI (additive — calculator incorporation): element-weighted structure & health indices
+      // computed by srv/lib/bhi.js (per-mode weights); refreshed by computeBhi/scoreFleet.
+      bsiScore              : Decimal(4,2);   // 0-10
+      bhiScore              : Decimal(5,1);   // 0-100
+      bsiPriority           : String(12);     // URGENT | HIGH | ROUTINE | MONITORING
+      bhiComputedAt         : Timestamp;
       structuralAdequacyRating : Integer @assert.range: [1, 10];
       postingStatus : String(40);
       conditionStandard : String(111);

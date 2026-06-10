@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NSW Bridge BSI/BHI Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #252a35;
+    --accent: #00d4aa;
+    --accent2: #ff6b35;
+    --accent3: #6b8cff;
+    --warn: #ffb347;
+    --danger: #ff4d6d;
+    --text: #e8eaf0;
+    --text-dim: #8892a4;
+    --text-muted: #4a5568;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-badge {
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+  }
+
+  header h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 57px);
+  }
+
+  .left-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .right-panel {
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .model-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .model-tab {
+    flex: 1;
+    padding: 7px 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .model-tab.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  .field-group { margin-bottom: 12px; }
+
+  .field-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .field-group input,
+  .field-group select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field-group input:focus,
+  .field-group select:focus { border-color: var(--accent); }
+
+  .field-group select option { background: var(--surface2); }
+
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+
+  .slider-row input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .slider-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  .btn-calc {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
+  }
+
+  .btn-calc:hover { opacity: 0.85; }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-card.highlight { border-color: var(--accent); }
+
+  .result-card.highlight::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+
+  .result-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .result-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .result-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .condition-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    margin-top: 6px;
+  }
+
+  .condition-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .model-comparison {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .model-comparison h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  .model-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 70px 100px;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .model-row:last-child { border-bottom: none; }
+
+  .model-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .bar-track {
+    background: var(--bg);
+    border-radius: 3px;
+    height: 8px;
+    overflow: hidden;
+  }
+
+  .bar-fill { height: 100%; border-radius: 3px; }
+
+  .bar-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-align: right;
+  }
+
+  .formula-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .formula-box h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .formula-panel {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    white-space: pre-wrap;
+  }
+
+  .kw { color: #00d4aa; }
+  .val { color: #ff6b35; }
+  .num { color: #6b8cff; }
+  .comment { color: #4a5568; }
+
+  .gauge-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .gauge-row:last-child { border-bottom: none; }
+
+  .gauge-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    min-width: 130px;
+    font-size: 9.5px;
+  }
+
+  .gauge-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .gauge-fill { height: 100%; border-radius: 3px; }
+
+  .gauge-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .risk-matrix {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .risk-cell {
+    padding: 10px 6px;
+    text-align: center;
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+  }
+
+  .tag {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .model-desc {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent3);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .placeholder-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .placeholder-state .big-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+  .placeholder-state h2 { font-family: 'Syne', sans-serif; font-size: 16px; color: var(--text-dim); margin-bottom: 8px; }
+  .placeholder-state p { font-size: 12px; max-width: 280px; line-height: 1.6; }
+
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">NSW Bridges</div>
+  <h1>Bridge <span>Condition</span> Assessment · BSI / BHI Calculator</h1>
+  <div class="subtitle">Multi-Model · TfNSW / AusRoads / RMS / NHVR Standards</div>
+</header>
+
+<div class="layout">
+  <div class="left-panel">
+    <div>
+      <div class="section-label">Assessment Model</div>
+      <div class="model-tabs">
+        <button class="model-tab active" onclick="setModel('ausroads',this)">AusRoads</button>
+        <button class="model-tab" onclick="setModel('tfnsw',this)">TfNSW</button>
+        <button class="model-tab" onclick="setModel('rms',this)">RMS</button>
+        <button class="model-tab" onclick="setModel('nhvr',this)">NHVR</button>
+      </div>
+      <div id="modelDesc" class="model-desc"></div>
+    </div>
+
+    <div class="card">
+      <h3>🌉 Bridge Identity</h3>
+      <div class="field-group">
+        <label>Bridge Name / BIMS ID</label>
+        <input type="text" id="bridgeName" value="B2451 – Parramatta Rd OHB">
+      </div>
+      <div class="field-group">
+        <label>Structure Type</label>
+        <select id="structType">
+          <option value="concrete_beam">Concrete Beam</option>
+          <option value="prestressed_concrete">Prestressed Concrete</option>
+          <option value="steel_girder">Steel Girder</option>
+          <option value="timber">Timber</option>
+          <option value="box_culvert">Box Culvert</option>
+          <option value="arch">Arch Bridge</option>
+          <option value="truss">Truss</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Year Built</label>
+        <input type="number" id="yearBuilt" value="1978" min="1850" max="2024">
+      </div>
+      <div class="field-group">
+        <label>Total Span (m)</label>
+        <input type="number" id="span" value="45" min="1" max="500">
+      </div>
+      <div class="field-group">
+        <label>Traffic ADT (vehicles/day)</label>
+        <input type="number" id="adt" value="12500">
+      </div>
+      <div class="field-group">
+        <label>Importance Class</label>
+        <select id="importClass">
+          <option value="1">Class 1 – Minor Local Road</option>
+          <option value="2">Class 2 – Collector Road</option>
+          <option value="3" selected>Class 3 – Arterial Road</option>
+          <option value="4">Class 4 – Freeway / Motorway</option>
+          <option value="5">Class 5 – Critical Network Link</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Element Condition Ratings (0–10)</h3>
+      <div id="elementSliders"></div>
+    </div>
+
+    <div class="card">
+      <h3>⚠️ Load &amp; Environment</h3>
+      <div class="field-group">
+        <label>Heavy Vehicle Route (NHVR)</label>
+        <select id="hvRoute">
+          <option value="0">No – Standard Road</option>
+          <option value="1" selected>Yes – PBS Class 1</option>
+          <option value="2">Yes – PBS Class 2 (B-Double)</option>
+          <option value="3">Yes – PBS Class 3 (Road Train)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Flood Exposure</label>
+        <select id="floodExp">
+          <option value="1">Low (&gt;50yr ARI)</option>
+          <option value="2" selected>Moderate (10–50yr ARI)</option>
+          <option value="3">High (&lt;10yr ARI)</option>
+          <option value="4">Severe (Regular inundation)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Corrosion Zone</label>
+        <select id="corrZone">
+          <option value="1" selected>Inland – Low</option>
+          <option value="2">Urban – Moderate</option>
+          <option value="3">Coastal – High</option>
+          <option value="4">Marine – Very High</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Seismic Zone (AS1170.4)</label>
+        <select id="seismicZone">
+          <option value="0">Zone 0 – Negligible</option>
+          <option value="1" selected>Zone 1 – Low</option>
+          <option value="2">Zone 2 – Moderate</option>
+          <option value="3">Zone 3 – High</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-calc" onclick="calculate()">▶ CALCULATE BSI / BHI</button>
+  </div>
+
+  <div class="right-panel" id="rightPanel">
+    <div class="placeholder-state">
+      <div class="big-icon">🌉</div>
+      <h2>Bridge Assessment Ready</h2>
+      <p>Configure bridge parameters and element condition ratings, then click Calculate to run multi-model BSI and BHI analysis.</p>
+      <div class="tag-row" style="justify-content:center;margin-top:16px;">
+        <span class="tag">AusRoads BCHMS</span>
+        <span class="tag">TfNSW BIMS</span>
+        <span class="tag">RMS Grade</span>
+        <span class="tag">NHVR Load Rating</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODELS = {
+  ausroads: {
+    name: 'AusRoads BCHMS',
+    desc: 'AusRoads Bridge Condition and Health Monitoring System. Weighted element condition index (ECI) aggregated into BSI and BHI. Standard for national reporting across all Australian jurisdictions.',
+    weights: { deck:0.25, superstructure:0.30, substructure:0.20, bearings:0.10, drainage:0.08, approach:0.07 }
+  },
+  tfnsw: {
+    name: 'TfNSW BIMS',
+    desc: 'Transport for NSW Bridge Information Management System. Extends AusRoads with scour vulnerability, hydraulic performance, load rating integration, and NSW-specific climate exposure factors.',
+    weights: { deck:0.22, superstructure:0.28, substructure:0.22, bearings:0.10, drainage:0.08, approach:0.05, scour:0.05 }
+  },
+  rms: {
+    name: 'RMS Condition Grade',
+    desc: 'Roads and Maritime Services legacy grading (pre-TfNSW merger). Five-band condition grade (1–5) derived from inspector element ratings. Still used in asset registers for older NSW bridges.',
+    weights: { deck:0.30, superstructure:0.30, substructure:0.25, bearings:0.08, drainage:0.07 }
+  },
+  nhvr: {
+    name: 'NHVR Load Rating',
+    desc: 'National Heavy Vehicle Regulator bridge load assessment for PBS/OSOM vehicles. Combines structural capacity (BSI) with live load demand to derive posted load limits and NHVR access classifications.',
+    weights: { deck:0.20, superstructure:0.35, substructure:0.25, bearings:0.12, drainage:0.05, approach:0.03 }
+  }
+};
+
+const ELEMENTS = [
+  { id:'deck', label:'Deck / Slab', default:7 },
+  { id:'superstructure', label:'Superstructure (Beams)', default:6 },
+  { id:'substructure', label:'Substructure (Piers/Abut.)', default:7 },
+  { id:'bearings', label:'Bearings & Joints', default:5 },
+  { id:'drainage', label:'Drainage & Waterproofing', default:6 },
+  { id:'approach', label:'Approach & Pavement', default:8 },
+  { id:'scour', label:'Scour Protection (TfNSW)', default:7 }
+];
+
+let currentModel = 'ausroads';
+
+function setModel(m, btn) {
+  currentModel = m;
+  document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('modelDesc').textContent = MODELS[m].desc;
+  renderSliders();
+}
+
+function renderSliders() {
+  const weights = MODELS[currentModel].weights;
+  const container = document.getElementById('elementSliders');
+  const vals = {};
+  ELEMENTS.forEach(el => {
+    const sl = document.getElementById('sl_'+el.id);
+    if (sl) vals[el.id] = sl.value;
+  });
+  container.innerHTML = '';
+  ELEMENTS.forEach(el => {
+    if (!weights[el.id]) return;
+    const v = vals[el.id] || el.default;
+    const div = document.createElement('div');
+    div.className = 'field-group';
+    div.innerHTML = `
+      <label>${el.label} <span style="color:var(--accent3)">[w=${weights[el.id]}]</span></label>
+      <div class="slider-row">
+        <input type="range" id="sl_${el.id}" min="0" max="10" step="0.5" value="${v}"
+          oninput="document.getElementById('sv_${el.id}').textContent=this.value">
+        <span class="slider-val" id="sv_${el.id}">${v}</span>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function condInfo(score, type) {
+  if (type === 'bsi') {
+    if (score >= 8.5) return {label:'VERY GOOD', color:'#00d4aa'};
+    if (score >= 7)   return {label:'GOOD',      color:'#4cde8e'};
+    if (score >= 5.5) return {label:'FAIR',      color:'#ffb347'};
+    if (score >= 4)   return {label:'POOR',      color:'#ff8c42'};
+    if (score >= 2.5) return {label:'CRITICAL',  color:'#ff4d6d'};
+    return                   {label:'FAILED',    color:'#cc0000'};
+  } else {
+    if (score >= 85) return {label:'VERY GOOD', color:'#00d4aa'};
+    if (score >= 70) return {label:'GOOD',      color:'#4cde8e'};
+    if (score >= 55) return {label:'FAIR',      color:'#ffb347'};
+    if (score >= 40) return {label:'POOR',      color:'#ff8c42'};
+    if (score >= 25) return {label:'CRITICAL',  color:'#ff4d6d'};
+    return                  {label:'FAILED',    color:'#cc0000'};
+  }
+}
+
+function calculate() {
+  const weights = MODELS[currentModel].weights;
+  const bridgeName = document.getElementById('bridgeName').value;
+  const yearBuilt  = parseInt(document.getElementById('yearBuilt').value);
+  const span       = parseFloat(document.getElementById('span').value);
+  const adt        = parseInt(document.getElementById('adt').value);
+  const importClass= parseInt(document.getElementById('importClass').value);
+  const floodExp   = parseInt(document.getElementById('floodExp').value);
+  const corrZone   = parseInt(document.getElementById('corrZone').value);
+  const seismic    = parseInt(document.getElementById('seismicZone').value);
+  const structType = document.getElementById('structType').value;
+  const age        = new Date().getFullYear() - yearBuilt;
+
+  const ratings = {};
+  ELEMENTS.forEach(el => {
+    const sl = document.getElementById('sl_'+el.id);
+    if (sl) ratings[el.id] = parseFloat(sl.value);
+  });
+
+  let bsiNum=0, bsiDen=0;
+  Object.entries(weights).forEach(([k,w]) => {
+    if (ratings[k]!==undefined) { bsiNum+=ratings[k]*w; bsiDen+=w; }
+  });
+  const bsiRaw = bsiNum/bsiDen;
+  const ageFactor = Math.max(0, 1-(age/120)*0.3);
+  const envPenalty = (floodExp-1)*0.04 + (corrZone-1)*0.03 + seismic*0.02;
+  const bsi = Math.max(0, Math.min(10, bsiRaw*ageFactor - envPenalty));
+  const vulnerability = Math.min(0.4, (age/100)*0.2 + envPenalty);
+  const importFactor  = 0.85 + (importClass-1)*0.03;
+  const bhi = Math.max(0, Math.min(100, bsi*10*(1-vulnerability)*importFactor));
+  const remainingLife = Math.max(0, Math.round((bsi/10)*(100-age)*0.6));
+  const priority = bsi<4?'URGENT':bsi<6?'HIGH':bsi<7.5?'ROUTINE':'MONITORING';
+  const priorityColor = bsi<4?'#ff4d6d':bsi<6?'#ff8c42':bsi<7.5?'#ffb347':'#00d4aa';
+  const baseLoad = {concrete_beam:45,prestressed_concrete:55,steel_girder:50,timber:25,box_culvert:40,arch:52,truss:48}[structType]||45;
+  const nhvrRating = Math.round(baseLoad*(bsi/10)*(1-envPenalty*0.5));
+  const nhvrClass = nhvrRating>42.5?'PBS Class 3':nhvrRating>32?'PBS Class 2':nhvrRating>19?'PBS Class 1':'Posted Limit';
+
+  const modelResults = Object.entries(MODELS).map(([key,model])=>{
+    const w=model.weights; let n=0,d=0;
+    Object.entries(w).forEach(([k,wt])=>{
+      if(ratings[k]!==undefined){n+=ratings[k]*wt;d+=wt;}
+    });
+    const score=Math.max(0,Math.min(10,(n/d)*ageFactor-envPenalty));
+    return {key,name:model.name,score};
+  });
+
+  const elemBreakdown = Object.entries(weights).map(([k,w])=>({
+    key:k, label:ELEMENTS.find(e=>e.id===k)?.label||k,
+    rating:ratings[k]||0, weight:w
+  }));
+
+  renderResults({bridgeName,bsi,bhi,age,span,adt,remainingLife,priority,priorityColor,
+    nhvrRating,nhvrClass,modelResults,elemBreakdown,importClass,envPenalty,vulnerability,
+    structType,bsiRaw,ageFactor,importFactor});
+}
+
+function renderResults(d) {
+  const panel = document.getElementById('rightPanel');
+  const bsiInfo=condInfo(d.bsi,'bsi');
+  const bhiInfo=condInfo(d.bhi,'bhi');
+  const priSub = d.bsi<4?'Immediate intervention':d.bsi<6?'Within 12 months':d.bsi<7.5?'1–5 year cycle':'Annual inspection';
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800">${d.bridgeName}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:3px;">
+          ${d.structType.replace(/_/g,' ').toUpperCase()} · ${d.span}m SPAN · ADT ${d.adt.toLocaleString()} VPD · AGE ${d.age}yr
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);text-align:right;">
+        ${MODELS[currentModel].name}<br>${new Date().toLocaleDateString('en-AU')}
+      </div>
+    </div>
+
+    <div class="results-grid">
+      <div class="result-card highlight">
+        <div class="result-label">Bridge Structural Index</div>
+        <div class="result-value" style="color:${bsiInfo.color}">${d.bsi.toFixed(2)}</div>
+        <div class="result-sub">BSI / 10.00</div>
+        <div class="condition-badge" style="background:${bsiInfo.color}22;color:${bsiInfo.color}">
+          <div class="condition-dot" style="background:${bsiInfo.color}"></div>${bsiInfo.label}
+        </div>
+      </div>
+      <div class="result-card highlight">
+        <div class="result-label">Bridge Health Index</div>
+        <div class="result-value" style="color:${bhiInfo.color}">${d.bhi.toFixed(1)}</div>
+        <div class="result-sub">BHI / 100.0</div>
+        <div class="condition-badge" style="background:${bhiInfo.color}22;color:${bhiInfo.color}">
+          <div class="condition-dot" style="background:${bhiInfo.color}"></div>${bhiInfo.label}
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">Maintenance Priority</div>
+        <div class="result-value" style="font-size:18px;color:${d.priorityColor}">${d.priority}</div>
+        <div class="result-sub">${priSub}</div>
+        <div class="condition-badge" style="background:${d.priorityColor}22;color:${d.priorityColor};margin-top:6px">
+          <div class="condition-dot" style="background:${d.priorityColor}"></div>RSL ≈ ${d.remainingLife}yr
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-label">NHVR Load Rating</div>
+        <div class="result-value" style="font-size:22px;color:var(--accent3)">${d.nhvrRating}t</div>
+        <div class="result-sub">${d.nhvrClass}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:6px">
+          ENV ${(d.envPenalty*100).toFixed(1)}% · VULN ${(d.vulnerability*100).toFixed(1)}%
+        </div>
+      </div>
+    </div>
+
+    <div class="model-comparison">
+      <h3>Multi-Model BSI Comparison</h3>
+      ${d.modelResults.map(r=>{
+        const ci=condInfo(r.score,'bsi');
+        return `<div class="model-row">
+          <div class="model-name">${r.name}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${r.score*10}%;background:${ci.color}"></div></div>
+          <div class="bar-score" style="color:${ci.color}">${r.score.toFixed(2)}</div>
+          <div class="condition-badge" style="background:${ci.color}22;color:${ci.color}">
+            <div class="condition-dot" style="background:${ci.color}"></div>${ci.label}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="two-col">
+      <div class="formula-box">
+        <h3>Element Condition Breakdown</h3>
+        ${d.elemBreakdown.map(el=>{
+          const col=el.rating>=7?'#00d4aa':el.rating>=5?'#ffb347':'#ff4d6d';
+          return `<div class="gauge-row">
+            <div class="gauge-label">${el.label}</div>
+            <div class="gauge-track"><div class="gauge-fill" style="width:${el.rating*10}%;background:${col}"></div></div>
+            <div class="gauge-score" style="color:${col}">${el.rating.toFixed(1)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="formula-box">
+        <h3>Calculation Detail</h3>
+        <div class="formula-panel"><span class="comment">// ${MODELS[currentModel].name}
+// AusRoads / TfNSW Bridge Condition Formula
+</span>
+<span class="kw">BSI_raw</span>  = Σ(Element_Rating × Weight) / Σ(Weight)
+         = <span class="val">${(d.bsiRaw).toFixed(3)}</span>
+
+<span class="kw">Age_Factor</span> = max(0, 1 − (Age / 120) × 0.3)
+           = <span class="val">${(d.ageFactor).toFixed(3)}</span>
+
+<span class="kw">Env_Penalty</span> = Flood + Corrosion + Seismic
+            = <span class="val">${(d.envPenalty).toFixed(3)}</span>
+
+<span class="kw">BSI_final</span>  = BSI_raw × Age_Factor − Env_Penalty
+           = <span class="num">${d.bsi.toFixed(3)}</span> / 10.0
+
+<span class="kw">Vulnerability</span> = age_factor + env_factor
+              = <span class="val">${(d.vulnerability).toFixed(3)}</span>
+
+<span class="kw">Import_Factor</span> = 0.85 + (Class−1) × 0.03
+              = <span class="val">${(d.importFactor).toFixed(3)}</span>
+
+<span class="kw">BHI</span> = BSI×10 × (1−Vuln) × Import_Factor
+     = <span class="num">${d.bhi.toFixed(1)}</span> / 100.0
+
+<span class="comment">// Remaining Service Life (indicative)</span>
+<span class="kw">RSL</span>  = (BSI/10) × (100−Age) × 0.6
+      ≈ <span class="num">${d.remainingLife} years</span>
+
+<span class="comment">// NHVR: AS5100.7 + condition factor</span>
+<span class="kw">Load</span> = <span class="num">${d.nhvrRating}t · ${d.nhvrClass}</span></div>
+      </div>
+    </div>
+
+    <div class="formula-box">
+      <h3>NSW Bridge Condition Scale Reference</h3>
+      <div class="risk-matrix">
+        ${[
+          {r:'9–10',l:'EXCELLENT',c:'#00d4aa',d:'New / recently rehabilitated. No defects.'},
+          {r:'7–9', l:'VERY GOOD',c:'#4cde8e',d:'Minor surface defects only. Monitor.'},
+          {r:'5.5–7',l:'GOOD',   c:'#ffb347',d:'Minor cracking/corrosion. Routine maint.'},
+          {r:'4–5.5',l:'FAIR',   c:'#ff8c42',d:'Moderate deterioration. Prioritise.'},
+          {r:'0–4',  l:'POOR/CRITICAL',c:'#ff4d6d',d:'Structural concern. Urgent action.'},
+        ].map(b=>`
+          <div class="risk-cell" style="background:${b.c}22;border:1px solid ${b.c}44">
+            <div style="color:${b.c};font-weight:600;font-size:9px;margin-bottom:4px">${b.l}</div>
+            <div style="font-size:14px;font-weight:800;color:${b.c};font-family:'Syne',sans-serif">${b.r}</div>
+            <div style="font-size:8px;color:var(--text-dim);margin-top:4px;line-height:1.4">${b.d}</div>
+          </div>`).join('')}
+      </div>
+      <div class="tag-row" style="margin-top:12px;flex-wrap:wrap;gap:6px">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);line-height:22px">Sources:</span>
+        <span class="tag">AusRoads Bridge Inspection Guide</span>
+        <span class="tag">TfNSW BIMS User Guide</span>
+        <span class="tag">AS5100.7 Bridge Assessment</span>
+        <span class="tag">NHVR Access Assessment</span>
+        <span class="tag">RMS Bridge Inspection Manual</span>
+      </div>
+    </div>
+  `;
+}
+
+// Init
+document.getElementById('modelDesc').textContent = MODELS[currentModel].desc;
+renderSliders();
+</script>
+</body>
+</html>

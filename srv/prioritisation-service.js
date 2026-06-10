@@ -4,6 +4,7 @@ const { writeChangeLogs } = require('./audit-log')
 const { getConfig } = require('./system-config')
 const engine = require('./lib/prioritisation')
 const ruleEngine = require('./lib/prioritisation-rule-engine')
+const bhiLib = require('./lib/bhi')
 const { Pdf } = require('./lib/pdf')
 
 // Bridge Prioritisation service. Every output is computed SERVER-SIDE from the inputs + the
@@ -223,6 +224,27 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length })
       return { fleetRunId, scored: scored.length, excluded: excluded.length, excludedDetail: JSON.stringify(excluded.slice(0, 50)) }
     })
+    // ── BSI/BHI: compute + persist per bridge (gather) — feeds ConditionByMode (visualise) ──
+    this.on('computeBhi', async (req) => {
+      const where = req.data.bridgeID ? { ID: req.data.bridgeID } : {}
+      const bridges = await db.run(SELECT.from('bridge.management.Bridges').where(where).limit(1000))
+      let updated = 0
+      for (const b of bridges) {
+        const elements = await db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: b.ID }))
+        const env = bhiLib.envFromBridge(b)
+        const r = bhiLib.computeBSI(elements, b.transportMode, env)
+        if (r.bsi === null) continue
+        const bhi = bhiLib.computeBHI(r.bsi, env)
+        await db.run(cds.ql.UPDATE('bridge.management.Bridges').set({
+          bsiScore: r.bsi, bhiScore: bhi, bsiPriority: bhiLib.bsiPriority(r.bsi), bhiComputedAt: new Date().toISOString()
+        }).where({ ID: b.ID }))
+        updated++
+      }
+      try { await writeChangeLogs(db, { objectType: 'BridgeBhi', objectId: String(req.data.bridgeID || 'fleet'), objectName: 'BSI/BHI compute', source: 'Prioritisation', changedBy: req.user?.id || 'system', changes: [{ fieldName: 'updated', oldValue: '', newValue: String(updated) }] }) } catch (e) { log.warn('bhi ChangeLog skipped', e.message) }
+      log.info('BSI/BHI computed', { updated })
+      return { updated }
+    })
+
     // ── G8: portfolio data-readiness — % of fleet with a resolvable raw value per criterion ──
     this.on('dataReadiness', async () => {
       const models = await loadActiveModels()

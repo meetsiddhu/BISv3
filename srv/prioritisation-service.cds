@@ -124,6 +124,9 @@ extend service PrioritisationService with {
   @(requires: ['manage', 'admin'])
   action scoreFleet(limit : Integer) returns { fleetRunId : String; scored : Integer; excluded : Integer; excludedDetail : LargeString; };
   function dataReadiness() returns { criteria : LargeString; };
+  // BSI/BHI: compute + persist the element-weighted indices for one bridge (or all when null).
+  @(requires: ['manage', 'admin'])
+  action computeBhi(bridgeID : Integer) returns { updated : Integer; };
 
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE'], to: 'admin' }]
   entity UserTypesConfig as projection on my.UserTypes;

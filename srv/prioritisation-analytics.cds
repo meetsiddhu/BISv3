@@ -37,6 +37,19 @@ service PrioritisationAnalyticsService @(path: '/odata/v4/prioritisation-analyti
       avg(priorityScore)        as avgScore          : Decimal(6,2)
     } where active = true group by band;
 
+  // BSI/BHI across modes (G-BHI): per-transport-mode condition health for SAC/DSP + dashboards.
+  @readonly
+  entity ConditionByMode as
+    select from my.Bridges {
+      key transportMode,
+      count(*)        as bridges  : Integer,
+      avg(bsiScore)   as avgBsi   : Decimal(4,2),
+      min(bsiScore)   as worstBsi : Decimal(4,2),
+      avg(bhiScore)   as avgBhi   : Decimal(5,1),
+      min(bhiScore)   as worstBhi : Decimal(5,1),
+      avg(conditionRating) as avgCondition : Decimal(4,2)
+    } group by transportMode;
+
   // Model catalogue (criteria + standards refs) for lineage/metadata in DSP.
   @readonly
   entity ModelCatalogue as projection on my.ModelCriterion {
