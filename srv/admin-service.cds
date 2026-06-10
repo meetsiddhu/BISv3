@@ -387,6 +387,20 @@ service AdminService {
           effectiveFrom,
           effectiveTo,
           active,
+          // ── New type-relevant attributes surfaced for slice-and-dice (additive) ──
+          appliesToVehicleClass,
+          direction,
+          speedLimit,
+          lengthLimit,
+          axleMassLimit,
+          grossCombinationLimit,
+          permitRequired,
+          escortRequired,
+          gazetteNumber,
+          gazetteExpiryDate,
+          reviewDueDate,
+          restrictionReason,
+          detourRoute,
           1 as restrUnit : Integer   // SUM(restrUnit) = restriction count, for the ALP chart measure
     };
 

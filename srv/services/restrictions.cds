@@ -27,6 +27,9 @@ extend service BridgeManagementService with {
         key ID, restrictionType, restrictionValue, restrictionUnit,
         bridge.bridgeId   as bridgeId,
         bridge.bridgeName as bridgeName,
-        effectiveFrom, effectiveTo, permitRequired, direction, restrictionStatus
+        effectiveFrom, effectiveTo, permitRequired, direction, restrictionStatus,
+        // New type-relevant attributes (additive)
+        restrictionCategory, appliesToVehicleClass, restrictionSeverity,
+        laneAvailability, gazetteExpiryDate, reviewDueDate
     } where restrictionStatus = 'Active' and active = true;
 };

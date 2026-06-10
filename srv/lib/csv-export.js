@@ -30,7 +30,15 @@ const BRIDGE_EXPORT_FIELDS = ['ID', 'bridgeId', 'bridgeName', 'state', 'latitude
 const RESTRICTION_EXPORT_FIELDS = ['ID', 'restrictionRef', 'bridgeRef', 'bridgeName', 'state', 'restrictionType',
   'restrictionCategory', 'restrictionValue', 'restrictionUnit', 'restrictionStatus',
   'grossMassLimit', 'axleMassLimit', 'heightLimit', 'widthLimit', 'lengthLimit', 'speedLimit',
-  'permitRequired', 'escortRequired', 'effectiveFrom', 'effectiveTo', 'approvedBy', 'direction']
+  'permitRequired', 'escortRequired', 'effectiveFrom', 'effectiveTo', 'approvedBy', 'direction',
+  // Previously-missing legal/authority columns + new NSW/NHVR attributes (appended — additive)
+  'issuingAuthority', 'legalReference', 'approvalReference', 'enforcementAuthority',
+  'temporaryFrom', 'temporaryTo', 'temporaryReason', 'remarks',
+  'restrictionSeverity', 'laneAvailability', 'lanesOpen', 'lanesTotal', 'laneWidthLimit',
+  'gazetteNumber', 'gazettePublicationDate', 'gazetteExpiryDate', 'reviewDueDate', 'approvalDate',
+  'restrictionReason', 'detourRoute', 'conditionTrigger', 'pbsClassApplicable',
+  'grossCombinationLimit', 'tandemAxleLimit', 'triAxleLimit', 'steerAxleLimit',
+  'pilotVehicleCount', 'signageRequired', 'appliesToVehicleClass']
 
 function buildBridgesCsv (bridges, customAttributeColumns = [], customFieldValuesByObjectId = new Map()) {
   return buildCsv(bridges, BRIDGE_EXPORT_FIELDS, customAttributeColumns, customFieldValuesByObjectId)
