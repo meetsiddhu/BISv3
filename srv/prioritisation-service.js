@@ -339,10 +339,20 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       // bridge ID ASC as the tiebreak (same inputs ⇒ same ranks).
       scored.sort((x, y) => (bandIdx(x.ev.band) - bandIdx(y.ev.band)) ||
         (y.ev.priorityScore - x.ev.priorityScore) || (num(x.b.ID) - num(y.b.ID)))
+      // B5 (partition): fleetRank is PER (modelCode, modelVersion) PARTITION, restarting at 1 in
+      // each. Scores from different models are not commensurable — a single fleet-wide sequence
+      // ranked a rail asset "above" a road asset on numbers produced by different parameter sets.
+      // The global band-first sort above is order-preserving inside every partition, so each
+      // partition's sequence stays band-first (P1 before P2, score DESC within a band, ID tiebreak).
+      const partitionRanks = new Map()
+      const partitionKeyOf = (ev) => (ev.modelCode || '?') + '|' + (ev.modelVersion ?? 1)
       const assessedAt = new Date().toISOString()
       const assessedBy = req.user?.id || 'system'
-      const entries = scored.map((s, i) => {
+      const entries = scored.map((s) => {
         const lk = ruleEngine.DERIVED.deriveLikelihood({ bridge: s.b })
+        const pk = partitionKeyOf(s.ev)
+        const rank = (partitionRanks.get(pk) || 0) + 1
+        partitionRanks.set(pk, rank)
         return {
           ID: cds.utils.uuid(), bridge_ID: s.b.ID, bridgeRef: s.b.bridgeId, bridgeName: s.b.bridgeName,
           likelihood: lk, likelihoodDerived: lk,
@@ -353,7 +363,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           priorityScore: s.ev.priorityScore, band: s.ev.band,
           modelCode: s.ev.modelCode, modelVersion: s.ev.modelVersion, weightSetHash: s.ev.weightSetHash,
           criterionBreakdown: JSON.stringify({ rows: s.ev.criterionBreakdown, flags: s.ev.flags, forceReview: s.ev.forceReview, delegated: false, baseScore: s.ev.baseScore, fleet: true }),
-          fleetRunId, fleetRank: i + 1,
+          fleetRunId, fleetRank: rank,
           likelyFailureCostAud: s.b.likelyFailureCostAud ?? null, mitigationCostAud: s.b.mitigationCostAud ?? null,
           inputsAvailable: null, inputsTotal: null, conditionAsAtMonths: monthsSince(s.b.lastInspectionDate),
           configVersion: (cfgRow && cfgRow.version) || 'v1', formulaVersion: 'rule-engine-v1',
@@ -412,7 +422,15 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
             { fieldName: 'exclusions', oldValue: '', newValue: JSON.stringify(excluded) },
             { fieldName: 'superseded', oldValue: '', newValue: String(supersededCount) },
             { fieldName: 'fleetTotal', oldValue: '', newValue: String(fleetTotal) },
-            { fieldName: 'truncated', oldValue: '', newValue: String(truncated) }
+            { fieldName: 'truncated', oldValue: '', newValue: String(truncated) },
+            // B5: the (modelCode, modelVersion) rank partitions are STAMPED on the audit trail —
+            // a past run's ranked lists are reconstructible per scoring model, count included.
+            { fieldName: 'partitions',
+              oldValue: '',
+              newValue: JSON.stringify(Array.from(partitionRanks, ([k, n]) => {
+                const [mc, mv] = k.split('|')
+                return { modelCode: mc, modelVersion: Number(mv) || mv, scored: n }
+              })) }
           ] })
       } catch (e) { log.warn('fleet ChangeLog skipped', e.message) }
       log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length, skipped, superseded: supersededCount, fleetTotal, truncated })
