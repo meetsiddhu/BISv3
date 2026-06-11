@@ -139,4 +139,23 @@ extend service PrioritisationService with {
   entity ModelUserTypeWeights as projection on my.UserTypeCriterionWeight;
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE'], to: 'admin' }]
   entity PreFilters as projection on my.PrioritisationPreFilter;
+
+  // B6b: the governed change path for a referenced Active model. In-place MATERIAL edits on an
+  // Active model that active assessment runs reference are rejected (409); this action instead
+  // deep-copies the full bundle (model + criteria + bindings + value bands + class weights +
+  // rules + user-type weights) to version = max(version)+1 as a new Draft with fresh UUIDs.
+  // Admin-only; the clone is ChangeLogged with its source model and bundle counts.
+  @(requires: 'admin')
+  action cloneModel(modelID : UUID) returns {
+    modelID         : UUID;
+    code            : String;
+    version         : Integer;
+    status          : String;
+    criteria        : Integer;
+    bindings        : Integer;
+    bands           : Integer;
+    classWeights    : Integer;
+    rules           : Integer;
+    userTypeWeights : Integer;
+  };
 }

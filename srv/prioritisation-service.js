@@ -541,10 +541,88 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
 
     // ── Model Builder writes: validation + ChangeLog on every CUD (admin-gated in CDS) ──
     const MODEL_ENTITIES = ['Models', 'ModelCriteria', 'ModelClassWeights', 'ModelRules', 'ModelBindings', 'ModelValueBands']
+    const NS = 'bridge.management.'
+    // i18n-able server message (locked rule 6): resolve from the messages bundle, fall back to
+    // the documented English default so a missing translation can never blank a rejection.
+    const i18nText = (key, args, fallback) => {
+      try {
+        const t = cds.i18n && cds.i18n.messages && cds.i18n.messages.at(key, args)
+        if (t && t !== key) return t
+      } catch (_e) { /* fall back below */ }
+      return fallback
+    }
+    // ── B6b: Active-model in-place edit guard ────────────────────────────────────────────────
+    // A model that is Active AND referenced by at least one ACTIVE assessment is the stated
+    // audit basis of stored runs — editing its scoring parameters in place silently re-writes
+    // what every consumer believes those runs were scored with. MATERIAL changes are therefore
+    // rejected (409) with a clone-to-new-version direction; Draft/Retired models and
+    // non-material fields (descriptions, notes, labels) stay freely editable.
+    const MODEL_TABLE = {
+      Models: 'PrioritisationModel', ModelCriteria: 'ModelCriterion',
+      ModelClassWeights: 'AssetClassCriterionWeight', ModelRules: 'AggregationRule',
+      ModelBindings: 'CriterionSourceBinding', ModelValueBands: 'CriterionValueBand'
+    }
+    const NON_MATERIAL_FIELDS = {
+      Models: ['name', 'description', 'status', 'reviewedBy', 'reviewedAt', 'reviewSource'],
+      ModelCriteria: ['name', 'description', 'standardRef', 'displayOrder'],
+      ModelClassWeights: [],                       // every field moves a score → all material
+      ModelRules: ['rationale'],
+      ModelBindings: ['unit'],
+      ModelValueBands: ['label', 'displayOrder']
+    }
+    const FRAMEWORK_FIELDS = ['ID', 'createdAt', 'createdBy', 'modifiedAt', 'modifiedBy']
+    // Target row id of an UPDATE: payload key, bound param, or the ID predicate of the query.
+    const targetIdOf = (req) => {
+      if (req.data && req.data.ID) return req.data.ID
+      const p = req.params && req.params[req.params.length - 1]
+      if (p) return p.ID || p
+      const where = req.query && req.query.UPDATE && req.query.UPDATE.where
+      if (Array.isArray(where)) {
+        for (let i = 0; i + 2 < where.length; i++) {
+          const r = where[i]
+          if (r && r.ref && r.ref[r.ref.length - 1] === 'ID' && where[i + 1] === '=' &&
+              where[i + 2] && where[i + 2].val !== undefined) return where[i + 2].val
+        }
+      }
+      return null
+    }
+    // Resolve the OWNING PrioritisationModel of a Model Builder row (direct, or via criterion).
+    const owningModelOf = async (en, id) => {
+      if (!id) return null
+      if (en === 'Models') return db.run(SELECT.one.from(NS + 'PrioritisationModel').where({ ID: id }))
+      let modelId = null
+      if (en === 'ModelBindings' || en === 'ModelValueBands') {
+        const row = await db.run(SELECT.one.from(NS + MODEL_TABLE[en]).columns('criterion_ID').where({ ID: id }))
+        if (!row || !row.criterion_ID) return null
+        const c = await db.run(SELECT.one.from(NS + 'ModelCriterion').columns('model_ID').where({ ID: row.criterion_ID }))
+        modelId = c && c.model_ID
+      } else {
+        const row = await db.run(SELECT.one.from(NS + MODEL_TABLE[en]).columns('model_ID').where({ ID: id }))
+        modelId = row && row.model_ID
+      }
+      return modelId ? db.run(SELECT.one.from(NS + 'PrioritisationModel').where({ ID: modelId })) : null
+    }
+    const guardActiveModelEdit = async (en, req) => {
+      const material = Object.keys(req.data || {})
+        .filter(k => !FRAMEWORK_FIELDS.includes(k) && !NON_MATERIAL_FIELDS[en].includes(k))
+      if (!material.length) return // description/notes-type edit — always allowed
+      const m = await owningModelOf(en, targetIdOf(req))
+      if (!m || m.status !== 'Active') return // Draft/Retired models stay freely editable
+      const cnt = await db.run(SELECT.one`count(*) as n`.from(NS + 'PrioritisationAssessment')
+        .where({ modelCode: m.code, modelVersion: m.version, active: true }))
+      const refs = num(cnt && (cnt.n ?? cnt.N))
+      if (!refs) return // Active but unreferenced — still safely editable
+      log.warn('Model Builder material edit REJECTED on referenced Active model', {
+        entity: en, model: m.code, version: m.version, activeRuns: refs, fields: material })
+      return req.reject(409, i18nText('modelActiveInUse', [m.code, m.version, refs],
+        `Model ${m.code} v${m.version} is Active and referenced by ${refs} active assessment run(s). ` +
+        'Editing its scoring parameters in place would silently re-write the stated basis of those runs. ' +
+        'Use cloneModel to create a new Draft version, adjust it, and activate it after review.'))
+    }
     for (const en of MODEL_ENTITIES) {
       const target = this.entities[en]
       if (!target) continue
-      this.before(['CREATE', 'UPDATE'], target, (req) => {
+      this.before(['CREATE', 'UPDATE'], target, async (req) => {
         const d = req.data || {}
         if (en === 'ModelRules' && d.config !== undefined) {
           try { JSON.parse(d.config || '{}') } catch (_e) { return req.reject(400, 'AggregationRule.config must be valid JSON.') }
@@ -556,6 +634,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           // activating a model retires other Active versions of the SAME code (mirror config behaviour)
           req._activateCode = d.code
         }
+        if (req.event === 'UPDATE') return guardActiveModelEdit(en, req)
       })
       this.after(['CREATE', 'UPDATE'], target, async (data, req) => {
         try {
@@ -569,6 +648,74 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         } catch (e) { log.warn('ModelBuilder ChangeLog skipped:', e.message) }
       })
     }
+
+    // ── B6b: cloneModel — the GOVERNED change path for a referenced Active model ─────────────
+    // Deep-copies the FULL bundle (model + criteria + bindings + value bands + class weights +
+    // rules + user-type weights) to version = max(version)+1 of the same code, status 'Draft',
+    // with NEW UUIDs throughout (criterion references remapped). Admin-gated in CDS; ChangeLogged.
+    this.on('cloneModel', async (req) => {
+      const srcID = req.data.modelID
+      const src = srcID && await db.run(SELECT.one.from(NS + 'PrioritisationModel').where({ ID: srcID }))
+      if (!src) return req.reject(404, i18nText('modelNotFound', [String(srcID)], 'Model not found.'))
+      const maxRow = await db.run(SELECT.one`max(version) as v`.from(NS + 'PrioritisationModel').where({ code: src.code }))
+      const newVersion = num(maxRow && (maxRow.v ?? maxRow.V)) + 1
+      const strip = (row) => {
+        const c = Object.assign({}, row)
+        for (const k of FRAMEWORK_FIELDS) delete c[k]
+        return c
+      }
+      const newModelID = cds.utils.uuid()
+      await db.run(cds.ql.INSERT.into(NS + 'PrioritisationModel').entries(Object.assign(strip(src), {
+        ID: newModelID, version: newVersion, status: 'Draft',
+        // a clone is NOT signed off — review fields restart empty for the new version
+        reviewedBy: null, reviewedAt: null
+      })))
+      // criteria first — the old→new id map drives every child remap below
+      const criteria = await db.run(SELECT.from(NS + 'ModelCriterion').where({ model_ID: srcID }))
+      const critMap = new Map()
+      for (const c of criteria) critMap.set(c.ID, cds.utils.uuid())
+      if (criteria.length) {
+        await db.run(cds.ql.INSERT.into(NS + 'ModelCriterion').entries(criteria.map(c =>
+          Object.assign(strip(c), { ID: critMap.get(c.ID), model_ID: newModelID }))))
+      }
+      const srcCritIds = criteria.map(c => c.ID)
+      const remapCrit = (id) => (id && critMap.get(id)) || null
+      const copyChildren = async (table, rows, patch) => {
+        if (!rows.length) return 0
+        await db.run(cds.ql.INSERT.into(NS + table).entries(rows.map(r =>
+          Object.assign(strip(r), { ID: cds.utils.uuid() }, patch(r)))))
+        return rows.length
+      }
+      const bindings = srcCritIds.length ? await db.run(SELECT.from(NS + 'CriterionSourceBinding').where({ criterion_ID: { in: srcCritIds } })) : []
+      const bands = srcCritIds.length ? await db.run(SELECT.from(NS + 'CriterionValueBand').where({ criterion_ID: { in: srcCritIds } })) : []
+      const classWeights = await db.run(SELECT.from(NS + 'AssetClassCriterionWeight').where({ model_ID: srcID }))
+      const rules = await db.run(SELECT.from(NS + 'AggregationRule').where({ model_ID: srcID }))
+      const userTypeWeights = await db.run(SELECT.from(NS + 'UserTypeCriterionWeight').where({ model_ID: srcID }))
+      const counts = {
+        criteria: criteria.length,
+        bindings: await copyChildren('CriterionSourceBinding', bindings, (r) => ({ criterion_ID: remapCrit(r.criterion_ID) })),
+        bands: await copyChildren('CriterionValueBand', bands, (r) => ({ criterion_ID: remapCrit(r.criterion_ID) })),
+        classWeights: await copyChildren('AssetClassCriterionWeight', classWeights, (r) => ({ model_ID: newModelID, criterion_ID: remapCrit(r.criterion_ID) })),
+        rules: await copyChildren('AggregationRule', rules, (r) => ({ model_ID: newModelID, criterion_ID: remapCrit(r.criterion_ID) })),
+        userTypeWeights: await copyChildren('UserTypeCriterionWeight', userTypeWeights, (r) => ({ model_ID: newModelID, criterion_ID: remapCrit(r.criterion_ID) }))
+      }
+      try {
+        await writeChangeLogs(db, {
+          objectType: 'PrioritisationModels', objectId: String(newModelID),
+          objectName: src.code + ' v' + newVersion + ' (clone)', source: 'PrioritisationModelBuilder',
+          changedBy: req.user?.id || 'system',
+          changes: [
+            { fieldName: 'clonedFrom', oldValue: '', newValue: String(srcID) },
+            { fieldName: 'code', oldValue: '', newValue: String(src.code) },
+            { fieldName: 'version', oldValue: String(src.version), newValue: String(newVersion) },
+            { fieldName: 'status', oldValue: '', newValue: 'Draft' },
+            { fieldName: 'bundle', oldValue: '', newValue: JSON.stringify(counts) }
+          ]
+        })
+      } catch (e) { log.warn('cloneModel ChangeLog skipped:', e.message) }
+      log.info('Prioritisation model cloned to new Draft version', { from: srcID, to: newModelID, code: src.code, version: newVersion, counts })
+      return Object.assign({ modelID: newModelID, code: src.code, version: newVersion, status: 'Draft' }, counts)
+    })
 
     // ── reportPdf: server-rendered, branded, paginated A4 exec one-pager ──
     // Figures are computed HERE from the immutable runs (not the client's view) so the document is
