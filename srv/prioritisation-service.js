@@ -625,11 +625,62 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       doc.kv('Scoring model(s)', modelIds.join(', ') + ' — criteria/weights per Model Builder (BMS Admin)')
       doc.kv('Endorsed by / date', '____________________ / __________')
       doc.heading('Methodology appendix (reproducible)')
-      doc.paragraph('criticality = sum(dimension x weight), weights ' + w.join(' / ') + ' (safety/network/financial/environmental/reputational) normalised to 1. ' +
-        'tier = round(criticality) clamped 1..5. residual = likelihood x tier (an active restriction is a treatment FLAG, never a score input). ' +
-        'priorityScore = ' + pw[0] + ' riskN + ' + pw[1] + ' critN + ' + pw[2] + ' stratN (normalised); band thresholds 80/60/40/20 -> P1..P5. ' +
-        'maxResidual ' + cfg.maxResidual + ', maxCriticality ' + cfg.maxCriticality + '. ' +
-        'Every run stores its inputs and its exact parameter snapshot, so any past ranked list reproduces byte-identically.')
+      // B6a: the appendix documents HOW the runs in THIS portfolio were actually scored — it
+      // branches on each stored run's formulaVersion instead of printing one static text.
+      // rule-engine-v1 runs (modelCode stamped) get the configurable-engine methodology; legacy
+      // v1-normalised runs keep the approved-formula text; a mixed portfolio prints BOTH with
+      // per-method run counts. An empty portfolio documents the approved formula (the default).
+      const isRuleRun = (r) => String(r.formulaVersion || '').startsWith('rule-engine')
+      const ruleRuns = runs.filter(isRuleRun)
+      const legacyRuns = runs.filter(r => !isRuleRun(r))
+      const ladderTxt = (cfg.bandThresholds || []).slice()
+        .sort((a, b) => num(b.min) - num(a.min)).map(b => b.min).join('/')
+      if (ruleRuns.length && legacyRuns.length) {
+        doc.paragraph('Mixed-method portfolio: ' + ruleRuns.length + ' rule-engine run(s) and ' +
+          legacyRuns.length + ' approved-formula run(s). Both methodologies are documented below; ' +
+          'every stored run names its own method in formulaVersion.')
+      }
+      if (legacyRuns.length || !ruleRuns.length) {
+        const legacyVersions = Array.from(new Set(legacyRuns.map(r => r.formulaVersion || formulaVersion)))
+        doc.kv('Approved formula', (ruleRuns.length ? legacyRuns.length + ' run(s) · ' : '') +
+          (legacyVersions.length ? legacyVersions.join(', ') : formulaVersion))
+        doc.paragraph('criticality = sum(dimension x weight), weights ' + w.join(' / ') + ' (safety/network/financial/environmental/reputational) normalised to 1. ' +
+          'tier = round(criticality) clamped 1..5. residual = likelihood x tier (an active restriction is a treatment FLAG, never a score input). ' +
+          'priorityScore = ' + pw[0] + ' riskN + ' + pw[1] + ' critN + ' + pw[2] + ' stratN (normalised); band thresholds 80/60/40/20 -> P1..P5. ' +
+          'maxResidual ' + cfg.maxResidual + ', maxCriticality ' + cfg.maxCriticality + '. ' +
+          'Every run stores its inputs and its exact parameter snapshot, so any past ranked list reproduces byte-identically.')
+      }
+      if (ruleRuns.length) {
+        // One sub-section per (modelCode, modelVersion): run count, frozen criteria count (from
+        // the immutable criterionBreakdown / paramSnapshot, never the live model) + weightSetHash.
+        const byModel = new Map()
+        for (const r of ruleRuns) {
+          const key = (r.modelCode || '?') + ' v' + (r.modelVersion ?? 1)
+          let e = byModel.get(key)
+          if (!e) { e = { runs: 0, hashes: new Set(), criteria: 0 }; byModel.set(key, e) }
+          e.runs++
+          if (r.weightSetHash) e.hashes.add(r.weightSetHash)
+          if (!e.criteria) {
+            try { const cb = JSON.parse(r.criterionBreakdown || '{}'); if (Array.isArray(cb.rows)) e.criteria = cb.rows.length } catch (_e) { /* fall through to paramSnapshot */ }
+          }
+          if (!e.criteria) {
+            try { const ps = JSON.parse(r.paramSnapshot || '{}'); if (Array.isArray(ps.criteria)) e.criteria = ps.criteria.length } catch (_e) { /* unknown */ }
+          }
+        }
+        doc.kv('Configurable rule engine', ruleRuns.length + ' run(s) · rule-engine-v1')
+        doc.paragraph('Each criterion raw value resolves from its governed source binding, maps to a 0..100 score through the model value bands, and ' +
+          'aggregates as a weighted sum: priorityScore = sum(score x weight x confidence x user-type factor) / sum(weight). ' +
+          'Non-compensatory rules (SafetyFloor / Veto / Escalate / HurdleMin) then adjust the band so a safety-critical signal is never averaged away; ' +
+          'band thresholds ' + ladderTxt + ' -> P1..P5. Missing data follows the explicit per-criterion policy (flagged, never a silent zero). ' +
+          'Every run freezes the RESOLVED model bundle (criteria, bindings, value bands, class weights, rules, pre-filters) in its paramSnapshot ' +
+          'and stamps the weightSetHash naming the exact parameter set, so any past ranked list reproduces byte-identically.')
+        for (const [key, e] of byModel) {
+          doc.kv('Model ' + key, e.runs + ' run(s) · ' + (e.criteria || '?') + ' criteria frozen per run')
+          const hashes = Array.from(e.hashes)
+          doc.kv('weightSetHash', hashes.length === 1 ? hashes[0]
+            : hashes.length + ' parameter sets: ' + hashes.map(h => String(h).slice(0, 12)).join(', '))
+        }
+      }
 
       log.info('Prioritisation exec PDF rendered', { docId, runs: runs.length, pages: 'auto' })
       return { filename: docId + '.pdf', contentType: 'application/pdf', contentBase64: doc.build().toString('base64'), docId }

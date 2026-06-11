@@ -174,3 +174,86 @@ describe('PrioritisationService', () => {
     expect(after.criticality).toBe(before.criticality)
   })
 })
+
+// ── Council B6a: the PDF methodology appendix must document HOW the portfolio's runs were
+// ACTUALLY scored — branching on each stored run's formulaVersion. Rule-engine runs get the
+// configurable-engine section (model code/version, frozen criteria count, weightSetHash);
+// legacy v1-normalised runs keep the approved-formula text; a mixed portfolio prints BOTH
+// with per-method run counts. Assertions parse the PDF BYTES for the literal rendered text.
+describe('reportPdf methodology appendix (council B6a — formulaVersion-aware)', () => {
+  const RUNS = 'bridge.management.PrioritisationAssessment'
+  const ROAD_BRIDGE_ID = 990210 // assetClass 'Road Bridge' → resolves to seeded NSW-PACK-V1 in scoreFleet
+  const LEGACY_MARKER = 'criticality = sum(dimension x weight)'
+  const RULE_MARKER = 'Non-compensatory rules (SafetyFloor / Veto / Escalate / HurdleMin)'
+
+  // Extract every text-show string from the (uncompressed) PDF content streams and re-join with
+  // spaces — word-wrap only ever breaks at spaces, so wrapped paragraphs reconstruct exactly.
+  const pdfText = (doc) => {
+    const s = Buffer.from(doc.contentBase64, 'base64').toString('latin1')
+    const out = []
+    const re = /\(((?:[^()\\]|\\.)*)\)\s*Tj/g
+    let m
+    while ((m = re.exec(s))) out.push(m[1].replace(/\\([()\\])/g, '$1'))
+    return out.join(' ')
+  }
+  const report = () => cds.connect.to('PrioritisationService').then((srv) =>
+    srv.tx({ user: new cds.User({ id: 'v', roles: ['view'] }) }, (tx) => tx.send('reportPdf')))
+
+  beforeAll(async () => {
+    const db = await cds.connect.to('db')
+    await db.run(INSERT.into('bridge.management.Bridges').entries({
+      ID: ROAD_BRIDGE_ID, bridgeId: 'BRG-PDF-RULE', bridgeName: 'PDF Rule Engine Bridge',
+      assetClass: 'Road Bridge', transportMode: 'Road', status: 'Active',
+      conditionRating: 3, structuralAdequacyRating: 4, lastInspectionDate: '2026-01-01'
+    }))
+  })
+  beforeEach(async () => {
+    const db = await cds.connect.to('db')
+    await db.run(DELETE.from(RUNS))
+  })
+
+  test('legacy-only portfolio: the approved-formula text appears, NO rule-engine section', async () => {
+    await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
+    const db = await cds.connect.to('db')
+    const run = await db.run(SELECT.one.from(RUNS).where({ bridge_ID: BRIDGE_ID, active: true }))
+    expect(run.formulaVersion).toBe('v1-normalised') // delegated NSW-RISK-V1 → legacy methodology
+    const text = pdfText(await report())
+    expect(text).toContain(LEGACY_MARKER)
+    expect(text).not.toContain(RULE_MARKER)
+    expect(text).not.toContain('Mixed-method portfolio')
+  })
+
+  test('rule-engine portfolio: model identity, FROZEN criteria count and weightSetHash are printed; no legacy formula', async () => {
+    const res = await asManager((tx) => tx.send('scoreFleet', {}))
+    expect(res.scored).toBeGreaterThanOrEqual(1)
+    const db = await cds.connect.to('db')
+    const run = await db.run(SELECT.one.from(RUNS).where({ fleetRunId: res.fleetRunId, bridge_ID: ROAD_BRIDGE_ID }))
+    expect(run.formulaVersion).toBe('rule-engine-v1')
+    const text = pdfText(await report())
+    expect(text).toContain(RULE_MARKER)
+    expect(text).toContain('weighted sum') // the aggregation description
+    expect(text).toContain('Model ' + run.modelCode + ' v' + run.modelVersion)
+    expect(text).toContain(run.weightSetHash) // the FULL stored hash, byte-for-byte
+    const frozenCriteria = JSON.parse(run.criterionBreakdown).rows.length
+    expect(frozenCriteria).toBeGreaterThan(0)
+    expect(text).toContain(frozenCriteria + ' criteria frozen per run') // from the run, not the live model
+    expect(text).not.toContain(LEGACY_MARKER)
+    expect(text).not.toContain('Mixed-method portfolio')
+  })
+
+  test('MIXED portfolio: BOTH methodology sections appear with per-method run counts', async () => {
+    const res = await asManager((tx) => tx.send('scoreFleet', {}))
+    expect(res.scored).toBeGreaterThanOrEqual(1)
+    await asManager((tx) => tx.run(INSERT.into(ASSESS).entries(Object.assign({ bridge_ID: BRIDGE_ID }, baseInputs()))))
+    const db = await cds.connect.to('db')
+    const active = await db.run(SELECT.from(RUNS).where({ active: true }))
+    const ruleCount = active.filter((r) => String(r.formulaVersion).startsWith('rule-engine')).length
+    const legacyCount = active.length - ruleCount
+    expect(ruleCount).toBeGreaterThanOrEqual(1)
+    expect(legacyCount).toBeGreaterThanOrEqual(1)
+    const text = pdfText(await report())
+    expect(text).toContain('Mixed-method portfolio: ' + ruleCount + ' rule-engine run(s) and ' + legacyCount + ' approved-formula run(s)')
+    expect(text).toContain(LEGACY_MARKER) // legacy section present…
+    expect(text).toContain(RULE_MARKER)   // …AND the rule-engine section
+  })
+})
