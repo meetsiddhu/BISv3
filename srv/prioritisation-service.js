@@ -98,7 +98,10 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: bid })),
         db.run(SELECT.from('bridge.management.BridgeDefects').where({ bridge_ID: bid })),
         db.run(SELECT.from('bridge.management.BridgeInspections').where({ bridge_ID: bid })),
-        db.run(SELECT.from('bridge.management.BridgeRestrictions').where({ bridge_ID: bid, active: true })),
+        // R6: restriction context reads the UNION view over BOTH masters — a
+        // restriction entered via the Restrictions app now influences scoring
+        // exactly like one entered on the Bridges register tab.
+        db.run(SELECT.from('bridge.management.UnifiedRestrictions').where({ bridge_ID: bid, active: true })),
         db.run(SELECT.from('bridge.management.AttributeValues')
           .where({ objectType: { in: ['bridge', 'Bridge'] }, objectId: String(bid) }))
       ])
@@ -170,7 +173,10 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
     const factsFor = async (bridgeID) => {
       const b = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: bridgeID }))
       if (!b) return null
-      const restr = await db.run(SELECT.from('bridge.management.BridgeRestrictions')
+      // R6: restrictionFlag considers BOTH masters via the UnifiedRestrictions
+      // union view (previously BridgeRestrictions only — Restrictions-app rows
+      // never flipped the flag).
+      const restr = await db.run(SELECT.from('bridge.management.UnifiedRestrictions')
         .where({ bridge_ID: bridgeID, active: true, restrictionStatus: 'Active' }))
       const restrictionFlag = (restr || []).length > 0
       const restrictionSummary = restrictionFlag
@@ -303,7 +309,9 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: { in: ids } })),
           db.run(SELECT.from('bridge.management.BridgeDefects').where({ bridge_ID: { in: ids } })),
           db.run(SELECT.from('bridge.management.BridgeInspections').where({ bridge_ID: { in: ids } })),
-          db.run(SELECT.from('bridge.management.BridgeRestrictions').where({ bridge_ID: { in: ids }, active: true })),
+          // R6: fleet restriction context unions BOTH masters (same source as
+          // the per-bridge contextFor — the attribute fold cannot drift).
+          db.run(SELECT.from('bridge.management.UnifiedRestrictions').where({ bridge_ID: { in: ids }, active: true })),
           db.run(SELECT.from('bridge.management.AttributeValues')
             .where({ objectType: { in: ['bridge', 'Bridge'] }, objectId: { in: ids.map(String) } }))
         ])

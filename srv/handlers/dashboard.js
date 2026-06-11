@@ -4,9 +4,14 @@ module.exports = function registerDashboardHandlers (srv) {
 
     srv.on('getNetworkKPIs', async () => {
         const db = await cds.connect.to('db')
+        // R6 UNIFICATION: KPI counts read the UnifiedRestrictions UNION view, so
+        // restrictions maintained in EITHER master (Restrictions app or the
+        // Bridges-register BridgeRestrictions tab) are counted — previously this
+        // read bridge.management.Restrictions only and disagreed with the
+        // Restrictions Dashboard ALP by construction.
         const [bridges, activeRestrictions] = await Promise.all([
             db.run(SELECT.from('bridge.management.Bridges')),
-            db.run(SELECT.from('bridge.management.Restrictions').where({ restrictionStatus: 'Active', active: true }))
+            db.run(SELECT.from('bridge.management.UnifiedRestrictions').where({ restrictionStatus: 'Active', active: true }))
         ])
         return {
             totalBridges:       bridges.length,
@@ -34,8 +39,9 @@ module.exports = function registerDashboardHandlers (srv) {
 
     srv.on('getRestrictionSummary', async () => {
         const db = await cds.connect.to('db')
+        // R6: per-type summary over BOTH masters (UnifiedRestrictions union view).
         const activeRestrictions = await db.run(
-            SELECT.from('bridge.management.Restrictions').where({ restrictionStatus: 'Active', active: true })
+            SELECT.from('bridge.management.UnifiedRestrictions').where({ restrictionStatus: 'Active', active: true })
         )
         const restrictionTypeSummary = {}
         activeRestrictions.forEach(restriction => {

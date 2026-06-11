@@ -185,6 +185,15 @@ module.exports = function registerUploadHandlers (srv, helpers = {}) {
     })
 
     // ── massUploadRestrictions ───────────────────────────────────────────────
+    // R4/R6 RECORDED DECISION (docs/RESTRICTIONS-REVIEW-2026-06.json, amendments):
+    // bulk intake deliberately writes ONE master — bridge.management.Restrictions.
+    // There is intentionally NO BridgeRestrictions upload dataset: since R6 every
+    // read surface (NetworkRestrictionReport ALP, dashboard KPIs, prioritisation
+    // restrictionFlag, postingStatus) reads the bridge.management.
+    // UnifiedRestrictions UNION view over BOTH masters, an uploaded row is fully
+    // visible everywhere — a second intake path would only re-create the dual-
+    // master write ambiguity the council flagged. BridgeRestrictions remains the
+    // interactive master for the Bridges register object-page tab only.
     srv.on('massUploadRestrictions', async req => {
         try {
             const { csvData, fileName } = req.data

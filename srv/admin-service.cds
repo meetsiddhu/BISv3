@@ -355,20 +355,25 @@ service AdminService {
     };
 
   // ── Multi-mode Network Restrictions report (ALV / ALP) — Phase 3 ──
-  // Joins restrictions with parent-bridge mode/network/risk for slice-and-dice.
+  // R6 UNIFICATION: reads my.UnifiedRestrictions — the UNION view over BOTH
+  // restriction masters (Restrictions app rows AND Bridges-register
+  // BridgeRestrictions rows) — so this report can never disagree with the
+  // operational dashboard again. `sourceMaster` discloses which master a row
+  // came from. Bridge mode/network/risk columns come pre-joined from the view.
   @readonly
   @cds.redirection.target: false
   @restrict: [{ grant: 'READ', to: 'view' }]
   entity NetworkRestrictionReport as
-    select from my.BridgeRestrictions {
+    select from my.UnifiedRestrictions {
       key ID,
-          bridge.bridgeId                          as bridgeId   : String(40),
-          bridge.bridgeName                        as bridgeName : String(111),
-          coalesce(transportMode, bridge.transportMode) as transportMode : String(40),
-          coalesce(network, bridge.network)        as network    : String(80),
-          bridge.state                             as state      : String(40),
-          bridge.region                            as region     : String(80),
-          bridge.riskPriority                      as riskPriority : String(20),
+          sourceMaster,
+          bridgeId,
+          bridgeName,
+          transportMode,
+          network,
+          state,
+          region,
+          riskPriority,
           restrictionRef,
           restrictionCategory,
           restrictionType,

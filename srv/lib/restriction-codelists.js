@@ -285,7 +285,10 @@ function validateRestrictionCodes (entry, lookups) {
 /**
  * Recompute Bridges.postingStatus for a set of bridges from their currently
  * ACTIVE restrictions (same derivation as the OData path in handlers/common.js).
- * Used by the bulk paths (mass upload / mass edit) after restriction writes.
+ * Used by the bulk paths (mass upload / mass edit) AND by the AdminService
+ * restriction write paths (Restrictions app, Bridges-register tab).
+ * R6 UNIFICATION: reads the UnifiedRestrictions UNION view, so the derivation
+ * considers BOTH masters (Restrictions + BridgeRestrictions).
  */
 async function refreshBridgePostingStatus (db, bridgeIds) {
   const cds = require('@sap/cds')
@@ -293,7 +296,7 @@ async function refreshBridgePostingStatus (db, bridgeIds) {
   const ids = [...new Set((bridgeIds || []).filter((id) => id !== null && id !== undefined))]
   for (const bridgeId of ids) {
     const active = await db.run(
-      SELECT.from('bridge.management.Restrictions')
+      SELECT.from('bridge.management.UnifiedRestrictions')
         .columns('restrictionType')
         .where({ bridge_ID: bridgeId, restrictionStatus: 'Active', active: true })
     )

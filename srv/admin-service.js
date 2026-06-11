@@ -1054,6 +1054,41 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   })
 
 
+  // ── R6/R7: Bridges.postingStatus recompute on EVERY AdminService restriction
+  // write. The Restrictions Fiori app (AdminService.Restrictions) and the
+  // Bridges register tab (AdminService.BridgeRestrictions) previously never
+  // recomputed postingStatus (certified R7 residual) — only the
+  // BridgeManagementService and bulk upload/edit paths did. The derivation
+  // reads the UnifiedRestrictions UNION view (srv/lib/restriction-codelists.js),
+  // so a write to EITHER master moves the SAME posted truth that the dashboard
+  // KPIs, the Restrictions Dashboard ALP and prioritisation read.
+  const { refreshBridgePostingStatus } = require('./lib/restriction-codelists')
+  const recomputePostingStatus = async (db, ...bridgeIDs) => {
+    try { await refreshBridgePostingStatus(db, bridgeIDs) }
+    catch (e) { cds.log('bms').warn('postingStatus recompute failed:', e.message) }
+  }
+  for (const [restrictionEntity, restrictionTable] of [
+    [Restrictions, 'bridge.management.Restrictions'],
+    [BridgeRestrictions, 'bridge.management.BridgeRestrictions']
+  ]) {
+    this.after('CREATE', restrictionEntity, async (result) => {
+      if (!result?.ID) return
+      const db = await cds.connect.to('db')
+      const fresh = await fetchCurrentRecord(db, restrictionTable, { ID: result.ID })
+      await recomputePostingStatus(db, fresh?.bridge_ID)
+    })
+    this.after('UPDATE', restrictionEntity, async (result, req) => {
+      const ID = result?.ID || req.data?.ID
+      if (!ID) return
+      const db = await cds.connect.to('db')
+      const fresh = await fetchCurrentRecord(db, restrictionTable, { ID })
+      // When the bridge link moved, the OLD bridge's posting must be recomputed too.
+      const oldBridgeID = req._auditOld && req._auditOld.bridge_ID !== fresh?.bridge_ID
+        ? req._auditOld.bridge_ID : null
+      await recomputePostingStatus(db, fresh?.bridge_ID, oldBridgeID)
+    })
+  }
+
   // Soft-delete: deactivate / reactivate Restrictions (use db directly to bypass draft flow)
   this.on('deactivate', Restrictions.drafts, req => req.error(409, 'Save or discard your changes before deactivating.'))
   this.on('reactivate', Restrictions.drafts, req => req.error(409, 'Save or discard your changes before reactivating.'))
@@ -1071,6 +1106,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         { fieldName: 'restrictionStatus', oldValue: old?.restrictionStatus || '',  newValue: 'Retired' }
       ]
     })
+    await recomputePostingStatus(db, old?.bridge_ID) // R7: soft-delete moves postingStatus
     return db.run(SELECT.one.from('bridge.management.Restrictions').where({ ID }))
   })
   this.on('reactivate', Restrictions, async (req) => {
@@ -1086,6 +1122,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         { fieldName: 'restrictionStatus', oldValue: old?.restrictionStatus || 'Retired', newValue: 'Active' }
       ]
     })
+    await recomputePostingStatus(db, old?.bridge_ID) // R7: reactivation moves postingStatus
     return db.run(SELECT.one.from('bridge.management.Restrictions').where({ ID }))
   })
 
@@ -1136,6 +1173,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         { fieldName: 'restrictionStatus', oldValue: old?.restrictionStatus || '',              newValue: 'Retired' }
       ]
     })
+    await recomputePostingStatus(db, old?.bridge_ID) // R6/R7: BOTH masters move postingStatus
     return db.run(SELECT.one.from('bridge.management.BridgeRestrictions').where({ ID }))
   })
 
@@ -1156,6 +1194,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
         { fieldName: 'restrictionStatus', oldValue: old?.restrictionStatus || 'Retired',       newValue: 'Active' }
       ]
     })
+    await recomputePostingStatus(db, old?.bridge_ID) // R6/R7: BOTH masters move postingStatus
     return db.run(SELECT.one.from('bridge.management.BridgeRestrictions').where({ ID }))
   })
 

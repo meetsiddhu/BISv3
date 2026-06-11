@@ -1737,7 +1737,9 @@ annotate AdminService.NetworkRestrictionReport with @(
     { Value: riskPriority,        Label: 'Bridge Risk' },
     { Value: restrictionStatus,   Label: 'Status' },
     { Value: state,               Label: 'State' },
-    { Value: issuingAuthority,    Label: 'Authority' }
+    { Value: issuingAuthority,    Label: 'Authority' },
+    // R6: the report now unions BOTH restriction masters — disclose the source.
+    { Value: sourceMaster,        Label: 'Maintained In' }
   ],
   // NOTE: This entity backs BOTH the ALV list report (NetworkRestrictions-manage)
   // and the ALP (RestrictionsDashboard-display). Marking a stored field as
@@ -1760,7 +1762,7 @@ annotate AdminService.NetworkRestrictionReport with @(
   },
   Aggregation.ApplySupported: {
     Transformations: [ 'aggregate', 'groupby', 'filter' ],
-    GroupableProperties: [ transportMode, network, restrictionType, restrictionSeverity, restrictionStatus, riskPriority, state ],
+    GroupableProperties: [ transportMode, network, restrictionType, restrictionSeverity, restrictionStatus, riskPriority, state, sourceMaster ],
     AggregatableProperties: [ { Property: ID } ]
   },
   Analytics.AggregatedProperty #restrCount: {
@@ -1773,6 +1775,7 @@ annotate AdminService.NetworkRestrictionReport with {
   restrictionType @title:'Type'; restrictionValue @title:'Value'; restrictionUnit @title:'Unit';
   laneAvailability @title:'Lane Availability'; restrictionSeverity @title:'Severity'; riskPriority @title:'Bridge Risk';
   restrictionStatus @title:'Status'; state @title:'State'; issuingAuthority @title:'Authority';
+  sourceMaster @title:'Maintained In';
 };
 
 ////////////////////////////////////////////////////////////////////////////

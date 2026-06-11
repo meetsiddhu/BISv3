@@ -36,8 +36,12 @@ module.exports = function registerCommonHelpers (_srv) {
     }
 
     const updateBridgePostingStatus = async (bridgeID, db, _req) => {
+        // R6 UNIFICATION: postingStatus derives from the UnifiedRestrictions
+        // UNION view, i.e. from BOTH masters — a closure recorded on the Bridges
+        // register tab (BridgeRestrictions) closes the bridge exactly like one
+        // recorded in the Restrictions app (Restrictions).
         const activeRestrictions = await db.run(
-            SELECT.from('bridge.management.Restrictions')
+            SELECT.from('bridge.management.UnifiedRestrictions')
                   .where({ bridge_ID: bridgeID, restrictionStatus: 'Active', active: true })
         )
         // Closure derivation is config-driven via the canonical type catalogue
