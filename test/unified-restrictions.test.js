@@ -37,7 +37,7 @@ const { refreshBridgePostingStatus } = require('../srv/lib/restriction-codelists
 if (cds.env.requires && cds.env.requires.db && cds.env.requires.db.credentials) {
   cds.env.requires.db.credentials.url = ':memory:'
 }
-cds.test(__dirname + '/..')
+const { GET } = cds.test(__dirname + '/..')
 
 const BRIDGE_A = 990601 // gets its restriction via the Restrictions app master
 const BRIDGE_B = 990602 // gets its restriction via the Bridges-register master
@@ -228,5 +228,27 @@ describe('R6 unified restriction masters — cross-surface visibility', () => {
     const speedRow = rows.find((r) => r.restrictionRef === 'BR-UNI-0001')
     expect(speedRow.bridgeId).toBe('BRG-UNI-002')
     expect(speedRow.bridgeName).toBe('Unified Master B')
+    // map-consumer columns resolve for register-master rows too
+    expect(speedRow.bridgeRef).toBe('BRG-UNI-002')
+    expect(speedRow).toHaveProperty('remarks')
+  })
+
+  // ── The HTTP surfaces the tiles actually call (council re-verification R6 residual:
+  // the dashboard tile reads /dashboard/api/analytics and the map reads /map/api/*,
+  // which previously queried the Restrictions master only) ──────────────────────────
+  test('dashboard analytics API + map restrictions API serve the unified truth', async () => {
+    // dashboard tile KPI === active count of the UNION view (not one master)
+    const { data: kpi } = await GET('/dashboard/api/analytics')
+    const viewActive = await db.run(SELECT.from('bridge.management.UnifiedRestrictions').where({ active: true }))
+    expect(kpi.activeRestrictions).toBe(viewActive.length)
+    // BR-UNI-0001 lives on the BridgeRestrictions master — it MUST be inside that count
+    expect(viewActive.some((r) => r.restrictionRef === 'BR-UNI-0001')).toBe(true)
+
+    // map restrictions layer shows the register-master row with resolved bridge identity
+    const { data: mapData } = await GET('/map/api/restrictions')
+    const mapRow = (mapData.restrictions || []).find((r) => r.restrictionRef === 'BR-UNI-0001')
+    expect(mapRow).toBeTruthy()
+    expect(mapRow.bridgeRef).toBe('BRG-UNI-002')
+    expect(mapRow.bridgeName).toBe('Unified Master B')
   })
 })

@@ -935,7 +935,9 @@ async function loadDashboardAnalytics() {
       'ID', 'condition', 'conditionRating', 'structuralAdequacyRating',
       'postingStatus'
     )),
-    db.run(SELECT.from('bridge.management.Restrictions').columns(
+    // R6: KPI counts read the UNION view over BOTH restriction masters, so the
+    // dashboard tile can never disagree with the Network Restrictions report.
+    db.run(SELECT.from('bridge.management.UnifiedRestrictions').columns(
       'ID', 'active', 'restrictionStatus'
     ).where({ active: true }))
   ])
@@ -1054,7 +1056,7 @@ async function _mapBridgeRows(bridges, db) {
 
   if (bridgeIds.length) {
     const allRestrictions = await db.run(
-      SELECT.from('bridge.management.Restrictions')
+      SELECT.from('bridge.management.UnifiedRestrictions') // R6: both masters
         .columns(
           'ID',
           'bridge_ID',
@@ -1135,7 +1137,7 @@ async function loadMapRestrictions({ bbox } = {}) {
   const bboxParsed = parseBbox(bbox);
 
   const restrictions = await db.run(
-    SELECT.from('bridge.management.Restrictions')
+    SELECT.from('bridge.management.UnifiedRestrictions') // R6: both masters
       .columns('ID', 'restrictionRef', 'bridgeRef', 'bridge_ID', 'restrictionType',
         'restrictionValue', 'restrictionUnit', 'restrictionStatus', 'active',
         'restrictionCategory', 'grossMassLimit', 'axleMassLimit', 'heightLimit',
@@ -2121,7 +2123,7 @@ cds.on('bootstrap', (app) => {
   async function loadActiveRestrictionBridgeIds() {
     const db = await cds.connect.to('db')
     const rows = await db.run(
-      SELECT.from('bridge.management.Restrictions')
+      SELECT.from('bridge.management.UnifiedRestrictions') // R6: both masters
         .columns('bridge_ID')
         .where({ active: true })
     )

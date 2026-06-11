@@ -1059,8 +1059,10 @@ entity PrioritisationPreFilter : cuid, managed {
 // EVERY read surface now goes through THIS union view, so a restriction written
 // to EITHER master is visible everywhere. Plain SQL UNION ALL view — works
 // identically on SQLite (dev) and HANA (prod); the same construct already ships
-// in AdminService.ChangeDocuments. LargeString columns (descr/remarks/
-// temporaryReason) are intentionally not projected to keep the view lean.
+// in AdminService.ChangeDocuments. remarks IS projected (map popups show it);
+// the other LargeStrings (descr/temporaryReason) are left out to keep the view lean.
+// bridgeRef resolves to the row's own ref (Restrictions master) or the joined
+// bridge's bridgeId, so map/report consumers get one consistent identifier.
 @readonly
 entity UnifiedRestrictions as
   select from Restrictions {
@@ -1075,6 +1077,8 @@ entity UnifiedRestrictions as
         bridge.region          as region        : String(80),
         bridge.riskPriority    as riskPriority  : String(20),
         cast(name as String(255)) as name       : String(255),
+        coalesce(bridgeRef, bridge.bridgeId) as bridgeRef : String(40),
+        remarks,
         restrictionRef,
         restrictionCategory,
         restrictionType,
@@ -1137,6 +1141,8 @@ union all
         bridge.region          as region        : String(80),
         bridge.riskPriority    as riskPriority  : String(20),
         cast(name as String(255)) as name       : String(255),
+        bridge.bridgeId        as bridgeRef     : String(40),
+        remarks,
         restrictionRef,
         restrictionCategory,
         restrictionType,
