@@ -58,3 +58,27 @@
 9. B8: 60s config cache delays bhiWeights edits; computeBhi's silent `.limit(1000)` (council I4); rail/ped weights still road-derived.
 10. B10: i18n the server-generated formula/priority strings; add regression tests for the SPV annotation and bhi-explorer i18n; SAC-facing Runs fact view still returns superseded runs.
 11. R5: end-to-end test for new restriction mass-edit columns; R3: i18n the new CDS @title labels; ActiveRestrictions ignores effectiveTo/temporaryTo expiry; no gazette-expiry/review-due tile.
+---
+
+## 5. Amendment — v3.14.0 P1 closure (2026-06-11, post-certificate remediation)
+
+The conditioned P1 package shipped and was **independently re-verified** (adversarial pass:
+code read + tests re-run, full suite 34 suites / 312 tests green, both builds clean).
+
+| Finding | Status | Shipped as |
+|---|---|---|
+| **R6** — restriction-master split-brain | **CLOSED** | `bridge.management.UnifiedRestrictions` UNION view feeds NetworkRestrictionReport, dashboard-tile API `/dashboard/api/analytics`, map layer + popups `/map/api/*`, data-quality checks, prioritisation restrictionFlag/context, and postingStatus derivation (also wired into AdminService write paths = R7 residual). Cross-surface tests in both directions incl. the HTTP surfaces the tiles call. Commits `d9adb66`, `fa5a246`. |
+| **B6** — static PDF appendix; Active-model edits | **CLOSED** | formulaVersion-aware appendix (rule-engine sections per modelCode/version from the frozen snapshot; legacy text kept; mixed portfolios print both) + 409 edit guard on referenced Active models + admin `cloneModel` deep-copy to Draft v+1. Commits `0703c24`, `e50cc02`. |
+| **B5** — single global fleet rank | **CLOSED** | fleetRank partitioned by (modelCode, modelVersion), band-first within partition, partition split stamped on the fleet ChangeLog. Commit `bd58fe2`. |
+| **B3** — forceReview held nothing; dual-active double-count | **CLOSED** | `reviewStatus='pending'` hold excluded from default worklist/BandSummary/PDF; manage-gated `releaseRun`; one-run-per-bridge with manual-beats-fleet precedence (`srv/lib/effective-runs.js`). Commit `44d418a`. |
+| **B4** — silent denominator shrink | **CLOSED** | engine returns includedWeight/totalWeight; stamped on runs + breakdown JSON; analytics columns + "Scored on X of Y weight" in run detail. Commit `44d418a`. |
+
+Note for the record: the re-verification again caught one overstated claim mid-cycle —
+the first R6 unification reached only the unconsumed KPI functions while the actual
+dashboard tile, map and data-quality surfaces still read one master; this was fixed and
+HTTP-surface tests added before this amendment (`fa5a246`). Two consecutive cycles have
+now required exactly this class of correction: **closure claims must name the consuming
+UI surface, not just the service function.**
+
+Remaining open: P2 items B7, B9 and the P3 register above. **The certification condition
+is met; v3.14.0 carries no known P1 integrity gaps.**
