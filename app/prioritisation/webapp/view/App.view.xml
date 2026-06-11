@@ -14,6 +14,16 @@
             <IconTabFilter id="tabWorklist" text="{i18n>tab.worklist}" key="worklist" icon="sap-icon://list">
               <MessageStrip text="{i18n>worklist.subtitle}" showIcon="true" class="sapUiTinyMarginBottom" />
               <MessageStrip text="{wl>/error}" type="Error" showIcon="true" visible="{= !!${wl>/error} }" class="sapUiTinyMarginBottom" />
+              <!-- B3a: default = current runs (review-held runs excluded server-side); the
+                   'Pending review' segment surfaces the held runs via an explicit filter -->
+              <SegmentedButton id="wlSegment" selectedKey="{wl>/segment}" selectionChange=".onWorklistSegment" class="sapUiTinyMarginBottom">
+                <items>
+                  <SegmentedButtonItem key="current" text="{i18n>worklist.segCurrent}" />
+                  <SegmentedButtonItem key="pending" text="{i18n>worklist.segPending}" />
+                </items>
+              </SegmentedButton>
+              <MessageStrip text="{i18n>worklist.pendingHint}" type="Warning" showIcon="true"
+                            visible="{= ${wl>/segment} === 'pending' }" class="sapUiTinyMarginBottom" />
               <Table id="wlTable" items="{path:'wl>/rows'}" growing="true" growingThreshold="50" noDataText="{i18n>worklist.noData}"
                      mode="SingleSelectMaster" itemPress=".onWorklistPress">
                 <columns>
@@ -22,7 +32,7 @@
                   <Column hAlign="End" width="6rem"><Text text="{i18n>worklist.col.score}" /></Column>
                   <Column hAlign="End" width="10rem"><Text text="{i18n>worklist.col.confidence}" /></Column>
                   <Column hAlign="End" width="9rem"><Text text="{i18n>worklist.col.assessed}" /></Column>
-                  <Column hAlign="End" width="6rem"><Text text="Detail" /></Column>
+                  <Column hAlign="End" width="9rem"><Text text="Detail" /></Column>
                 </columns>
                 <items>
                   <ColumnListItem type="Active">
@@ -34,12 +44,22 @@
                         <ObjectStatus text="{i18n>worklist.dataOnly}" state="Information"
                                       visible="{= ${wl>runType} === 'fleet' }"
                                       tooltip="{i18n>worklist.dataOnlyTooltip}" class="sapUiTinyMarginBegin" />
+                        <!-- B3a: held runs are badged loudly — they do not count in summaries/PDF until released -->
+                        <ObjectStatus text="{i18n>worklist.pendingBadge}" state="Warning"
+                                      visible="{= ${wl>reviewStatus} === 'pending' }"
+                                      tooltip="{i18n>worklist.pendingTooltip}" class="sapUiTinyMarginBegin" />
                       </HBox>
                       <ObjectIdentifier title="{wl>bridgeName}" text="{wl>bridgeRef}" />
                       <ObjectNumber number="{wl>priorityScore}" />
                       <Text text="{wl>confidence}" />
                       <Text text="{wl>assessedAtText}" />
-                      <Button icon="sap-icon://detail-view" type="Transparent" press=".onOpenRun" tooltip="Open this run's frozen inputs + methodology (audit)" />
+                      <HBox justifyContent="End">
+                        <Button icon="sap-icon://detail-view" type="Transparent" press=".onOpenRun" tooltip="Open this run's frozen inputs + methodology (audit)" />
+                        <!-- B3a: release the hold (manage scope; server-enforced + ChangeLogged) -->
+                        <Button icon="sap-icon://accept" type="Transparent" press=".onReleaseRun"
+                                visible="{= ${wl>reviewStatus} === 'pending' }"
+                                tooltip="{i18n>worklist.releaseTooltip}" text="{i18n>worklist.release}" />
+                      </HBox>
                     </cells>
                   </ColumnListItem>
                 </items>

@@ -873,6 +873,17 @@ entity PrioritisationAssessment : cuid, managed {
   // NO engineer judgement, badged "data-only" in every UI. Fleet runs only ever supersede prior
   // FLEET runs; engineer runs are never silently retired by a batch job. NULL = legacy manual run.
   runType                  : String(10) default 'manual';
+  // Council B3a (additive): review hold. scoreFleet stamps 'pending' when a non-compensatory
+  // rule trips forceReview — the run is HELD: excluded from the DEFAULT read surfaces (worklist,
+  // BandSummary, exec PDF) until releaseRun (manage scope, ChangeLogged) clears it back to null.
+  // Held runs stay readable via an explicit reviewStatus filter (worklist 'Pending review' view).
+  reviewStatus             : String(12);
+  // Council B4 (additive): coverage disclosure. The engine excludes missing-data criteria from
+  // the scoring denominator — this pair makes that LOUD per run: includedWeight = the resolved
+  // weight actually scored, totalWeight = the model's full resolved weight for this asset class.
+  // NULL on delegated (approved-formula) runs where the configurable denominator does not apply.
+  includedWeight           : Decimal(8,3);
+  totalWeight              : Decimal(8,3);
   // ── Reproducibility stamp ──
   configVersion            : String(20);
   formulaVersion           : String(20);

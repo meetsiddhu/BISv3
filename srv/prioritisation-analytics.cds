@@ -14,6 +14,12 @@ service PrioritisationAnalyticsService @(path: '/odata/v4/prioritisation-analyti
     // run (no engineer judgement), 'manual'/null = engineer-judgement run. SAC/DSP stories can
     // (and should) slice on it instead of mistaking batch scores for assessments.
     runType,
+    // Council B3a: review hold disclosure — 'pending' rows are excluded from the DEFAULT
+    // surfaces (worklist/BandSummary/exec PDF); consumers can slice on the column explicitly.
+    reviewStatus,
+    // Council B4: coverage disclosure — the resolved weight actually scored vs the model's
+    // full weight ("Scored on X of Y weight"); NULL on delegated approved-formula runs.
+    includedWeight, totalWeight,
     fleetRunId, fleetRank, criticality, tier, residual, likelihood,
     likelihoodOverridden, restrictionFlag,
     inputsAvailable, inputsTotal, conditionAsAtMonths,
@@ -31,6 +37,10 @@ service PrioritisationAnalyticsService @(path: '/odata/v4/prioritisation-analyti
   };
 
   // Band aggregate for dashboards (counts + $ exposure per band, active runs only).
+  // Council B3a/B3b: reads are served by srv/prioritisation-analytics.js, which applies the
+  // effective-run rules (review-held runs excluded; one run per bridge, manual beats fleet —
+  // srv/lib/effective-runs.js) identically on SQLite and HANA. The view below remains the DB
+  // artifact/projection target; its where-clause carries the B3a exclusion as defence in depth.
   @readonly
   entity BandSummary as
     select from my.PrioritisationAssessment {
@@ -39,7 +49,7 @@ service PrioritisationAnalyticsService @(path: '/odata/v4/prioritisation-analyti
       sum(mitigationCostAud)    as mitigationAud     : Decimal(17,2),
       sum(likelyFailureCostAud) as failureExposureAud : Decimal(17,2),
       avg(priorityScore)        as avgScore          : Decimal(6,2)
-    } where active = true group by band;
+    } where active = true and (reviewStatus is null or reviewStatus != 'pending') group by band;
 
   // BSI/BHI across modes (G-BHI): per-transport-mode condition health for SAC/DSP + dashboards.
   @readonly
@@ -64,7 +74,7 @@ service PrioritisationAnalyticsService @(path: '/odata/v4/prioritisation-analyti
 
 annotate PrioritisationAnalyticsService.Runs with @(UI: {
   HeaderInfo: { TypeName: '{i18n>PrioritisationRun}', TypeNamePlural: '{i18n>PrioritisationRuns}', Title: { Value: bridgeName } },
-  SelectionFields: [ band, modelCode, assetClass, transportMode, region, runType, fleetRunId, active ],
+  SelectionFields: [ band, modelCode, assetClass, transportMode, region, runType, reviewStatus, fleetRunId, active ],
   LineItem: [
     { Value: fleetRank,        Label: '{i18n>Rank}' },
     { Value: band,             Label: '{i18n>Band}', Criticality: bandCriticality },
@@ -72,6 +82,9 @@ annotate PrioritisationAnalyticsService.Runs with @(UI: {
     { Value: bridgeName,       Label: '{i18n>Name}' },
     { Value: priorityScore,    Label: '{i18n>Score}' },
     { Value: runType,          Label: '{i18n>RunType}' },
+    // Council B4: coverage disclosure per run — "Scored on X of Y weight".
+    { Value: includedWeight,   Label: '{i18n>ScoredWeight}' },
+    { Value: totalWeight,      Label: '{i18n>TotalWeight}' },
     { Value: assetClass,       Label: '{i18n>AssetClass}' },
     { Value: transportMode,    Label: '{i18n>TransportMode}' },
     { Value: modelCode,        Label: '{i18n>Model}' },
@@ -104,8 +117,11 @@ annotate PrioritisationAnalyticsService.Runs with @(UI: {
     PresentationVariant: ![@UI.PresentationVariant#Default]
   }
 }) {
-  band    @Common.Label: '{i18n>PriorityBand}';
-  runType @Common.Label: '{i18n>RunTypeLong}';
+  band           @Common.Label: '{i18n>PriorityBand}';
+  runType        @Common.Label: '{i18n>RunTypeLong}';
+  reviewStatus   @Common.Label: '{i18n>ReviewStatus}';
+  includedWeight @Common.Label: '{i18n>ScoredWeight}';
+  totalWeight    @Common.Label: '{i18n>TotalWeight}';
 };
 extend projection PrioritisationAnalyticsService.Runs with {
   // 1=red P1/P2, 2=amber P3, 3=green P4/P5 — FE criticality colouring (label always shown too)

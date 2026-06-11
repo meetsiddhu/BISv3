@@ -45,7 +45,9 @@ sap.ui.define([
         criticality: "3.0", tier: 3, residual: 12, priorityScore: 0, band: "—", bandState: "None",
         formula: "", facts: {}, confidenceText: "", confidenceState: "None"
       }), "v");
-      this.getView().setModel(new JSONModel({ rows: [] }), "wl");
+      // B3a: segment 'current' (default — server excludes review-held runs) | 'pending' (explicit
+      // reviewStatus filter surfacing the held runs).
+      this.getView().setModel(new JSONModel({ rows: [], segment: "current" }), "wl");
       this.getView().setModel(new JSONModel({ rows: [] }), "br");
       this.getView().setModel(new JSONModel({ mode: "exec", bands: [], assessed: 0, p1: 0, stale: 0, topScore: 0, headline: "" }), "rep");
 
@@ -119,16 +121,47 @@ sap.ui.define([
     _loadWorklist: function () {
       var self = this;
       var tbl = this.byId("wlTable"); if (tbl) { tbl.setBusy(true); }
-      this.getView().getModel("wl").setProperty("/error", null);
-      this._get("/Assessments?$filter=active eq true&$orderby=priorityScore desc&$top=500").then(function (d) {
+      var wlModel = this.getView().getModel("wl");
+      wlModel.setProperty("/error", null);
+      // B3a: the DEFAULT query filters active only — the SERVER excludes review-held runs (and
+      // dual-active fleet duplicates) from this surface; the 'Pending review' segment asks for
+      // the held runs explicitly via the reviewStatus filter.
+      var seg = wlModel.getProperty("/segment") || "current";
+      var filter = seg === "pending"
+        ? "active eq true and reviewStatus eq 'pending'"
+        : "active eq true";
+      this._get("/Assessments?$filter=" + filter + "&$orderby=priorityScore desc&$top=500").then(function (d) {
         var rows = (d.value || []).map(function (a) { return self._decorate(a); });
-        self.getView().getModel("wl").setProperty("/rows", rows);
-        self._buildReports(rows);
+        wlModel.setProperty("/rows", rows);
+        // the report figures always describe the DEFAULT (current) surface, never the held subset
+        if (seg === "current") { self._buildReports(rows); }
         if (tbl) { tbl.setBusy(false); }
       }.bind(this)).catch(function (e) {
         if (tbl) { tbl.setBusy(false); }
-        self.getView().getModel("wl").setProperty("/error", "Could not load the worklist: " + (e && e.message ? e.message : "service unavailable") + ". Retry, or check your access.");
+        wlModel.setProperty("/error", "Could not load the worklist: " + (e && e.message ? e.message : "service unavailable") + ". Retry, or check your access.");
       });
+    },
+
+    // B3a: segment switch (Current ↔ Pending review) just reloads with the matching filter.
+    onWorklistSegment: function () { this._loadWorklist(); },
+
+    // B3a: release a review-held run back into the default surfaces (server-enforced manage
+    // scope + ChangeLog; the figures recompute on reload).
+    onReleaseRun: function (oEvent) {
+      var ctx = oEvent.getSource().getBindingContext("wl"); if (!ctx) return;
+      var row = ctx.getObject();
+      var self = this;
+      var rb = this.getView().getModel("i18n").getResourceBundle();
+      fetch(this._svc + "/releaseRun", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+        credentials: "same-origin", body: JSON.stringify({ ID: row.ID })
+      })
+        .then(function (r) { return r.ok ? r.json() : r.json().then(function (b) { throw new Error((b.error && b.error.message) || r.statusText); }); })
+        .then(function () {
+          MessageToast.show(rb.getText("worklist.released", [row.bridgeName || row.bridgeRef]));
+          self._loadWorklist();
+        })
+        .catch(function (e) { MessageBox.error(rb.getText("worklist.releaseFailed", [e.message])); });
     },
 
     // ── live client preview engine (mirrors srv/lib/prioritisation.js with the loaded config) ──
@@ -344,6 +377,10 @@ sap.ui.define([
       if (isFleet) {
         items.push(new sap.m.ObjectStatus({ text: rb.getText("runDetail.fleetNote"), state: "Information" }).addStyleClass("sapUiTinyMarginBottom"));
       }
+      // B3a: a review-held run says so up front — it is excluded from default surfaces until released.
+      if (r.reviewStatus === "pending") {
+        items.push(new sap.m.ObjectStatus({ text: rb.getText("worklist.pendingTooltip"), state: "Warning" }).addStyleClass("sapUiTinyMarginBottom"));
+      }
       items = items.concat([
         L(rb.getText("runDetail.runType"), rb.getText(isFleet ? "runDetail.runTypeFleet" : "runDetail.runTypeManual")),
         L("Criticality dimensions (1-5)", dims),
@@ -369,6 +406,16 @@ sap.ui.define([
       var bd; try { bd = JSON.parse(r.criterionBreakdown); } catch (_e) { bd = null; }
       if (bd && bd.rows && !bd.delegated) {
         items.push(new sap.m.Title({ text: "Model evaluation — " + (r.modelCode || "") + " v" + (r.modelVersion || "") + (bd.forceReview ? "  ·  REVIEW REQUIRED" : ""), level: "H6" }).addStyleClass("sapUiSmallMarginTop"));
+        // B4: coverage disclosure — "Scored on X of Y weight" (missing-data criteria are
+        // excluded from the denominator; this line makes the evidence base explicit).
+        var iw = bd.includedWeight != null ? bd.includedWeight : r.includedWeight;
+        var tw = bd.totalWeight != null ? bd.totalWeight : r.totalWeight;
+        if (iw != null && tw != null) {
+          items.push(new sap.m.ObjectStatus({
+            text: rb.getText("runDetail.coverageText", [iw, tw]),
+            state: Number(iw) < Number(tw) ? "Warning" : "Success"
+          }).addStyleClass("sapUiTinyMarginBottom"));
+        }
         bd.rows.filter(function (x) { return x.included !== false || x.note; }).slice(0, 24).forEach(function (x) {
           items.push(new sap.m.Text({ text: x.code + ": " + (x.raw == null ? "—" : x.raw) + " → " + (x.score == null ? (x.note || "missing") : x.score) + " ×w" + x.weight + (x.confidence < 1 ? " ×conf" + x.confidence : "") + " = +" + (x.contribution || 0), wrapping: true }).addStyleClass("sapUiContentLabelColor"));
         });

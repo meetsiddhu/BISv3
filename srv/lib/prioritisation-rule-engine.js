@@ -209,6 +209,9 @@ function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters 
     return Object.assign({}, out, {
       modelCode: model.code, modelVersion: model.version, delegated: true,
       criterionBreakdown: breakdown, flags: [], forceReview: false,
+      // B4: coverage disclosure does not apply to the delegated approved formula (the engineer
+      // supplies every dimension; there is no configurable denominator) — honest nulls, not 100%.
+      includedWeight: null, totalWeight: null,
       weightSetHash: weightSetHash(model, resolved, { preFilters })
     })
   }
@@ -220,7 +223,12 @@ function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters 
 
   const rows = []; const flags = []
   let sumContrib = 0; let sumWeight = 0
+  // B4: coverage disclosure — totalWeight is the FULL resolved weight for this asset class;
+  // sumWeight (the denominator actually used) only accumulates criteria that scored. The pair
+  // is surfaced so a run scored on 12 of 40 weight can never read like full-evidence scoring.
+  let totalWeight = 0
   for (const r of resolved) {
+    if (r.weight > 0) totalWeight += r.weight
     const { raw, source, unit } = bindRaw(r.criterion, context)
     const vf = valueFunction(raw, r.criterion.bands)
     let score = vf ? vf.score : null
@@ -267,6 +275,9 @@ function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters 
     priorityScore, band, baseScore: Math.round(baseScore * 100) / 100,
     modelCode: model.code, modelVersion: model.version, delegated: false,
     criterionBreakdown: rows, flags, forceReview,
+    // B4: "Scored on X of Y weight" — the denominator actually used vs the model's full weight.
+    includedWeight: Math.round(sumWeight * 1000) / 1000,
+    totalWeight: Math.round(totalWeight * 1000) / 1000,
     weightSetHash: weightSetHash(model, resolved, { preFilters }),
     formulaVersion: 'rule-engine-v1'
   }

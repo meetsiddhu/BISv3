@@ -4,6 +4,7 @@ const { writeChangeLogs } = require('./audit-log')
 const { getConfig, getConfigInt } = require('./system-config')
 const engine = require('./lib/prioritisation')
 const ruleEngine = require('./lib/prioritisation-rule-engine')
+const { effectiveRuns } = require('./lib/effective-runs')
 const bhiLib = require('./lib/bhi')
 const { Pdf } = require('./lib/pdf')
 
@@ -200,6 +201,46 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       }
     }
 
+    // ── Council B3a/B3b: DEFAULT worklist read guard ─────────────────────────────────────────
+    // The worklist surface is any Assessments READ that filters on `active` (the UI sends
+    // "active eq true") WITHOUT explicitly referencing reviewStatus. On that default surface:
+    //   B3a  review-held runs (reviewStatus='pending', stamped by scoreFleet on forceReview)
+    //        are EXCLUDED — they re-enter via releaseRun, or stay reachable through an explicit
+    //        reviewStatus filter (the worklist 'Pending review' segment / run history / key reads,
+    //        none of which filter on `active` + omit reviewStatus, are untouched).
+    //   B3b  when a bridge has BOTH an active manual and an active fleet run, the fleet row is
+    //        suppressed (manual beats fleet) so the surface shows ONE run per bridge — the same
+    //        precedence srv/lib/effective-runs.js applies to BandSummary and the exec PDF.
+    const whereRefs = (xpr, out = new Set()) => {
+      for (const t of (Array.isArray(xpr) ? xpr : [])) {
+        if (t && t.ref) out.add(String(t.ref[t.ref.length - 1]))
+        if (t && Array.isArray(t.xpr)) whereRefs(t.xpr, out)
+        if (t && Array.isArray(t.args)) whereRefs(t.args, out)
+        if (t && Array.isArray(t.list)) whereRefs(t.list, out)
+      }
+      return out
+    }
+    this.before('READ', Assessments, async (req) => {
+      const S = req.query && req.query.SELECT
+      if (!S) return
+      const refs = whereRefs(S.where)
+      if (!refs.has('active') || refs.has('reviewStatus')) return // not the default worklist surface
+      // B3a: hide review-held runs (NULL-safe != keeps reviewStatus IS NULL rows — @cap-js dbs)
+      const cond = [{ ref: ['reviewStatus'] }, '!=', { val: 'pending' }]
+      // B3b: hide fleet rows whose bridge also has an ACTIVE (non-held) manual run. Legacy rows
+      // (runType NULL) are manual unless they carry a fleetRunId (pre-runType fleet batches).
+      const manuals = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
+        .columns('bridge_ID')
+        .where({ active: true, runType: { '!=': 'fleet' }, fleetRunId: null, reviewStatus: { '!=': 'pending' }, bridge_ID: { '!=': null } }))
+      const ids = Array.from(new Set(manuals.map((m) => m.bridge_ID).filter((v) => v != null)))
+      if (ids.length) {
+        const isManualRow = { xpr: [{ ref: ['runType'] }, '!=', { val: 'fleet' }, 'and', { ref: ['fleetRunId'] }, '=', { val: null }] }
+        const bridgeHasManual = { xpr: [{ ref: ['bridge_ID'] }, 'in', { list: ids.map((v) => ({ val: v })) }] }
+        cond.push('and', { xpr: [isManualRow, 'or', 'not', bridgeHasManual] })
+      }
+      S.where = (S.where && S.where.length) ? [{ xpr: S.where }, 'and', ...cond] : cond
+    })
+
     // ── Prefill: pure read, never writes ──
     this.on('prefill', async (req) => {
       const f = await factsFor(req.data.bridgeID)
@@ -360,9 +401,15 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           // NULL (no engineer chose one; 'Maintain' was fabricated) and restrictionFlag comes
           // from the loaded restriction context, never a hardcoded false.
           runType: 'fleet', strategy: null, restrictionFlag: s.restrictionFlag,
+          // B3a: a run that trips a forceReview rule is HELD ('pending') — excluded from the
+          // default read surfaces until an engineer releases it (releaseRun, ChangeLogged).
+          reviewStatus: s.ev.forceReview ? 'pending' : null,
+          // B4: coverage disclosure — the resolved weight actually scored vs the model's full
+          // weight for this asset class (missing-data criteria are excluded from the former).
+          includedWeight: s.ev.includedWeight ?? null, totalWeight: s.ev.totalWeight ?? null,
           priorityScore: s.ev.priorityScore, band: s.ev.band,
           modelCode: s.ev.modelCode, modelVersion: s.ev.modelVersion, weightSetHash: s.ev.weightSetHash,
-          criterionBreakdown: JSON.stringify({ rows: s.ev.criterionBreakdown, flags: s.ev.flags, forceReview: s.ev.forceReview, delegated: false, baseScore: s.ev.baseScore, fleet: true }),
+          criterionBreakdown: JSON.stringify({ rows: s.ev.criterionBreakdown, flags: s.ev.flags, forceReview: s.ev.forceReview, delegated: false, baseScore: s.ev.baseScore, includedWeight: s.ev.includedWeight ?? null, totalWeight: s.ev.totalWeight ?? null, fleet: true }),
           fleetRunId, fleetRank: rank,
           likelyFailureCostAud: s.b.likelyFailureCostAud ?? null, mitigationCostAud: s.b.mitigationCostAud ?? null,
           inputsAvailable: null, inputsTotal: null, conditionAsAtMonths: monthsSince(s.b.lastInspectionDate),
@@ -423,6 +470,9 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
             { fieldName: 'superseded', oldValue: '', newValue: String(supersededCount) },
             { fieldName: 'fleetTotal', oldValue: '', newValue: String(fleetTotal) },
             { fieldName: 'truncated', oldValue: '', newValue: String(truncated) },
+            // B3a: how many runs this batch HELD for review (forceReview → reviewStatus
+            // 'pending') — on the audit trail so a shrunken default worklist is explainable.
+            { fieldName: 'heldForReview', oldValue: '', newValue: String(entries.filter(e => e.reviewStatus === 'pending').length) },
             // B5: the (modelCode, modelVersion) rank partitions are STAMPED on the audit trail —
             // a past run's ranked lists are reconstructible per scoring model, count included.
             { fieldName: 'partitions',
@@ -433,7 +483,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
               })) }
           ] })
       } catch (e) { log.warn('fleet ChangeLog skipped', e.message) }
-      log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length, skipped, superseded: supersededCount, fleetTotal, truncated })
+      log.info('Fleet scoring complete', { fleetRunId, scored: scored.length, excluded: excluded.length, skipped, superseded: supersededCount, fleetTotal, truncated, heldForReview: entries.filter(e => e.reviewStatus === 'pending').length })
       return { fleetRunId, scored: scored.length, excluded: excluded.length,
         excludedDetail: JSON.stringify(excluded.slice(0, 50)), fleetTotal, truncated }
     })
@@ -721,8 +771,14 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
     // Figures are computed HERE from the immutable runs (not the client's view) so the document is
     // reproducible and reconciles exactly to the stored figures. Returns base64 PDF bytes.
     this.on('reportPdf', async () => {
-      const runs = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
+      // B3a/B3b: the portfolio reads the EFFECTIVE run set — review-held runs are excluded
+      // (until releaseRun) and a bridge carrying both an active manual and an active fleet run
+      // counts ONCE (manual wins, newest within type) — srv/lib/effective-runs.js, the same
+      // rules BandSummary and the default worklist apply.
+      const allActive = await db.run(SELECT.from('bridge.management.PrioritisationAssessment')
         .where({ active: true }).orderBy({ priorityScore: 'desc' }))
+      const heldCount = allActive.filter(r => String(r.reviewStatus || '') === 'pending').length
+      const runs = effectiveRuns(allActive).sort((a, b) => num(b.priorityScore) - num(a.priorityScore))
       const rawCfg = await db.run(SELECT.one.from('bridge.management.PrioritisationConfig')
         .where({ active: true }).orderBy({ modifiedAt: 'desc' })) || {}
       const cfg = await activeConfig()
@@ -770,6 +826,8 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       doc.kv('Methodology versions', versions.join(', ') + (versions.length > 1 ? '  (mixed)' : ''))
       const modelIds = Array.from(new Set(runs.map(r => (r.modelCode || 'NSW-RISK-V1') + ' v' + (r.modelVersion || 1))))
       doc.kv('Scoring model(s)', modelIds.join(', ') + ' — criteria/weights per Model Builder (BMS Admin)')
+      // B3a disclosure: held runs are excluded from every figure above — say so, with the count.
+      if (heldCount > 0) doc.kv('Held for review (excluded)', heldCount + ' run(s) pending engineering review (forceReview) — release via the worklist to include them')
       doc.kv('Endorsed by / date', '____________________ / __________')
       doc.heading('Methodology appendix (reproducible)')
       // B6a: the appendix documents HOW the runs in THIS portfolio were actually scored — it
@@ -852,6 +910,9 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       // for the scoreFleet batch path (a client cannot masquerade a manual POST as a fleet run).
       Object.assign(d, {
         runType: 'manual',
+        // B3a: engineer-judgement runs are never review-held (the engineer IS the review) and a
+        // client cannot stamp a hold — reviewStatus is reserved for the scoreFleet batch path.
+        reviewStatus: null,
         criticality: out.criticality, tier: out.tier, residual: out.residual,
         riskN: out.riskN, critN: out.critN, stratN: out.stratN,
         priorityScore: out.priorityScore, band: out.band,
@@ -909,9 +970,13 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           d.modelCode = ev.modelCode
           d.modelVersion = ev.modelVersion
           d.weightSetHash = ev.weightSetHash
+          // B4: stamp the coverage pair on the run (null on delegated approved-formula runs).
+          d.includedWeight = ev.includedWeight ?? null
+          d.totalWeight = ev.totalWeight ?? null
           d.criterionBreakdown = JSON.stringify({
             rows: ev.criterionBreakdown, flags: ev.flags, forceReview: ev.forceReview,
-            delegated: ev.delegated, baseScore: ev.baseScore ?? null
+            delegated: ev.delegated, baseScore: ev.baseScore ?? null,
+            includedWeight: ev.includedWeight ?? null, totalWeight: ev.totalWeight ?? null
           })
           if (!ev.delegated) { d.priorityScore = ev.priorityScore; d.band = ev.band }
           log.info('Prioritisation model applied', { model: ev.modelCode, v: ev.modelVersion, delegated: ev.delegated, band: d.band })
@@ -1012,6 +1077,33 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       const id = key && (key.ID || key)
       await db.run(cds.ql.UPDATE('bridge.management.EamWorkRequest').set({ active: false, status: 'CANCELLED' }).where({ ID: id }))
       return db.run(SELECT.one.from('bridge.management.EamWorkRequest').where({ ID: id }))
+    })
+
+    // ── Council B3a: releaseRun — clear a review hold (manage scope, ChangeLogged) ──
+    // The HOLD (reviewStatus='pending') is a lifecycle flag like `active`, not a scored output —
+    // clearing it never touches the immutable run figures. Inactive (superseded/deactivated)
+    // runs are rejected: only the CURRENT run can be released back into the default surfaces.
+    this.on('releaseRun', async (req) => {
+      const id = req.data && req.data.ID
+      const run = id && await db.run(SELECT.one.from('bridge.management.PrioritisationAssessment').where({ ID: id }))
+      if (!run) return req.reject(404, i18nText('runNotFound', [String(id)], `Assessment run ${id} was not found.`))
+      if (run.active === false) {
+        return req.reject(409, i18nText('runInactiveRelease', [String(id)],
+          `Assessment run ${id} is not active (superseded or deactivated) — only the current review-held run can be released.`))
+      }
+      if (!run.reviewStatus) return { ID: run.ID, reviewStatus: null } // idempotent: nothing to clear
+      await db.run(cds.ql.UPDATE('bridge.management.PrioritisationAssessment')
+        .set({ reviewStatus: null }).where({ ID: id }))
+      try {
+        await writeChangeLogs(db, {
+          objectType: 'PrioritisationAssessment', objectId: String(id),
+          objectName: run.bridgeName || run.bridgeRef || String(id),
+          source: 'Prioritisation', changedBy: req.user?.id || 'system',
+          changes: [{ fieldName: 'reviewStatus', oldValue: String(run.reviewStatus), newValue: '' }]
+        })
+      } catch (e) { log.error('releaseRun ChangeLog failed:', e.message) }
+      log.info('Prioritisation run released from review hold', { id, bridgeRef: run.bridgeRef, by: req.user?.id || 'system' })
+      return { ID: run.ID, reviewStatus: null }
     })
 
     // ── Immutability: reject any UPDATE on a stored run (append-only) ──

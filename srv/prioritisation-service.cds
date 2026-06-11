@@ -125,6 +125,12 @@ extend service PrioritisationService with {
   // truncation flag so a capped run can never be mistaken for a full fleet ranking.
   @(requires: ['manage', 'admin'])
   action scoreFleet(limit : Integer) returns { fleetRunId : String; scored : Integer; excluded : Integer; excludedDetail : LargeString; fleetTotal : Integer; truncated : Boolean; };
+  // Council B3a: release a review-held run (scoreFleet stamps reviewStatus='pending' when a
+  // non-compensatory rule trips forceReview). Clears the hold back to null so the run re-enters
+  // the default worklist / BandSummary / exec PDF. manage-gated; ChangeLogged; rejected when the
+  // run is inactive (superseded or deactivated) — only the CURRENT run can be released.
+  @(requires: ['manage', 'admin'])
+  action releaseRun(ID : UUID) returns { ID : UUID; reviewStatus : String; };
   function dataReadiness() returns { criteria : LargeString; };
   // BSI/BHI: compute + persist the element-weighted indices for one bridge (or all when null).
   @(requires: ['manage', 'admin'])
