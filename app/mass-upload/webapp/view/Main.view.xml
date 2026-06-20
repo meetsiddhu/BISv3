@@ -64,6 +64,12 @@
                   <WizardStep id="stepFile" title="{i18n>sectionUploadTitle}" validated="{view>/previewValidated}">
                     <VBox class="sapUiSmallMargin">
                       <Text text="{view>/uploadFormatText}" wrapping="true" class="sapUiSmallMarginBottom" />
+                      <Label text="{i18n>uploadModeLabel}" design="Bold" />
+                      <RadioButtonGroup id="uploadModeGroup" columns="3" selectedIndex="0" select=".onUploadModeSelect" class="sapUiTinyMarginTop sapUiSmallMarginBottom">
+                        <RadioButton text="{i18n>uploadModeUpsert}" />
+                        <RadioButton text="{i18n>uploadModeCreate}" />
+                        <RadioButton text="{i18n>uploadModeUpdate}" />
+                      </RadioButtonGroup>
                       <unified:FileUploader
                         id="fileUploader"
                         name="uploadFile"
@@ -186,6 +192,44 @@
                               <Text text="{view>processed}" />
                               <ObjectStatus text="{view>inserted}" state="Success" />
                               <ObjectStatus text="{view>updated}" state="Warning" />
+                            </cells>
+                          </ColumnListItem>
+                        </items>
+                      </Table>
+                      <Table
+                        id="rowResultsTable"
+                        items="{view>/uploadRowResults}"
+                        visible="{= ${view>/uploadRowResults}.length > 0 }"
+                        growing="true"
+                        growingThreshold="50"
+                        mode="None"
+                        class="sapUiSmallMarginTop"
+                        noDataText="{i18n>rowResultsNoData}">
+                        <headerToolbar>
+                          <OverflowToolbar>
+                            <Title text="{view>/uploadRowResultsTitle}" level="H2" />
+                            <ToolbarSpacer />
+                            <Button text="{i18n>downloadResultsCsvButton}" icon="sap-icon://download" press=".onDownloadResultsCsv" enabled="{= !!${view>/uploadResultsCsv} }" />
+                            <Button text="{i18n>downloadSourceFileButton}" icon="sap-icon://attachment" press=".onDownloadSourceFile" enabled="{= !!${view>/uploadSourceFileId} }" />
+                          </OverflowToolbar>
+                        </headerToolbar>
+                        <columns>
+                          <Column hAlign="End" width="5rem"><Text text="{i18n>rowResultsColRow}" /></Column>
+                          <Column><Text text="{i18n>rowResultsColDataset}" /></Column>
+                          <Column width="8rem"><Text text="{i18n>rowResultsColOperation}" /></Column>
+                          <Column width="9rem"><Text text="{i18n>rowResultsColStatus}" /></Column>
+                          <Column><Text text="{i18n>rowResultsColKey}" /></Column>
+                          <Column><Text text="{i18n>rowResultsColDetail}" /></Column>
+                        </columns>
+                        <items>
+                          <ColumnListItem>
+                            <cells>
+                              <Text text="{view>rowNum}" />
+                              <Text text="{view>dataset}" />
+                              <Text text="{view>operation}" />
+                              <ObjectStatus text="{view>status}" state="{view>statusState}" />
+                              <Text text="{view>key}" />
+                              <Text text="{view>message}" wrapping="true" />
                             </cells>
                           </ColumnListItem>
                         </items>

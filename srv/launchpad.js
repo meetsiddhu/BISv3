@@ -1,5 +1,15 @@
 'use strict'
 
+// ── Role-aware launchpad config builder (served at /launchpad/config) ────────────────
+// IMPORTANT: this is NOT the source the DEPLOYED launchpad currently renders — the
+// deployed FLP sandbox (app/router/fiori-apps.html) loads its tiles from the INLINE
+// fioriSandboxConfig.json (kept in sync by test/flp-config.test.js). This builder is the
+// role-aware variant (isAdmin hides admin/config tiles per CLAUDE.md §2.5). Wiring the
+// deployed launchpad to consume role-filtered tiles is intentionally DEFERRED to the SAP
+// Build Work Zone migration, which does role-based tile catalogs natively — rather than
+// retro-fitting fetch-then-init onto the deprecated sap.ushell sandbox. Until then, keep
+// the core (non-admin) tiles here in step with the JSON; the role-filter logic below is
+// unit-tested in test/flp-config.test.js so it is correct when Work Zone adopts it.
 function buildSandboxConfig (isAdmin) {
   const operationsTiles = [
     {

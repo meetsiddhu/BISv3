@@ -1,6 +1,6 @@
 # RE-AUDIT REPORT — NSW Bridge Asset-Management System (BIS) v3.8.3
 
-**Prepared by:** Expert Council (ISO 55000 · NSW/TfNSW Bridge Management · SAP BTP · SAP S/4 EAM · SAP UI5/Fiori UX · Product Management)
+**Prepared by:** Expert Council (ISO 55000 · NSW Bridge Management · SAP BTP · SAP S/4 EAM · SAP UI5/Fiori UX · Product Management)
 **Date:** 2026-06-07 · **Baseline:** C+ (44 confirmed findings) · **Method:** Static analysis, 3-vote adversarial verification
 
 ---
@@ -48,7 +48,7 @@ Similarly, **CONFIG-R4** is a latent inconsistency (the correct `proximityDefaul
 
 | Finding(s) | Item | Effort |
 |---|---|---|
-| ARCH-R1 | Fix inverted TfNSW→legacy condition mapping (use `deriveCondition`/reverse map) | **S** (½ day) — highest-priority correctness defect |
+| ARCH-R1 | Fix inverted band→legacy condition mapping (use `deriveCondition`/reverse map) | **S** (½ day) — highest-priority correctness defect |
 | ARCH-R2 | Validate `conditionValue` against `CONDITION_LABELS`; reject nulls | S (½ day) |
 | RISK-R1 | Seed `degradationRatePerYear` per mode → makes RUL functional | S (½ day + calibration note) |
 | RISK-R2 | Seed `eamMaintenancePlan` codes → activates BIS→EAM planning linkage | S (½ day) |

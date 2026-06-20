@@ -64,7 +64,7 @@ describe('rule engine returns includedWeight/totalWeight (council B4)', () => {
     expect(ev.flags.some((f) => f.startsWith('B:'))).toBe(true)
   })
 
-  test('the delegated approved formula returns honest NULLs (no configurable denominator)', () => {
+  test('the delegated baseline formula returns honest NULLs (no configurable denominator)', () => {
     const m = { code: 'NSW-RISK-V1', version: 1, aggregationMethod: 'RiskCritBlend-v1', criteria: [], classWeights: [], rules: [] }
     const ev = re.evaluate({
       model: m, context: { manual: { dimSafety: 3, dimNetwork: 3, dimFinancial: 3, dimEnvironmental: 3, dimReputational: 3, likelihood: 3, strategy: 'Renew' } }, cfg: {}
@@ -107,7 +107,7 @@ describe('runs stamp includedWeight/totalWeight; analytics view exposes them (co
     expect(Number(run.includedWeight)).toBeCloseTo(includedFromRows, 3)
   })
 
-  test('a delegated manual run stamps honest NULLs (approved formula has no configurable denominator)', async () => {
+  test('a delegated manual run stamps honest NULLs (baseline formula has no configurable denominator)', async () => {
     const f = await asManager((tx) => tx.send('prefill', { bridgeID: COV_MANUAL }))
     const created = await asManager((tx) => tx.run(INSERT.into(ASSESS).entries({
       bridge_ID: COV_MANUAL, dimSafety: 4, dimNetwork: 3, dimFinancial: 3,

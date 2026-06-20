@@ -112,17 +112,27 @@
     if (!root) return;
     root.innerHTML = '<div style="padding:1rem;color:#8696a9">Loading...</div>';
 
-    Promise.all([
-      fetch(API_BASE + '/config?objectType=' + OBJECT_TYPE).then(function (configResponse) { return configResponse.json(); }),
-      fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id).then(function (valuesResponse) { return valuesResponse.json(); })
-    ]).then(function (results) {
-      _state.groups = results[0].groups || [];
-      _state.values = results[1].values || {};
-      _state.editMode = false;
-      render();
-    }).catch(function () {
-      if (root) root.innerHTML = '<div style="padding:1rem;color:#bb0000">Failed to load custom attributes.</div>';
-    });
+    // Class-aware (ATTR-1): fetch the bridge's assetClass so the form shows the
+    // characteristics configured for that class (falls back to all-classes if absent).
+    fetch('/odata/v4/admin/Bridges(ID=' + id + ')?$select=assetClass', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .catch(function () { return {}; })
+      .then(function (bridge) {
+        _state.assetClass = (bridge && bridge.assetClass) || null;
+        var acQ = _state.assetClass ? '&assetClass=' + encodeURIComponent(_state.assetClass) : '';
+        return Promise.all([
+          fetch(API_BASE + '/config?objectType=' + OBJECT_TYPE + acQ).then(function (configResponse) { return configResponse.json(); }),
+          fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id).then(function (valuesResponse) { return valuesResponse.json(); })
+        ]);
+      })
+      .then(function (results) {
+        _state.groups = results[0].groups || [];
+        _state.values = results[1].values || {};
+        _state.editMode = false;
+        render();
+      }).catch(function () {
+        if (root) root.innerHTML = '<div style="padding:1rem;color:#bb0000">Failed to load custom attributes.</div>';
+      });
   }
 
   window._caEdit = function () { _state.editMode = true; render(); };
@@ -132,9 +142,10 @@
     var id = getBridgeId();
     if (!id) return;
     var values = collectValues(_state.groups);
-    fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id, {
+    var acQ = _state.assetClass ? '?assetClass=' + encodeURIComponent(_state.assetClass) : '';
+    fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id + acQ, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': 'bms-attr' },
       body: JSON.stringify({ values: values })
     }).then(function (saveResponse) { return saveResponse.json(); }).then(function (result) {
       if (result.errors) {

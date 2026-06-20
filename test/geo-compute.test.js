@@ -18,7 +18,7 @@ describe('geo-compute (extracted from server.js, ARCH-T4)', () => {
   })
 
   test('haversineDistanceKm computes a sane great-circle distance', () => {
-    // Sydney Harbour Bridge area: ~0 km to itself
+    // Same point: ~0 km to itself
     expect(haversineDistanceKm(-33.852, 151.211, -33.852, 151.211)).toBeCloseTo(0, 5)
     // Sydney -> Newcastle ~ 115 km (allow tolerance)
     const d = haversineDistanceKm(-33.868, 151.207, -32.927, 151.776)

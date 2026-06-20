@@ -101,7 +101,7 @@ describe('PrioritisationService.scoreFleet (fleet batch ranking)', () => {
     const detail = JSON.parse(res.excludedDetail)
     const fauna = detail.find((d) => d.bridge === 'BRG-FLEET-' + B_FAUNA)
     expect(fauna).toBeTruthy()
-    expect(fauna.code).toBe('PF_FAUNA') // seeded TfNSW pre-filter, surfaced not silent
+    expect(fauna.code).toBe('PF_FAUNA') // seeded standard pre-filter, surfaced not silent
     const db = await cds.connect.to('db')
     const faunaRuns = await db.run(SELECT.from(RUNS).where({ bridge_ID: B_FAUNA }))
     expect(faunaRuns.length).toBe(0)

@@ -1,4 +1,6 @@
 using {bridge.management as my} from '../db/schema';
+using {plugins.mapping as pmap} from './lib/plugins/mapping/mapping-schema';
+using {plugins.upload as pup} from './lib/plugins/mass-upload/upload-schema';
 
 @requires: ['view', 'manage', 'admin']
 service AdminService {
@@ -21,6 +23,8 @@ service AdminService {
     // bridgeId (BnacObjectIdMap is keyed by bridgeId; no managed FK). Read-only on the page.
     _bnacLinks : Association to many my.BnacObjectIdMap on _bnacLinks.bridgeId = bridgeId
   } actions {
+    // UAT P3-009: IsActionCritical → FE prompts a confirmation before this soft-delete.
+    @Common.IsActionCritical: true
     action deactivate() returns Bridges;
     action reactivate() returns Bridges;
   };
@@ -44,6 +48,16 @@ service AdminService {
         transportMode,
         status
   };
+  // UAT P3-010: label the value-help columns (were showing raw [bridgeId] etc. in the
+  // Restrictions bridge value help — app/restrictions/fiori-service.cds).
+  annotate BridgeValueHelp with {
+    bridgeId      @title: 'Bridge ID';
+    bridgeName    @title: 'Bridge Name';
+    state         @title: 'State';
+    region        @title: 'Region';
+    transportMode @title: 'Transport Mode';
+    status        @title: 'Status';
+  };
 
   // ── Restrictions ── viewer: read | manager: create/update/soft-delete actions
   // Soft-delete only: no hard DELETE granted. Use the `deactivate` action.
@@ -52,6 +66,7 @@ service AdminService {
     { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' }
   ]
   entity Restrictions as projection on my.Restrictions actions {
+    @Common.IsActionCritical: true
     action deactivate() returns Restrictions;
     action reactivate() returns Restrictions;
   };
@@ -63,6 +78,7 @@ service AdminService {
     { grant: ['CREATE','UPDATE','deactivate','reactivate'],  to: 'manage' }
   ]
   entity BridgeRestrictions as projection on my.BridgeRestrictions actions {
+    @Common.IsActionCritical: true
     action deactivate() returns BridgeRestrictions;
     action reactivate() returns BridgeRestrictions;
   };
@@ -104,6 +120,10 @@ service AdminService {
     { grant: ['CREATE','UPDATE','DELETE'],  to: 'admin' }
   ]
   entity AssetClasses as projection on my.AssetClasses;
+
+  // Class Types — read for all (drives the Class Type value-help on Attribute Classes); admin maintains.
+  @restrict: [{ grant: 'READ', to: ['view','manage','admin'] }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity ClassTypes as projection on my.ClassTypes;
 
   // ── Multi-modal lookups (Phase 1) ──
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
@@ -262,12 +282,36 @@ service AdminService {
   @restrict: [{ grant: 'READ', to: ['admin','integration'] }]
   entity EAMSyncLog as projection on my.EAMSyncLog;
 
+  // Reusable mapping plugin (generic source->target translation; see srv/lib/plugins/mapping).
+  // The EAM code/field mappings are seeded here as domains EAM_CODE / EAM_FIELD; the resolver
+  // (srv/lib/plugins/mapping) reads these tables. Admin/integration editable.
+  @restrict: [{ grant: '*', to: ['admin','integration'] }]
+  entity MappingDomains as projection on pmap.MappingDomain;
+  @restrict: [{ grant: '*', to: ['admin','integration'] }]
+  entity MappingValues  as projection on pmap.MappingValue;
+
+  // Reusable mass-upload plugin: retained raw source files (one per upload batch).
+  // Read-only here so manage/admin can list + download what was loaded; writes happen
+  // in the plugin engine (srv/lib/plugins/mass-upload). The `using` above also makes the
+  // UploadSourceFile entity reachable so its table is part of the persisted model.
+  @readonly
+  @restrict: [{ grant: 'READ', to: ['manage','admin'] }]
+  entity UploadSourceFiles as projection on pup.UploadSourceFile;
+
   // INSPECT-4 / EAM-4: bridge element hierarchy + element-type codelist.
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'manage' }]
   entity BridgeElements as projection on my.BridgeElements;
   @readonly
   @restrict: [{ grant: 'READ', to: 'view' }]
   entity ElementTypes as projection on my.ElementTypes;
+
+  // TREATMENT-1: lightweight treatment/action log (manage CRUD; soft-delete via active).
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'manage' }]
+  entity BridgeTreatments as projection on my.BridgeTreatments;
+
+  // HV-1: assessment-vehicle library (read for all; admin maintains the catalogue).
+  @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
+  entity AssessmentVehicles as projection on my.AssessmentVehicles;
 
   // AUDIT-009: NSW bridge-classification codelist behind importanceLevel.
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
@@ -532,6 +576,37 @@ service AdminService {
   entity AccreditationLevelValues {
     key code : Integer;
         name : String(30);
+  }
+
+  // ── Change Documents filter value-helps (search helps) ──────────────────
+  // Synthetic, served inline by dynamic DISTINCT queries over the audit trail
+  // (see admin-service.js). No DB table and no hardcoded enum — the dropdowns
+  // always reflect the objectTypes / kinds / sources / users actually logged,
+  // so they stay correct as new object types or change sources appear.
+  // Gated to 'manage' to match ChangeDocumentReport's audience.
+  @readonly @cds.persistence.skip
+  @restrict: [{ grant: 'READ', to: 'manage' }]
+  entity ChangeObjectTypeValues {
+    key code : String(40);
+        name : String(80);
+  }
+  @readonly @cds.persistence.skip
+  @restrict: [{ grant: 'READ', to: 'manage' }]
+  entity ChangeKindValues {
+    key code : String(20);
+        name : String(40);
+  }
+  @readonly @cds.persistence.skip
+  @restrict: [{ grant: 'READ', to: 'manage' }]
+  entity ChangeSourceValues {
+    key code : String(40);
+        name : String(80);
+  }
+  @readonly @cds.persistence.skip
+  @restrict: [{ grant: 'READ', to: 'manage' }]
+  entity ChangeUserValues {
+    key code : String(255);
+        name : String(255);
   }
 }
 

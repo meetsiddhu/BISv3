@@ -32,7 +32,7 @@
 | ISO-AUDIT-010 | P3 | RiskBand thresholds not historized | ✅ | `RiskBand.active` (soft-delete supersession) |
 | ISO-AUDIT-004/006/008 | P2 | importance default / sensitivity / approval period | 📄/◑ | codelist + methodology + approval fields |
 
-## NSW / TfNSW / Austroads (lens 3)
+## NSW / Austroads (lens 3)
 | AUDIT-003 | P2 | element type not codelist-validated | ✅ | ElementType membership check |
 | AUDIT-004 | P2 | accreditation level | 📄 | @assert.range [1,4] + doc |
 | AUDIT-005 | P2 | capacity date validation | ✅ | clearance-survey date not future |

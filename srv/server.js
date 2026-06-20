@@ -1028,6 +1028,11 @@ async function loadMapBridges({ bbox } = {}) {
     'importanceLevel',
     'geoJson'
   )
+    // Data-integrity: mirror the register's default (AdminService injects status='Active'
+    // for collection reads — see admin-service.js) so soft-deleted/deactivated bridges
+    // (status='Inactive') never appear on the map. Keeps the map and the bridge register
+    // showing the same set of bridges.
+    .where({ status: 'Active' })
 
   if (bboxParsed) {
     // UAT-FIX-2 (revised): Use CDS WHERE clause for bbox filter on both HANA and SQLite.
@@ -1037,7 +1042,7 @@ async function loadMapBridges({ bbox } = {}) {
     // (e.g. "LATITUDE" vs "latitude") and works identically on SQLite and HANA.
     const { minLat, maxLat, minLon, maxLon } = bboxParsed
     query = query
-      .where('latitude >=', minLat)
+      .and('latitude >=', minLat)
       .and('latitude <=', maxLat)
       .and('longitude >=', minLon)
       .and('longitude <=', maxLon)
@@ -1241,10 +1246,10 @@ async function loadClusters({ bbox, zoom = 6 } = {}) {
   if (bboxParsed) {
     const { minLat, maxLat, minLon, maxLon } = bboxParsed;
     q = SELECT.from('bridge.management.Bridges').columns(...cols)
-      .where`latitude >= ${minLat} and latitude <= ${maxLat} and longitude >= ${minLon} and longitude <= ${maxLon} and latitude is not null and longitude is not null`;
+      .where`status = 'Active' and latitude >= ${minLat} and latitude <= ${maxLat} and longitude >= ${minLon} and longitude <= ${maxLon} and latitude is not null and longitude is not null`;
   } else {
     q = SELECT.from('bridge.management.Bridges').columns(...cols)
-      .where`latitude is not null and longitude is not null`;
+      .where`status = 'Active' and latitude is not null and longitude is not null`;
   }
   const points = await db.run(q);
   const cells = new Map();
@@ -1306,7 +1311,7 @@ async function loadProximityBridges({ lat, lng, radiusKm = 10 } = {}) {
     .columns('ID', 'bridgeId', 'bridgeName', 'state', 'latitude', 'longitude',
       'postingStatus', 'conditionRating', 'structureType', 'route', 'region',
       'clearanceHeight', 'spanLength', 'nhvrAssessed')
-    .where`latitude >= ${minLat} and latitude <= ${maxLat} and longitude >= ${minLon} and longitude <= ${maxLon} and latitude is not null and longitude is not null`;
+    .where`status = 'Active' and latitude >= ${minLat} and latitude <= ${maxLat} and longitude >= ${minLon} and longitude <= ${maxLon} and latitude is not null and longitude is not null`;
   const candidates = await db.run(candidateQuery);
   const bridges = candidates
     .map(b => ({
@@ -1500,6 +1505,25 @@ cds.on('bootstrap', (app) => {
     }
   })
 
+  // Download a retained raw source file (reusable mass-upload plugin: UploadSourceFile).
+  // Gated by the router's 'manage' scope. ID comes from the upload response / history row.
+  router.get('/source/:id', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const row = await db.run(SELECT.one.from('plugins.upload.UploadSourceFile').where({ ID: req.params.id }))
+      if (!row || row.content == null) {
+        return res.status(404).json({ error: { message: 'Source file not found' } })
+      }
+      const content = Buffer.isBuffer(row.content) ? row.content : Buffer.from(row.content, 'base64')
+      const safeName = String(row.fileName || 'source-file').replace(/[\r\n"]/g, '')
+      res.setHeader('Content-Type', row.mimeType || 'application/octet-stream')
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`)
+      res.send(content)
+    } catch (error) {
+      res.status(500).json({ error: { message: error.message || 'Failed to download source file' } })
+    }
+  })
+
   router.get('/template.xlsx', async (_req, res) => {
     try {
       const content = await buildWorkbookTemplate()
@@ -1525,7 +1549,7 @@ cds.on('bootstrap', (app) => {
 
   router.post('/upload', async (req, res) => {
     try {
-      const { fileName, contentBase64, dataset } = req.body || {}
+      const { fileName, contentBase64, dataset, mode } = req.body || {}
       if (!fileName) {
         return res.status(400).json({ error: { message: 'fileName is required' } })
       }
@@ -1560,7 +1584,8 @@ cds.on('bootstrap', (app) => {
         fileName,
         datasetName: dataset,
         uploadedBy: req.user?.id || 'system',
-        isAdmin
+        isAdmin,
+        mode // 'create' | 'update' | 'upsert' (default) — Create/Update radio
       })
       res.json(result)
     } catch (error) {
@@ -1943,86 +1968,37 @@ cds.on('bootstrap', (app) => {
   // ── Audit Report API ─────────────────────────────────────────────────────
   const auditRouter = express.Router()
 
+  // Delegates to the reusable change-documents plugin (srv/lib/plugins/change-documents).
+  const changeDocs = require('./lib/plugins/change-documents')
+  const changeDocOpts = (q) => ({
+    attrHistEntity: 'bridge.management.AttributeValueHistory',
+    attrDefEntity:  'bridge.management.AttributeDefinitions',
+    objectTypeMap:  { Bridge: 'bridge', Restriction: 'restriction' },
+    filters: { objectType: q.objectType, objectId: q.objectId, changedBy: q.user, source: q.source, from: q.from, to: q.to, batchId: q.batchId }
+  })
+
   auditRouter.get('/changes', async (req, res) => {
     try {
       const db = await cds.connect.to('db')
-      const { objectType, objectId, user: changedBy, source, from, to, batchId } = req.query
-
       const maxRows = await getConfigInt('maxExportRows', 5000)
-      let query = SELECT.from('bridge.management.ChangeLog')
-        .columns('ID','changedAt','changedBy','objectType','objectId','objectName',
-                 'fieldName','oldValue','newValue','changeSource','batchId')
-        .orderBy('changedAt desc', 'objectType', 'objectId', 'batchId')
-        .limit(maxRows)
-
-      const filters = []
-      if (objectType) filters.push({ objectType })
-      if (objectId)   filters.push({ objectId })
-      if (changedBy)  filters.push({ changedBy })
-      if (source)     filters.push({ changeSource: source })
-      if (batchId)    filters.push({ batchId })
-
-      for (const filter of filters) {
-        query = query.where(filter)
-      }
-      if (from) query = query.where('changedAt >=', new Date(from).toISOString())
-      if (to)   query = query.where('changedAt <=', new Date(to + 'T23:59:59Z').toISOString())
-
-      // source='attribute' surfaces ONLY custom-attribute changes (skip ChangeLog).
-      const attributesOnly = source === 'attribute'
-      const rows = attributesOnly ? [] : await db.run(query)
-
-      // Merge configurable-attribute value changes (AttributeValueHistory) so custom
-      // attributes appear in the change-log report alongside standard field changes.
-      // AttributeValueHistory uses lowercase object types ('bridge') and the same
-      // numeric objectId as ChangeLog, so rows group under the same object.
-      const ATTR_TYPE = { Bridge: 'bridge', Restriction: 'restriction' }
-      const attrObjectType = objectType ? ATTR_TYPE[objectType] : null
-      const wantAttr = !batchId && (attributesOnly || !source || ['manual', 'import', 'api'].indexOf(source) !== -1) && (!objectType || !!attrObjectType)
-      let attrRows = []
-      if (wantAttr) {
-        let aq = SELECT.from('bridge.management.AttributeValueHistory').orderBy('changedAt desc').limit(maxRows)
-        if (attrObjectType) aq = aq.where({ objectType: attrObjectType })
-        if (objectId)  aq = aq.where({ objectId: String(objectId) })
-        if (changedBy) aq = aq.where({ changedBy })
-        if (from) aq = aq.where('changedAt >=', new Date(from).toISOString())
-        if (to)   aq = aq.where('changedAt <=', new Date(to + 'T23:59:59Z').toISOString())
-        const hist = await db.run(aq)
-        if (hist && hist.length) {
-          const defs = await db.run(SELECT.from('bridge.management.AttributeDefinitions').columns('internalKey', 'name', 'objectType'))
-          const labelByKey = {}
-          defs.forEach(d => { labelByKey[d.objectType + '|' + d.internalKey] = d.name })
-          const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
-          const coalesce = (h, p) => {
-            const v = (h[p + 'Text'] != null ? h[p + 'Text']
-              : h[p + 'Integer'] != null ? h[p + 'Integer']
-              : h[p + 'Decimal'] != null ? h[p + 'Decimal']
-              : h[p + 'Date'] != null ? h[p + 'Date']
-              : h[p + 'Boolean'])
-            return v == null ? null : String(v)
-          }
-          attrRows = hist.map(h => ({
-            ID: h.historyId,
-            changedAt: h.changedAt,
-            changedBy: h.changedBy,
-            objectType: cap(h.objectType),
-            objectId: h.objectId,
-            objectName: h.objectId,
-            fieldName: (labelByKey[h.objectType + '|' + h.attributeKey] || h.attributeKey) + '  (attribute)',
-            oldValue: coalesce(h, 'oldValue'),
-            newValue: coalesce(h, 'newValue'),
-            changeSource: h.changeSource || 'attribute',
-            batchId: null
-          }))
-        }
-      }
-
-      const merged = (rows || []).concat(attrRows)
-        .sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt))
-        .slice(0, maxRows)
+      const merged = await changeDocs.buildChangeDocuments(db, { ...changeDocOpts(req.query), maxRows })
       res.json({ changes: merged })
     } catch (error) {
       res.status(500).json({ error: { message: error.message || 'Failed to load change log' } })
+    }
+  })
+
+  // CSV export of the (filtered) change documents — reuses the plugin's injection-safe writer.
+  auditRouter.get('/changes.csv', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const maxRows = await getConfigInt('maxExportRows', 5000)
+      const merged = await changeDocs.buildChangeDocuments(db, { ...changeDocOpts(req.query), maxRows })
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      res.setHeader('Content-Disposition', 'attachment; filename="change-documents.csv"')
+      res.send(changeDocs.toCsv(merged))
+    } catch (error) {
+      res.status(500).json({ error: { message: error.message || 'Failed to export change log' } })
     }
   })
 
@@ -2357,6 +2333,77 @@ cds.on('bootstrap', (app) => {
     } catch (error) { res.status(500).json({ error: { message: error.message } }) }
   })
 
+  // ── BHI/BSI structured config (council BHI-1) — replaces raw-JSON editing of the
+  // 'bhiWeights' SystemConfig key. GET returns the ENGINE DEFAULTS (single source of
+  // truth = srv/lib/bhi.js) merged with the current overrides, so the admin screen
+  // renders structurally without hardcoding any weight. PUT validates, persists, and
+  // logs an honest old→new ChangeLog entry (so the change is auditable like any other).
+  const bhiLib = require('./lib/bhi')
+  sysRouter.get('/bhi-config', async (_req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const row = await db.run(SELECT.one.from('bridge.management.SystemConfig').where({ configKey: 'bhiWeights' }))
+      const effective = bhiLib.resolveBhiConfig(row?.value)
+      res.json({
+        effective,
+        defaults: { modeWeights: bhiLib.DEFAULT_MODE_WEIGHTS, env: bhiLib.DEFAULT_ENV_COEFFICIENTS, calibrated: bhiLib.DEFAULT_BHI_CONFIG.calibrated },
+        modes: Object.keys(bhiLib.DEFAULT_MODE_WEIGHTS),
+        buckets: Object.fromEntries(Object.entries(bhiLib.DEFAULT_MODE_WEIGHTS).map(([m, w]) => [m, Object.keys(w)])),
+        coefficientKeys: Object.keys(bhiLib.DEFAULT_ENV_COEFFICIENTS),
+        isCustom: !!(row && row.value)
+      })
+    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+  })
+
+  sysRouter.put('/bhi-config', async (req, res) => {
+    try {
+      const body = req.body || {}
+      // null/empty body = reset to engine defaults (store null → defaults apply)
+      let newValue = null
+      if (body && (body.modeWeights || body.env || body.calibrated)) {
+        // validate: every weight/coefficient finite and >= 0
+        const bad = []
+        for (const [mode, w] of Object.entries(body.modeWeights || {})) {
+          for (const [k, v] of Object.entries(w || {})) {
+            const n = Number(v); if (!Number.isFinite(n) || n < 0) bad.push(`${mode}.${k}`)
+          }
+        }
+        for (const [k, v] of Object.entries(body.env || {})) {
+          const n = Number(v); if (!Number.isFinite(n) || n < 0) bad.push(`env.${k}`)
+        }
+        if (bad.length) return res.status(400).json({ error: { message: 'Invalid (non-numeric or negative) values: ' + bad.join(', ') } })
+        // resolveBhiConfig normalises + drops junk; store the normalised form
+        newValue = JSON.stringify(bhiLib.resolveBhiConfig(body))
+      }
+      const db = await cds.connect.to('db')
+      const existing = await db.run(SELECT.one.from('bridge.management.SystemConfig').where({ configKey: 'bhiWeights' }))
+      const oldValue = existing?.value ?? null
+      const now = new Date().toISOString()
+      const changedBy = req.user?.id || 'system'
+      if (existing) {
+        await db.run(UPDATE('bridge.management.SystemConfig').set({ value: newValue, modifiedAt: now, modifiedBy: changedBy }).where({ configKey: 'bhiWeights' }))
+      } else {
+        await db.run(INSERT.into('bridge.management.SystemConfig').entries({
+          configKey: 'bhiWeights', category: 'Prioritisation', label: 'BSI/BHI weights & coefficients (JSON)',
+          value: newValue, dataType: 'string', modifiedAt: now, modifiedBy: changedBy
+        }))
+      }
+      const { invalidateCache } = require('./system-config')
+      invalidateCache('bhiWeights')
+      // Rule 3 + council CD-1: ChangeLog the config change with old→new so it shows in Change Documents.
+      try {
+        const { writeChangeLogs } = require('./audit-log')
+        await writeChangeLogs(db, {
+          objectType: 'SystemConfig', objectId: 'bhiWeights', objectName: 'BSI/BHI weights & coefficients',
+          source: 'OData', batchId: cds.utils.uuid(), changedBy,
+          changeReason: newValue ? 'BSI/BHI configuration updated via admin screen' : 'BSI/BHI configuration reset to engine defaults',
+          changes: [{ fieldName: 'bhiWeights', oldValue: oldValue || '(defaults)', newValue: newValue || '(defaults)' }]
+        })
+      } catch (_e) { /* audit best-effort */ }
+      res.json({ success: true, isCustom: !!newValue })
+    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+  })
+
   // SEC (verify-round P0): SystemConfig mutation must require 'admin' — matches the
   // @restrict on the SystemConfig OData entity. requiresScope lets GET (config/banner
   // reads used by every authenticated user) through; only PATCH /config/:key is gated.
@@ -2647,6 +2694,35 @@ cds.on('served', async () => {
   } catch (error) {
     LOG.error('Model Builder seeding failed (non-fatal):', error.message)
   }
+  // Asset-class template library (status='Template' starting points; same
+  // insert-if-missing + ChangeLog contract as the model-builder seed).
+  try {
+    const { ensureTemplateLibrarySeed } = require('./lib/template-library-seed')
+    const db = await cds.connect.to('db')
+    const seeded = await ensureTemplateLibrarySeed(db, { changedBy: 'system' })
+    if (seeded.inserted) LOG.info('Template library seed completed (insert-if-missing)', seeded)
+  } catch (error) {
+    LOG.error('Template library seeding failed (non-fatal):', error.message)
+  }
+  // Template attribute catalogue — the configurable AttributeDefinitions the
+  // templates bind to, so instantiated models score against real register facts.
+  try {
+    const { ensureTemplateAttributesSeed } = require('./lib/template-attributes-seed')
+    const db = await cds.connect.to('db')
+    const seeded = await ensureTemplateAttributesSeed(db, { changedBy: 'system' })
+    if (seeded.inserted) LOG.info('Template attribute catalogue seed completed (insert-if-missing)', seeded)
+  } catch (error) {
+    LOG.error('Template attribute seeding failed (non-fatal):', error.message)
+  }
+  // Assessment-vehicle library (HV structural assessment reference vehicles).
+  try {
+    const { ensureAssessmentVehicleSeed } = require('./lib/assessment-vehicle-seed')
+    const db = await cds.connect.to('db')
+    const seeded = await ensureAssessmentVehicleSeed(db, { changedBy: 'system' })
+    if (seeded.inserted) LOG.info('Assessment-vehicle library seed completed (insert-if-missing)', seeded)
+  } catch (error) {
+    LOG.error('Assessment-vehicle seeding failed (non-fatal):', error.message)
+  }
 })
 
 cds.on('served', async () => {
@@ -2812,6 +2888,12 @@ cds.on('served', async () => {
 
 cds.once('listening', ({ server }) => {
   server.keepAliveTimeout = 3 * 60 * 1000
+})
+
+// One-time demo data load for the deployed trial (guarded + idempotent — only
+// seeds an empty register, skipped under test / when BMS_SEED_DEMO=false).
+cds.on('served', async () => {
+  try { await require('./demo-seed').seedDemoData() } catch (e) { cds.log('demo-seed').error(e) }
 })
 
 module.exports = cds.server

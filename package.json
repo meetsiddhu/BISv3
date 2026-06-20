@@ -1,6 +1,19 @@
 {
   "name": "BridgeManagement",
-  "version": "1.0.0",
+  "version": "3.33.0",
+  "comment:workspaces": "P2 build-cost: the 10 html5 UI apps are npm workspaces so `npm ci` installs their shared @ui5/cli toolchain ONCE (hoisted) instead of per-module. The MTA html5 builders therefore only run `npm run build` (no per-module npm ci). Excludes app/router (separate approuter module).",
+  "workspaces": [
+    "app/admin-bridges",
+    "app/map-view",
+    "app/mass-edit",
+    "app/restrictions",
+    "app/dashboard",
+    "app/mass-upload",
+    "app/bms-admin",
+    "app/prioritisation",
+    "app/prioritisation-report",
+    "app/bhi-explorer"
+  ],
   "dependencies": {
     "@cap-js/audit-logging": "^1",
     "@cap-js/hana": "^2",
@@ -13,20 +26,42 @@
     "@cap-js/sqlite": "^2",
     "@sap/cds-dk": "^9",
     "@sap/eslint-plugin-cds": "^4.2.1",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/jest-runner": "^9.6.1",
+    "@ui5/linter": "^1",
     "eslint": "^10.2.1",
     "jest": "^29.7.0",
+    "karma": "^6.4.4",
+    "karma-chrome-launcher": "^3.2.0",
+    "karma-ui5": "^4",
     "playwright": "^1.60.0"
   },
   "scripts": {
     "start": "cds-serve",
-    "test": "jest --testPathPattern=test/ --forceExit"
+    "test": "jest --testPathPattern=test/ --forceExit",
+    "test:coverage": "jest --testPathPattern=test/ --forceExit --coverage",
+    "test:mutation": "stryker run",
+    "lint:ui5": "for d in admin-bridges restrictions prioritisation-report dashboard bms-admin prioritisation map-view mass-edit mass-upload bhi-explorer; do echo \"--- $d ---\"; (cd app/$d && npx --yes ui5lint) || true; done",
+    "test:opa": "cd app/admin-bridges && npx --yes karma start webapp/test/karma.conf.js --single-run"
   },
   "engines": {
     "node": "20.x"
   },
   "jest": {
     "testEnvironment": "node",
-    "testTimeout": 30000
+    "testTimeout": 30000,
+    "collectCoverageFrom": [
+      "srv/**/*.js",
+      "!srv/**/*.test.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 52,
+        "branches": 39,
+        "functions": 54,
+        "lines": 53
+      }
+    }
   },
   "private": true,
   "cds": {

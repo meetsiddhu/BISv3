@@ -136,7 +136,7 @@ extend service PrioritisationService with {
   @(requires: ['manage', 'admin'])
   action computeBhi(bridgeID : Integer) returns { updated : Integer; };
   // BHI/BSI explorer detail: per-bridge factors, element buckets, all-mode model comparison and
-  // the substituted formulas (mirrors the approved calculator page). Read-only.
+  // the substituted formulas (full calculation transparency). Read-only.
   function bhiDetail(bridgeID : Integer) returns { detail : LargeString; };
 
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE'], to: 'admin' }]
@@ -164,4 +164,43 @@ extend service PrioritisationService with {
     rules           : Integer;
     userTypeWeights : Integer;
   };
+
+  // Template library: create a working model from a seeded asset-class template.
+  // Deep-copies the FULL bundle (criteria + bindings + value bands + class weights +
+  // rules) to a NEW code at version 1, status 'Draft', isTemplate=false. The admin
+  // then tailors weights/bands to the portfolio and activates after review. The
+  // template itself is never mutated. Admin-gated; ChangeLogged with provenance.
+  // Optional assetClass/transportMode stamp the copied weight rows with a SPECIFIC
+  // class/mode (templates ship with '*'), making the new model the most-specific
+  // resolution match for that class — it then wins over broader Active models
+  // without retiring them.
+  @(requires: 'admin')
+  action instantiateTemplate(templateID : UUID, code : String(40), name : String(120),
+                             assetClass : String(40), transportMode : String(40)) returns {
+    modelID      : UUID;
+    code         : String;
+    version      : Integer;
+    status       : String;
+    criteria     : Integer;
+    bindings     : Integer;
+    bands        : Integer;
+    classWeights : Integer;
+    rules        : Integer;
+  };
+
+  // HV-1: assess a candidate heavy vehicle against a bridge's stored capacity → pass/
+  // conditional/fail with the governing check + margins (JSON in `result`). vehicleCode
+  // resolves an AssessmentVehicles row, or pass a custom axleGroups JSON. Actions (POST)
+  // for easy UI consumption with optional params — read-only (no side effects).
+  @(requires: ['view', 'manage', 'admin'])
+  action assessHeavyVehicle(bridgeID : Integer, vehicleCode : String, axleGroupsJson : LargeString) returns { result : LargeString; };
+  // HV-1: assess a route (comma-separated bridge IDs) → the governing (worst) structure.
+  @(requires: ['view', 'manage', 'admin'])
+  action assessRoute(bridgeIds : String, vehicleCode : String) returns { result : LargeString; };
+  // DET-2/3: forecast condition + remaining-service-life under the bridge strategy's model.
+  @(requires: ['view', 'manage', 'admin'])
+  action forecastCondition(bridgeID : Integer, years : Integer) returns { result : LargeString; };
+  // CAPEX-1: optimise the scored fleet against an annual budget (greedy-bcr | knapsack).
+  @(requires: ['manage', 'admin'])
+  action optimiseCapitalProgram(budgetAud : Decimal, strategy : String, fundingYear : String) returns { result : LargeString; };
 }

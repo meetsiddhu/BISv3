@@ -81,7 +81,7 @@ Live, post-extraction smoke test surfaced and fixed **two pre-existing GIS proxi
 |---|---|---|
 | `GET /map/api/proximity` | **500** `invalid column name: bridgeId` (HANA columns are UPPERCASE; SELECT used camelCase) | fixed → **200** |
 | Proximity result set | **0 rows** (fluent `.where('lat >=', v)` form returned empty on HANA) | tagged-template where → **correct** |
-| 50 km of Sydney (-33.85, 151.21) | — | **9 bridges, distance-sorted**: Sydney Harbour Bridge 0.27 km, Anzac 3.28 km, Iron Cove 5.11 km, … Windsor 45.09 km ✅ |
+| 50 km of Sydney (-33.85, 151.21) | — | **9 bridges, distance-sorted**: Harbour Gate Bridge 0.27 km, Blackwattle 3.28 km, Coxley Cove 5.11 km, … Westbrook 45.09 km ✅ |
 | Clusters (z6 / z15) | — | clusters / points 200 ✅ (parseBbox + zoomToCellSize, now extracted + unit-tested) |
 | GeoJSON export | — | 200, `FeatureCollection`, CRS **EPSG:7844**, 32 features ✅ |
 

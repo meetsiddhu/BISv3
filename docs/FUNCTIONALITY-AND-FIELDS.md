@@ -42,7 +42,7 @@
 | **Geographic** | `latitude`, `longitude` (decimal), `geoJson` (GeoJSON: Point/Line/Polygon/Multi), `state`, `region`, `lga`, `route`, `routeNumber`, `location` | GDA2020/EPSG:7844 declared; geometry validated on ingress |
 | **Ownership** | `assetOwner`, `managingAuthority`, `gazetteReference`, `dataSource`, `sourceReferenceUrl` | provenance |
 | **Structure** | `yearBuilt`, `designLoad`, `designStandard`, `material`, `spanCount`, `spanLength`, `totalLength`, `deckWidth`, `clearanceHeight`, `numberOfLanes`, `designLife` | engineering attributes |
-| **Condition** | `conditionRating` (legacy 1-10, 10=best), `condition` (TfNSW label), `structuralAdequacyRating`, `conditionSummary`, `conditionNotes` | single canonical mapping (`srv/lib/condition-rating.js`) |
+| **Condition** | `conditionRating` (legacy 1-10, 10=best), `condition` (1–5 band label), `structuralAdequacyRating`, `conditionSummary`, `conditionNotes` | single canonical mapping (`srv/lib/condition-rating.js`) |
 | **NHVR / heavy-vehicle** | `importanceLevel` (1-4), `averageDailyTraffic`, `heavyVehiclePercent`, `loadRating`, `pbsApprovalClass`, `nhvrAssessed`, `hmlApproved`, `bDoubleApproved`, `freightRoute`, `overMassRoute` | NSW NHVR alignment |
 | **EAM reference (complement)** | `eamFlocId`, `eamEquipId`, `eamObjectType` (FLOC/EQUIPMENT/BOTH), `eamSystem`, `eamSyncStatus`, `eamSyncMode`, `eamLastSyncAt/By`, `eamPlant`, `eamCompanyCode`, `eamControllingArea` (KOKRS), `eamOrgUnit` (ORGID) | links to EAM master/work objects; EAM is system of record |
 

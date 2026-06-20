@@ -65,16 +65,16 @@
 
 ---
 
-## 4. NSW / TfNSW bridge management
+## 4. NSW bridge management
 
 | Standard / artefact | Concept | BIS | Status |
 |---|---|---|---|
-| **TfNSW Bridge Inspection Procedure Manual** | condition band (1=Good … to Critical) | canonical TfNSW band mapped from legacy 1–10 (single module `condition-rating.js`) | ✅ |
+| **The bridge inspection manual (AS 5100-aligned)** | condition band (1=Good … to Critical) | canonical 1–5 condition band mapped from legacy 1–10 (single module `condition-rating.js`) | ✅ |
 | Inspection **Levels 1/2/3** | routine / detailed-element / engineering | element-level (`BridgeElements` + `ElementTypes`), `accreditationLevel` (1–4) | ✅ |
 | **Importance level** (1–4) | criticality | `importanceLevel` feeds risk consequence | ✅ |
 | Postings / gazettal | legal restriction record | `BridgeRestrictions` + `gazetteReference`/`legalReference`/`approvalReference` | ✅ |
 | **GDA2020 / EPSG:7844** | NSW spatial datum | declared on storage policy + all GeoJSON exports | ✅ |
-| (NSW real "BIS"/BMS) | NSW operates its own bridge system | this app is **complementary / S/4-aligned**, not a TfNSW-system clone | ✅ |
+| (NSW real "BIS"/BMS) | NSW operates its own bridge system | this app is **complementary / S/4-aligned**, not a clone of the state road authority's system | ✅ |
 
 ---
 
@@ -96,7 +96,7 @@
 |---|---|---|---|
 | **AASHTO MBE** (US Manual for Bridge Evaluation) | load rating / evaluation | load rating + capacity model (methodology aligns; US LRFR factors not pre-seeded) | ◑ |
 | **AASHTOWare BrM** (ex-Pontis) | **element-level** condition + deterioration + optimisation | element hierarchy + condition; deterioration is an **advisory** RUL, not a Markov transition model | ◑ |
-| **FHWA NBI / NBIS** | 0–9 component condition; inspection standards | TfNSW 1–5 used (NSW context); NBI translation is a mapping config item if US scope is added | ◑ |
+| **FHWA NBI / NBIS** | 0–9 component condition; inspection standards | 1–5 condition band used (NSW context); NBI translation is a mapping config item if US scope is added | ◑ |
 | **Eurocode / EN 1990–1991** | actions / assessment basis | capacity/importance modelled; Eurocode partial factors out of scope (AU context) | ◑ |
 | **PIARC / fib** | bridge-management good practice | risk-based prioritisation + lifecycle aligns with PIARC guidance | ✅ (capability) |
 
@@ -131,7 +131,7 @@ capability that EAM already certifies.
 |---|---|---|
 | ISO 55001 evidence (risk method, audit trail, data quality) | ✅ | ⛔ ISO 55001 *certificate* — accredited-body audit of the **organisation** |
 | Risk methodology (ISO 31000-aligned) | ✅ documented + unit-tested | — |
-| NSW/TfNSW + Austroads + AS 5100 capability | ✅ | sign-off is the asset owner's |
+| NSW + Austroads + AS 5100 capability | ✅ | sign-off is the asset owner's |
 | SAP BTP/CAP build quality | ✅ (see `SAP-CERTIFICATION-READINESS.md`) | ⛔ SAP Store certification |
 | WCAG 2.1 AA | ✅ built-for (see `ACCESSIBILITY.md`) | ⛔ formal axe/screen-reader pass |
 

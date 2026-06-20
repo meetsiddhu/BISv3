@@ -125,7 +125,7 @@ UI were driven in Chrome. Results:
 |------------|--------|
 | Launchpad shows all 10 BMS tiles (3 groups: Operations / Bridge Sub-domains / BMS Admin) | ✅ |
 | Dashboard KPIs render (Total Assets 31, Active Restrictions 3, Bridges Closed 0, condition distribution) | ✅ |
-| Bridges list shows 31 real bridges (Sydney Harbour, Anzac, Gladesville…) | ✅ |
+| Bridges list shows 31 demo bridges (Kestrel Harbour, Blackwattle, Riverview Arch…) | ✅ |
 | **Bridge CREATE** — filled mandatory fields, saved → active `BRG-NSW-1032` | ✅ |
 | `bridgeId` auto-generates and is **state-aware** (BRG-AUS-1032 → BRG-NSW-1032 after picking NSW) | ✅ |
 | Controlled-vocab dropdowns (State, Posting Status, Structure Type) | ✅ |

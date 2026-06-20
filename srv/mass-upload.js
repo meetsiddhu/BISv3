@@ -4,6 +4,10 @@ const XLSX = require('xlsx')
 const { SELECT, INSERT, UPDATE } = cds.ql
 const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-log')
 const { validateRiskWeights, validateRiskBands } = require('./lib/risk')
+// Reusable mass-upload plugin: source-file retention + per-row results CSV (engine in
+// srv/lib/plugins/mass-upload). Used here for the cross-cutting concerns; the BIS-specific
+// per-row CRUD stays in the importers below, which feed the plugin's per-row ledger shape.
+const massUploadPlugin = require('./lib/plugins/mass-upload')
 
 const LOOKUP_COLUMNS = [
   column('code', 'string', { required: true }),
@@ -381,7 +385,7 @@ async function buildWorkbookTemplate() {
   // Reference-only lookup sheets (lane availability / severity) — included so
   // the workbook documents the allowed codes; ignored by the importer.
   for (const lookup of REFERENCE_ONLY_LOOKUPS) {
-    let lookupRows = []
+    let lookupRows
     try {
       lookupRows = await db.run(SELECT.from(lookup.entity).columns('code', 'name', 'descr').orderBy('code'))
     } catch (_e) { lookupRows = [] }
@@ -413,16 +417,19 @@ async function buildCsvTemplate(datasetName) {
   return Buffer.from(XLSX.utils.sheet_to_csv(sheet), 'utf8')
 }
 
-async function importUpload({ buffer, fileName, datasetName, uploadedBy, isAdmin }) {
+async function importUpload({ buffer, fileName, datasetName, uploadedBy, isAdmin, mode }) {
   if (!buffer?.length) {
     throw new Error('Uploaded file is empty')
   }
 
+  // Upload mode (Create/Update radio): 'create' = insert-only, 'update' = update-only,
+  // 'upsert' (default) = both. Enforced per row by modeSkip() inside the importers.
+  mode = ['create', 'update', 'upsert'].includes(mode) ? mode : 'upsert'
   const lowerName = (fileName || '').toLowerCase()
   const db = await cds.connect.to('db')
   const tx = db.tx()
   const batchId = cds.utils.uuid()
-  const auditContext = { db, batchId, changedBy: uploadedBy || 'system', batchBridgeCache: new Map(), isAdmin: !!isAdmin }
+  const auditContext = { db, batchId, changedBy: uploadedBy || 'system', batchBridgeCache: new Map(), isAdmin: !!isAdmin, rowResults: [], mode }
 
   try {
     let summaries
@@ -467,20 +474,54 @@ async function importUpload({ buffer, fileName, datasetName, uploadedBy, isAdmin
       }
     }
 
-    // Persist upload history
+    // Fold row-level warnings into the per-row results ledger so the results CSV is complete
+    // (successful rows were already recorded by the importers). "skipped" => the row failed.
+    const ROW_WARN_RE = /^([A-Za-z]+) row (\d+):\s*([\s\S]*)$/
+    for (const w of warnings) {
+      const m = ROW_WARN_RE.exec(String(w))
+      if (m) {
+        auditContext.rowResults.push({
+          rowNum: Number(m[2]), dataset: m[1], operation: '',
+          status: /skipped/i.test(m[3]) ? 'Error' : 'Warning', message: m[3], key: ''
+        })
+      } else {
+        auditContext.rowResults.push({ rowNum: null, dataset: '', operation: '', status: 'Warning', message: String(w), key: '' })
+      }
+    }
+    const rowResults = auditContext.rowResults
+
+    // Retain the raw source file once for the whole batch (reusable plugin capability) so the
+    // upload is auditable + re-downloadable. Best-effort: never fail the upload over retention.
+    const lower = (fileName || '').toLowerCase()
+    const mimeType = lower.endsWith('.csv') ? 'text/csv'
+      : lower.endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'application/octet-stream'
+    const totalProcessed = summaries.reduce((t, s) => t + Number(s.processed || 0), 0)
+    const sourceFileId = await massUploadPlugin.retainSourceFile({
+      db, fileBuffer: buffer, fileName, mimeType, rowCount: totalProcessed,
+      dataset: summaries.length === 1 ? (summaries[0].dataset || datasetName || '') : 'All',
+      batchId, user: uploadedBy || 'system'
+    })
+
+    // Persist upload history (now with per-dataset failed count + retained source file ref)
     const now = new Date()
     for (const summary of summaries) {
+      const dsName = summary.dataset || datasetName || ''
+      const failed = rowResults.filter((r) => r.status === 'Error' && r.dataset === dsName).length
       await db.run(INSERT.into('bridge.management.MassUploadLog').entries({
         ID: cds.utils.uuid(),
         uploadedAt: now.toISOString(),
         uploadedBy: uploadedBy || 'system',
         fileName: fileName || '',
-        dataset: summary.dataset || datasetName || '',
+        dataset: dsName,
         datasetLabel: summary.label || summary.dataset || datasetName || '',
         processed: Number(summary.processed || 0),
         inserted: Number(summary.inserted || 0),
         updated: Number(summary.updated || 0),
-        status: 'Completed'
+        deleted: 0,
+        failed,
+        sourceFileId: sourceFileId || null,
+        status: failed ? 'CompletedWithErrors' : 'Completed'
       }))
     }
 
@@ -570,12 +611,20 @@ async function importUpload({ buffer, fileName, datasetName, uploadedBy, isAdmin
     }
 
     const processed = summaries.reduce((total, summary) => total + summary.processed, 0)
+    const failedTotal = rowResults.filter((r) => r.status === 'Error').length
     return {
       message: `Mass upload completed successfully. ${processed} rows processed across ${summaries.length} dataset(s).` +
+        (failedTotal ? ` ${failedTotal} row(s) had errors — see results.` : '') +
         (rescored != null ? ` Risk configuration changed — ${rescored} bridges rescored.` : ''),
       summaries,
       skipped,
-      warnings
+      warnings,
+      // Reusable mass-upload plugin surface: per-row results ledger + injection-safe results CSV
+      // + retained source-file id (downloadable via GET /mass-upload/api/source/:id).
+      rowResults,
+      batchId,
+      sourceFileId,
+      resultsCsv: massUploadPlugin.resultsToCsv(rowResults, ['rowNum', 'dataset', 'operation', 'status', 'message', 'key'])
     }
   } catch (error) {
     await tx.rollback()
@@ -796,6 +845,39 @@ function queueAudit(auditContext, entry) {
   auditContext._auditQueue.push(entry)
 }
 
+// Per-row results ledger — surfaces the reusable mass-upload plugin's per-row status live.
+// Importers push one entry per processed row so the UI can show per-row outcomes and export
+// a results CSV (plugin `resultsToCsv`). No-op when no ledger is attached (back-compat).
+function recordRow(auditContext, entry) {
+  if (!auditContext || !Array.isArray(auditContext.rowResults)) return
+  auditContext.rowResults.push({
+    rowNum: entry.rowNum == null ? null : entry.rowNum,
+    dataset: entry.dataset || '',
+    operation: entry.operation || '',
+    status: entry.status || 'Success',
+    message: entry.message || '',
+    key: entry.key == null ? '' : String(entry.key)
+  })
+}
+
+// Upload-mode enforcement (Create / Update radio). Returns true (and records a per-row Error +
+// warning) when the chosen mode forbids applying this row: 'create' blocks rows that already
+// exist; 'update' blocks rows with no existing match. Default 'upsert' allows both (returns false).
+function modeSkip(auditContext, warnings, dataset, rowNum, keyStr, exists) {
+  const mode = (auditContext && auditContext.mode) || 'upsert'
+  if (mode === 'create' && exists) {
+    recordRow(auditContext, { rowNum, dataset: dataset.name, operation: 'update', status: 'Error', message: 'Create-only mode: a record with this key already exists', key: keyStr })
+    if (warnings) warnings.push(`${dataset.name} row ${rowNum}: skipped — Create-only mode but a record with this key already exists.`)
+    return true
+  }
+  if (mode === 'update' && !exists) {
+    recordRow(auditContext, { rowNum, dataset: dataset.name, operation: 'create', status: 'Error', message: 'Update-only mode: no existing record matches this key', key: keyStr })
+    if (warnings) warnings.push(`${dataset.name} row ${rowNum}: skipped — Update-only mode but no existing record matches this key.`)
+    return true
+  }
+  return false
+}
+
 async function importLookupRows(tx, dataset, rows, warnings, auditContext) {
   const normalized = normalizeRows(dataset, rows, warnings)
 
@@ -813,7 +895,9 @@ async function importLookupRows(tx, dataset, rows, warnings, auditContext) {
   const updates = []
 
   for (const row of normalized) {
-    if (existingCodes.has(row.code)) updates.push(row)
+    const exists = existingCodes.has(row.code)
+    if (modeSkip(auditContext, warnings, dataset, row.__rowNumber, row.code, exists)) continue
+    if (exists) updates.push(row)
     else inserts.push(row)
   }
 
@@ -830,6 +914,7 @@ async function importLookupRows(tx, dataset, rows, warnings, auditContext) {
         changes:    [{ fieldName: 'code', oldValue: '', newValue: row.code },
                      { fieldName: 'name', oldValue: '', newValue: row.name || '' }]
       })
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'create', status: 'Success', message: 'Created', key: row.code })
     }
   }
 
@@ -840,6 +925,7 @@ async function importLookupRows(tx, dataset, rows, warnings, auditContext) {
         .set({ name: row.name, descr: row.descr })
         .where({ code: row.code })
     )
+    recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'update', status: 'Success', message: 'Updated', key: row.code })
     if (oldRow) {
       const changes = diffRecords({ name: oldRow.name, descr: oldRow.descr }, { name: row.name, descr: row.descr })
       if (changes.length) {
@@ -881,10 +967,12 @@ async function importRiskConfigRows(tx, dataset, rows, warnings, auditContext) {
   let inserted = 0, updated = 0
   for (const row of normalized) {
     const patch = providedPatch(row, ['name', 'weight', 'active'])
+    if (modeSkip(auditContext, warnings, dataset, row.__rowNumber, row.factor, existingSet.has(row.factor))) continue
     if (existingSet.has(row.factor)) {
       const oldRow = await fetchCurrentRecord(tx, dataset.entity, { factor: row.factor })
       await tx.run(UPDATE(dataset.entity).set(patch).where({ factor: row.factor }))
       updated++
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'update', status: 'Success', message: 'Updated', key: row.factor })
       if (oldRow) {
         const changes = diffRecords(Object.fromEntries(Object.keys(patch).map((k) => [k, oldRow[k]])), patch)
         if (changes.length) queueAudit(auditContext, riskAudit('RiskConfig', row.factor, row.name || row.factor, auditContext, changes))
@@ -892,6 +980,7 @@ async function importRiskConfigRows(tx, dataset, rows, warnings, auditContext) {
     } else {
       await tx.run(INSERT.into(dataset.entity).entries(Object.assign({ factor: row.factor }, patch)))
       inserted++
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'create', status: 'Success', message: 'Created', key: row.factor })
       queueAudit(auditContext, riskAudit('RiskConfig', row.factor, row.name || row.factor, auditContext,
         Object.keys(patch).map((k) => ({ fieldName: k, oldValue: '', newValue: String(patch[k]) }))))
     }
@@ -924,10 +1013,12 @@ async function importRiskBandRows(tx, dataset, rows, warnings, auditContext) {
   let inserted = 0, updated = 0
   for (const row of normalized) {
     const patch = providedPatch(row, ['name', 'minScore', 'maxScore', 'colour', 'sortOrder', 'rationale', 'reviewedBy', 'reviewSource', 'active'])
+    if (modeSkip(auditContext, warnings, dataset, row.__rowNumber, row.code, existingSet.has(row.code))) continue
     if (existingSet.has(row.code)) {
       const oldRow = await fetchCurrentRecord(tx, dataset.entity, { code: row.code })
       await tx.run(UPDATE(dataset.entity).set(patch).where({ code: row.code }))
       updated++
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'update', status: 'Success', message: 'Updated', key: row.code })
       if (oldRow) {
         const changes = diffRecords(Object.fromEntries(Object.keys(patch).map((k) => [k, oldRow[k]])), patch)
         if (changes.length) queueAudit(auditContext, riskAudit('RiskBand', row.code, row.name || row.code, auditContext, changes))
@@ -935,6 +1026,7 @@ async function importRiskBandRows(tx, dataset, rows, warnings, auditContext) {
     } else {
       await tx.run(INSERT.into(dataset.entity).entries(Object.assign({ code: row.code }, patch)))
       inserted++
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'create', status: 'Success', message: 'Created', key: row.code })
       queueAudit(auditContext, riskAudit('RiskBand', row.code, row.name || row.code, auditContext,
         Object.keys(patch).map((k) => ({ fieldName: k, oldValue: '', newValue: String(patch[k]) }))))
     }
@@ -958,6 +1050,7 @@ async function importAssetClassStrategyRows(tx, dataset, rows, warnings, auditCo
     }
     const key = `${row.assetClass}|${row.transportMode}`
     const hit = byNatural.get(key)
+    if (modeSkip(auditContext, warnings, dataset, row.__rowNumber, key, !!hit)) continue
     const patch = providedPatch(row, PATCH_COLS)
     if (hit) {
       // Block deactivating a strategy still assigned to a bridge (referential integrity).
@@ -968,6 +1061,7 @@ async function importAssetClassStrategyRows(tx, dataset, rows, warnings, auditCo
       const oldRow = await fetchCurrentRecord(tx, dataset.entity, { ID: hit.ID })
       await tx.run(UPDATE(dataset.entity).set(patch).where({ ID: hit.ID }))
       updated++
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'update', status: 'Success', message: 'Updated', key })
       if (oldRow) {
         const changes = diffRecords(Object.fromEntries(Object.keys(patch).map((k) => [k, oldRow[k]])), patch)
         if (changes.length) queueAudit(auditContext, riskAudit('AssetClassStrategy', hit.ID, row.name || key, auditContext, changes))
@@ -976,6 +1070,7 @@ async function importAssetClassStrategyRows(tx, dataset, rows, warnings, auditCo
       const ID = cds.utils.uuid()
       await tx.run(INSERT.into(dataset.entity).entries(Object.assign({ ID, assetClass: row.assetClass, transportMode: row.transportMode }, patch)))
       inserted++
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'create', status: 'Success', message: 'Created', key })
       queueAudit(auditContext, riskAudit('AssetClassStrategy', ID, row.name || key, auditContext,
         [{ fieldName: 'assetClass', oldValue: '', newValue: row.assetClass }, { fieldName: 'transportMode', oldValue: '', newValue: row.transportMode }]
           .concat(Object.keys(patch).map((k) => ({ fieldName: k, oldValue: '', newValue: String(patch[k]) })))))
@@ -1016,6 +1111,7 @@ async function importBridgeRows(tx, dataset, rows, warnings, auditContext) {
 
   for (const row of normalized) {
     const existing = resolveExistingBridgeRow(row, existingById, existingByBridgeId)
+    if (modeSkip(auditContext, warnings, dataset, row.__rowNumber, row.bridgeId || row.ID, !!existing)) continue
 
     if (existing) {
       row.ID = existing.ID
@@ -1053,6 +1149,7 @@ async function importBridgeRows(tx, dataset, rows, warnings, auditContext) {
           .filter(([changedBridgeField, changedBridgeData]) => !['__rowNumber'].includes(changedBridgeField) && changedBridgeData != null && changedBridgeData !== '')
           .map(([changedBridgeField, changedBridgeData]) => ({ fieldName: changedBridgeField, oldValue: '', newValue: String(changedBridgeData) }))
       })
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'create', status: 'Success', message: 'Created', key: row.bridgeId || row.ID })
     }
   }
 
@@ -1064,6 +1161,7 @@ async function importBridgeRows(tx, dataset, rows, warnings, auditContext) {
         .set(patch)
         .where({ ID: row.ID })
     )
+    recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'update', status: 'Success', message: 'Updated', key: row.bridgeId || row.ID })
     if (oldRecord) {
       const changes = diffRecords(
         Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
@@ -1141,6 +1239,7 @@ async function importRestrictionRows(tx, dataset, rows, warnings, auditContext) 
     }
 
     const existing = resolveExistingRestrictionRow(row, existingById, existingByRef)
+    if (modeSkip(auditContext, warnings, dataset, row.__rowNumber, row.restrictionRef || row.ID, !!existing)) continue
     if (existing) {
       row.ID = existing.ID
       updates.push(row)
@@ -1169,6 +1268,7 @@ async function importRestrictionRows(tx, dataset, rows, warnings, auditContext) 
           .filter(([changedRestrictionField, changedRestrictionData]) => !['__rowNumber'].includes(changedRestrictionField) && changedRestrictionData != null && changedRestrictionData !== '')
           .map(([changedRestrictionField, changedRestrictionData]) => ({ fieldName: changedRestrictionField, oldValue: '', newValue: String(changedRestrictionData) }))
       })
+      recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'create', status: 'Success', message: 'Created', key: row.restrictionRef || row.ID })
     }
   }
 
@@ -1180,6 +1280,7 @@ async function importRestrictionRows(tx, dataset, rows, warnings, auditContext) 
         .set(patch)
         .where({ ID: row.ID })
     )
+    recordRow(auditContext, { rowNum: row.__rowNumber, dataset: dataset.name, operation: 'update', status: 'Success', message: 'Updated', key: row.restrictionRef || row.ID })
     if (oldRecord) {
       const changes = diffRecords(
         Object.fromEntries(Object.keys(patch).map(k => [k, oldRecord[k]])),
@@ -1530,16 +1631,16 @@ function buildHeaderRow(dataset) {
 
 const SAMPLE_ROW_BRIDGE = {
   ID: '',
-  descr: 'Iconic steel arch bridge carrying road and rail traffic across Sydney Harbour.',
-  bridgeId: 'BRG-NSW-SYD-001', bridgeName: 'Sydney Harbour Bridge', assetClass: 'Road Bridge',
-  route: 'Cahill Expressway', routeNumber: 'A8', state: 'NSW', region: 'Sydney Metro', lga: 'North Sydney',
-  latitude: -33.852306, longitude: 151.210787, location: 'Sydney NSW 2060',
-  assetOwner: 'Transport for NSW', managingAuthority: 'Transport for NSW', structureType: 'Arch Bridge',
+  descr: 'Landmark steel arch bridge carrying road traffic across Kestrel Harbour.',
+  bridgeId: 'BRG-NSW-SYD-001', bridgeName: 'Harbour Gate Bridge', assetClass: 'Road Bridge',
+  route: 'Harbour City Expressway', routeNumber: 'A8', state: 'NSW', region: 'Sydney Metropolitan', lga: 'North Haven',
+  latitude: -33.791200, longitude: 151.252400, location: 'Kestrel Harbour',
+  assetOwner: 'State Roads Authority', managingAuthority: 'State Roads Authority', structureType: 'Arch Bridge',
   yearBuilt: 1932, designLoad: 'T44', designStandard: 'AS 5100', clearanceHeight: 49.0,
   spanLength: 503.0, material: 'Steel', spanCount: 1, totalLength: 1149.0, deckWidth: 48.8,
   numberOfLanes: 8, condition: 'Good', conditionRating: 8, structuralAdequacyRating: 9,
   postingStatus: 'Unrestricted', conditionStandard: 'AS 5100.7', seismicZone: 'Zone 1',
-  asBuiltDrawingReference: 'TfNSW-DRG-1932-001',
+  asBuiltDrawingReference: 'DRG-1932-001',
   floodImmunityAriYears: 100, floodImpacted: false,
   highPriorityAsset: true,
   remarks: 'Major strategic crossing with ongoing monitoring.',
@@ -1548,7 +1649,7 @@ const SAMPLE_ROW_BRIDGE = {
   loadRating: '42.5', pbsApprovalClass: 'Level 4', importanceLevel: 4, averageDailyTraffic: 160000,
   heavyVehiclePercent: 18.5, gazetteReference: 'NSW Gazette 2024/100', nhvrReferenceUrl: '',
   freightRoute: true, overMassRoute: true, hmlApproved: true, bDoubleApproved: true,
-  dataSource: 'TfNSW Asset Register', sourceReferenceUrl: '', openDataReference: '', sourceRecordId: 'BMS-NSW-0001',
+  dataSource: 'Asset Register', sourceReferenceUrl: '', openDataReference: '', sourceRecordId: 'BMS-NSW-0001',
   restriction_ID: '', geoJson: '{"type":"LineString","coordinates":[[151.206,-33.852],[151.210,-33.852]]}'
 }
 
@@ -1560,9 +1661,9 @@ const SAMPLE_ROW_RESTRICTION = {
   grossMassLimit: 42.5, axleMassLimit: 10.5, heightLimit: '', widthLimit: '', lengthLimit: '',
   speedLimit: '', permitRequired: true, escortRequired: false, temporary: false, active: true,
   effectiveFrom: '2024-01-15', effectiveTo: '', approvedBy: 'Chief Bridge Engineer',
-  direction: 'Both Directions', enforcementAuthority: 'Transport for NSW',
+  direction: 'Both Directions', enforcementAuthority: 'State Roads Authority',
   temporaryFrom: '', temporaryTo: '', temporaryReason: '',
-  approvalReference: 'APR-NSW-2024-08', issuingAuthority: 'Transport for NSW',
+  approvalReference: 'APR-NSW-2024-08', issuingAuthority: 'State Roads Authority',
   legalReference: 'NSW Gazette 2024/08',
   remarks: 'Permit required for vehicles exceeding 42.5 t GVM. Signs erected both approaches.'
 }
@@ -1575,6 +1676,8 @@ const FALLBACK_LOOKUP_DATA = new Map([
     { code: 'Rail Bridge', name: 'Rail Bridge', descr: '' },
     { code: 'Road Bridge', name: 'Road Bridge', descr: '' },
     { code: 'Shared Path Bridge', name: 'Shared Path Bridge', descr: '' },
+    { code: 'Culvert', name: 'Culvert', descr: 'Drainage culvert (pipe or box) under a road or rail formation' },
+    { code: 'Major Culvert', name: 'Major Culvert', descr: 'Large multi-cell or long-span culvert (waterway opening >= 6 m2)' },
   ]],
   ['States', [
     { code: 'ACT', name: 'Australian Capital Territory', descr: '' },
@@ -1592,7 +1695,7 @@ const FALLBACK_LOOKUP_DATA = new Map([
     { code: 'Regional NSW', name: 'Regional NSW', descr: '' },
     { code: 'Regional Victoria', name: 'Regional Victoria', descr: '' },
     { code: 'South East Queensland', name: 'South East Queensland', descr: '' },
-    { code: 'Sydney Metro', name: 'Sydney Metro', descr: '' },
+    { code: 'Sydney Metropolitan', name: 'Sydney Metropolitan', descr: '' },
   ]],
   ['StructureTypes', [
     { code: 'Arch Bridge', name: 'Arch Bridge', descr: 'Bridge supported by arches.' },

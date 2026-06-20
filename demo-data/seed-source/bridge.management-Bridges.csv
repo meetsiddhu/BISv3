@@ -1,0 +1,13 @@
+ID,bridgeId,bridgeName,assetClass,transportMode,state,region,lga,latitude,longitude,assetOwner,yearBuilt,material,structureType,conditionRating,structuralAdequacyRating,status,importanceLevel,averageDailyTraffic,heavyVehiclePercent,floodImpacted,seismicZone,mitigationCostAud,expectedValueAud,benefitCostRatio
+1001,BR-1001,Parramatta River Bridge,Road Bridge,Road,NSW,Sydney Metropolitan,Parramatta,-33.8136,151.0034,Demo Roads Authority,1987,Reinforced Concrete,Beam Bridge,8,8,Active,3,28000,9,false,0,630000,525560,0.83
+1002,BR-1002,Hartley Creek Bridge,Road Bridge,Road,NSW,Regional NSW,Lithgow,-33.5419,150.1551,Demo Roads Authority,1965,Reinforced Concrete,Beam Bridge,6,5,Active,2,4200,14,false,0,780000,545084,0.7
+1003,BR-1003,Yarra Boulevard Overpass,Road Bridge,Road,VIC,Greater Melbourne,Boroondara,-37.7985,145.0356,Demo State Transport,1995,Reinforced Concrete,Beam Bridge,9,9,Active,2,65000,7,false,1,420000,351300,0.84
+1004,BR-1004,Goldfields Rail Viaduct,Rail Bridge,Rail,VIC,Regional Victoria,Ballarat,-37.5622,143.8503,Demo Rail Authority,1958,Steel,Truss Bridge,4,4,Active,4,0,0,false,1,1200000,895000,0.75
+1005,BR-1005,Brisbane River Footbridge,Pedestrian Bridge,Pedestrian,QLD,Brisbane,Brisbane,-27.4709,153.0176,Demo City Council,2011,Steel/Timber,Cable-stayed,8,9,Active,1,0,0,false,0,450000,305000,0.68
+1006,BR-1006,Torrens Weir Bridge,Road Bridge,Road,SA,Adelaide,Adelaide,-34.9136,138.5995,Demo City Council,1979,Reinforced Concrete,Beam Bridge,5,5,Active,2,12500,10,false,0,900000,610250,0.68
+1007,BR-1007,Derwent Estuary Crossing,Road Bridge,Road,TAS,Coastal Tasmania,Hobart,-42.821,147.3257,Demo Roads Authority,1972,Reinforced Concrete,Beam Bridge,3,3,Active,3,18000,12,true,0,1230000,850360,0.69
+1008,BR-1008,Swan River Shared Path,Shared Path Bridge,Pedestrian,WA,Perth,Perth,-31.9609,115.8765,Demo City Council,2006,Composite,Box Girder,7,8,Active,1,0,0,false,0,570000,370000,0.65
+1009,BR-1009,Hunter Valley Rail Bridge,Rail Bridge,Rail,NSW,Regional NSW,Maitland,-32.733,151.555,Demo Rail Authority,1969,Steel,Truss Bridge,5,5,Active,4,0,0,false,0,1080000,830000,0.77
+1010,BR-1010,Murray River Bridge,Road Bridge,Road,NSW,Riverina,Albury,-36.0737,146.9135,Demo Roads Authority,1961,Reinforced Concrete,Beam Bridge,6,5,Active,3,9800,18,true,0,870000,655196,0.75
+1011,BR-1011,Coral Coast Highway Bridge,Road Bridge,Road,QLD,Coastal Queensland,Mackay,-21.1411,149.186,Demo State Transport,1990,Reinforced Concrete,Beam Bridge,4,4,Active,3,15200,22,true,0,1110000,785304,0.71
+1012,BR-1012,Old Town Bridge,Road Bridge,Road,NSW,Regional NSW,Bathurst,-33.4193,149.5775,Demo City Council,1954,Reinforced Concrete,Beam Bridge,2,2,Active,2,2600,8,false,0,1260000,805052,0.64

@@ -20,6 +20,37 @@ function (Controller, JSONModel, Log) {
       this._loadBridgeList();
       this._loadCrossMode();
     },
+    onShowInfo: function () {
+      if (this._infoDialog) { this._infoDialog.open(); return; }
+      var self = this;
+      sap.ui.require(["sap/m/Dialog", "sap/m/Button", "sap/m/FormattedText"], function (Dialog, Button, FormattedText) {
+        var html =
+          // sap.m.FormattedText only honours <strong>/<em> (it strips <b>/<i> and their text).
+          "<h3>What BSI and BHI mean</h3>" +
+          "<p><strong>BSI</strong> (Bridge Structure Index) — the bridge's physical condition, <strong>0–10</strong> (10 = healthiest).</p>" +
+          "<p><strong>BHI</strong> (Bridge Health Index) — BSI adjusted for exposure and importance, <strong>0–100</strong> (higher = healthier).</p>" +
+          "<h3>How they're calculated</h3>" +
+          "<ol>" +
+          "<li>Rate each part 1–10 (deck, beams, supports, bearings, drainage…). The <strong>worst element per part</strong> is used.</li>" +
+          "<li><strong>BSI</strong> = weighted average of the parts, then reduced a little for age and harsh environment (flood / coastal / seismic).</li>" +
+          "<li><strong>BHI</strong> = BSI × 10, then reduced by <strong>vulnerability</strong> (old + exposed) and adjusted by <strong>importance</strong> (level 1–4).</li>" +
+          "<li><strong>RSL</strong> (remaining service life) ≈ (BSI ÷ 10) × (100 − age) × 0.6 years.</li>" +
+          "</ol>" +
+          "<p>BSI action bands: <strong>&lt; 4 URGENT, 4–6 HIGH, 6–7.5 ROUTINE, 7.5+ MONITORING</strong>.</p>" +
+          "<p><em>Example: a 32-year-old road bridge with sound parts → BSI 6.4, BHI ≈ 53, RSL ≈ 26 years.</em></p>" +
+          "<h3>How to configure it</h3>" +
+          "<p>Open <strong>BMS Administration → BSI / BHI Config</strong>: <strong>Element weights</strong> (per transport mode, must total 1.0), <strong>Coefficients</strong> (age, flood, corrosion, seismic, importance, RSL) and <strong>Calibrated modes</strong>.</p>" +
+          "<p><em>The cross-mode summary shows averages once a fleet BHI compute has stored scores; pick any bridge to see its live breakdown and formulas with your numbers.</em></p>";
+        self._infoDialog = new Dialog({
+          title: self._rb.getText("info.title"), contentWidth: "34rem", contentHeight: "30rem",
+          resizable: true, draggable: true, verticalScrolling: true,
+          content: [new FormattedText({ htmlText: html }).addStyleClass("sapUiSmallMargin")],
+          endButton: new Button({ text: self._rb.getText("info.close"), press: function () { self._infoDialog.close(); } })
+        });
+        self.getView().addDependent(self._infoDialog);
+        self._infoDialog.open();
+      });
+    },
     _loadBridgeList: function () {
       var self = this, ui = this.getView().getModel("ui");
       ui.setProperty("/listBusy", true); ui.setProperty("/listError", "");
@@ -39,10 +70,16 @@ function (Controller, JSONModel, Log) {
         .then(function (r) { if (!r.ok) { throw new Error(r.statusText); } return r.json(); })
         .then(function (j) {
           self.getView().getModel("cm").setProperty("/rows", (j.value || []).map(function (m) {
+            // BSI/BHI are null until a fleet BHI compute has stored scores; show an
+            // em-dash placeholder rather than the literal "null"/"BHI null" text.
+            var scored = m.avgBhi != null && m.avgBsi != null;
             return Object.assign({}, m, {
-              bhiPct: Math.round(Number(m.avgBhi) || 0),
-              bhiDisplay: self._rb.getText("fmt.bhi", [m.avgBhi]),
-              state: ST(Number(m.avgBsi))
+              avgBsi:    m.avgBsi   == null ? "—" : Number(m.avgBsi).toFixed(1),
+              worstBsi:  m.worstBsi == null ? "—" : Number(m.worstBsi).toFixed(1),
+              avgBhi:    m.avgBhi   == null ? "—" : String(Math.round(m.avgBhi)),
+              bhiPct:    Math.round(Number(m.avgBhi) || 0),
+              bhiDisplay: scored ? self._rb.getText("fmt.bhi", [Math.round(m.avgBhi)]) : self._rb.getText("fmt.notScored"),
+              state:     scored ? ST(Number(m.avgBsi)) : "None"
             });
           }));
         })

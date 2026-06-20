@@ -9,6 +9,16 @@ describe('csv-export (extracted from server.js, ARCH-T4)', () => {
     expect(csvCell(42)).toBe('42')
   })
 
+  // UAT P3-006: spreadsheet formula injection — cells starting with = + - @ are neutralised.
+  test('csvCell neutralises formula-injection prefixes', () => {
+    expect(csvCell('=1+1')).toBe("'=1+1")
+    expect(csvCell('+44')).toBe("'+44")
+    expect(csvCell('-5')).toBe("'-5")
+    expect(csvCell('@SUM(A1)')).toBe("'@SUM(A1)")
+    expect(csvCell('=cmd|calc,x')).toBe('"\'=cmd|calc,x"') // prefixed then quoted (has comma)
+    expect(csvCell('Normal Bridge')).toBe('Normal Bridge')  // no false positives
+  })
+
   test('buildBridgesCsv emits a header + one row per bridge, with quoting', () => {
     const csv = buildBridgesCsv([
       { ID: 1, bridgeId: 'B1', bridgeName: 'Anzac, Bridge', state: 'NSW', conditionRating: 8 }

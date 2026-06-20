@@ -1,0 +1,3 @@
+code,name,descr,sortOrder,isActive
+bridge,Bridge,Bridge assets,1,true
+restriction,Restriction,Restriction records,2,true

@@ -1,6 +1,6 @@
 const re = require('../srv/lib/prioritisation-rule-engine')
 
-// Council B7 — the user-type axis must be MONOTONE (TfNSW PS224353 intent: a structure that
+// Council B7 — the user-type axis must be MONOTONE (specification intent: a structure that
 // serves MORE relevant customer types can only maintain or RAISE its priority, never lower it).
 //   factor = 1 + Σ over present applicable rows of ( typeWeighting × (rowWeight − 1) ) / 10,
 //   clamped [0.5, 2]
@@ -16,7 +16,7 @@ const TYPES = [
   { code: 'ROAD_HV23', weighting: 1, active: true },
   { code: 'ROAD_HV1', weighting: 1, active: true },
   { code: 'RAIL_PASS', weighting: 1, active: true },
-  { code: 'AT_PED', weighting: 0.5, active: true },   // the TfNSW active-transport 0.5
+  { code: 'AT_PED', weighting: 0.5, active: true },   // the active-transport 0.5
   { code: 'AT_CYCLE', weighting: 0.5, active: true }
 ]
 const f = (rows, present, overUnder) =>

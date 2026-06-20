@@ -1,0 +1,3244 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for srv/lib/template-library-seed.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">srv/lib</a> template-library-seed.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>55/55</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">82.75% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>24/29</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>13/13</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>50/50</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a>
+<a name='L371'></a><a href='#L371'>371</a>
+<a name='L372'></a><a href='#L372'>372</a>
+<a name='L373'></a><a href='#L373'>373</a>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a>
+<a name='L376'></a><a href='#L376'>376</a>
+<a name='L377'></a><a href='#L377'>377</a>
+<a name='L378'></a><a href='#L378'>378</a>
+<a name='L379'></a><a href='#L379'>379</a>
+<a name='L380'></a><a href='#L380'>380</a>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a>
+<a name='L383'></a><a href='#L383'>383</a>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a>
+<a name='L392'></a><a href='#L392'>392</a>
+<a name='L393'></a><a href='#L393'>393</a>
+<a name='L394'></a><a href='#L394'>394</a>
+<a name='L395'></a><a href='#L395'>395</a>
+<a name='L396'></a><a href='#L396'>396</a>
+<a name='L397'></a><a href='#L397'>397</a>
+<a name='L398'></a><a href='#L398'>398</a>
+<a name='L399'></a><a href='#L399'>399</a>
+<a name='L400'></a><a href='#L400'>400</a>
+<a name='L401'></a><a href='#L401'>401</a>
+<a name='L402'></a><a href='#L402'>402</a>
+<a name='L403'></a><a href='#L403'>403</a>
+<a name='L404'></a><a href='#L404'>404</a>
+<a name='L405'></a><a href='#L405'>405</a>
+<a name='L406'></a><a href='#L406'>406</a>
+<a name='L407'></a><a href='#L407'>407</a>
+<a name='L408'></a><a href='#L408'>408</a>
+<a name='L409'></a><a href='#L409'>409</a>
+<a name='L410'></a><a href='#L410'>410</a>
+<a name='L411'></a><a href='#L411'>411</a>
+<a name='L412'></a><a href='#L412'>412</a>
+<a name='L413'></a><a href='#L413'>413</a>
+<a name='L414'></a><a href='#L414'>414</a>
+<a name='L415'></a><a href='#L415'>415</a>
+<a name='L416'></a><a href='#L416'>416</a>
+<a name='L417'></a><a href='#L417'>417</a>
+<a name='L418'></a><a href='#L418'>418</a>
+<a name='L419'></a><a href='#L419'>419</a>
+<a name='L420'></a><a href='#L420'>420</a>
+<a name='L421'></a><a href='#L421'>421</a>
+<a name='L422'></a><a href='#L422'>422</a>
+<a name='L423'></a><a href='#L423'>423</a>
+<a name='L424'></a><a href='#L424'>424</a>
+<a name='L425'></a><a href='#L425'>425</a>
+<a name='L426'></a><a href='#L426'>426</a>
+<a name='L427'></a><a href='#L427'>427</a>
+<a name='L428'></a><a href='#L428'>428</a>
+<a name='L429'></a><a href='#L429'>429</a>
+<a name='L430'></a><a href='#L430'>430</a>
+<a name='L431'></a><a href='#L431'>431</a>
+<a name='L432'></a><a href='#L432'>432</a>
+<a name='L433'></a><a href='#L433'>433</a>
+<a name='L434'></a><a href='#L434'>434</a>
+<a name='L435'></a><a href='#L435'>435</a>
+<a name='L436'></a><a href='#L436'>436</a>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a>
+<a name='L439'></a><a href='#L439'>439</a>
+<a name='L440'></a><a href='#L440'>440</a>
+<a name='L441'></a><a href='#L441'>441</a>
+<a name='L442'></a><a href='#L442'>442</a>
+<a name='L443'></a><a href='#L443'>443</a>
+<a name='L444'></a><a href='#L444'>444</a>
+<a name='L445'></a><a href='#L445'>445</a>
+<a name='L446'></a><a href='#L446'>446</a>
+<a name='L447'></a><a href='#L447'>447</a>
+<a name='L448'></a><a href='#L448'>448</a>
+<a name='L449'></a><a href='#L449'>449</a>
+<a name='L450'></a><a href='#L450'>450</a>
+<a name='L451'></a><a href='#L451'>451</a>
+<a name='L452'></a><a href='#L452'>452</a>
+<a name='L453'></a><a href='#L453'>453</a>
+<a name='L454'></a><a href='#L454'>454</a>
+<a name='L455'></a><a href='#L455'>455</a>
+<a name='L456'></a><a href='#L456'>456</a>
+<a name='L457'></a><a href='#L457'>457</a>
+<a name='L458'></a><a href='#L458'>458</a>
+<a name='L459'></a><a href='#L459'>459</a>
+<a name='L460'></a><a href='#L460'>460</a>
+<a name='L461'></a><a href='#L461'>461</a>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a>
+<a name='L464'></a><a href='#L464'>464</a>
+<a name='L465'></a><a href='#L465'>465</a>
+<a name='L466'></a><a href='#L466'>466</a>
+<a name='L467'></a><a href='#L467'>467</a>
+<a name='L468'></a><a href='#L468'>468</a>
+<a name='L469'></a><a href='#L469'>469</a>
+<a name='L470'></a><a href='#L470'>470</a>
+<a name='L471'></a><a href='#L471'>471</a>
+<a name='L472'></a><a href='#L472'>472</a>
+<a name='L473'></a><a href='#L473'>473</a>
+<a name='L474'></a><a href='#L474'>474</a>
+<a name='L475'></a><a href='#L475'>475</a>
+<a name='L476'></a><a href='#L476'>476</a>
+<a name='L477'></a><a href='#L477'>477</a>
+<a name='L478'></a><a href='#L478'>478</a>
+<a name='L479'></a><a href='#L479'>479</a>
+<a name='L480'></a><a href='#L480'>480</a>
+<a name='L481'></a><a href='#L481'>481</a>
+<a name='L482'></a><a href='#L482'>482</a>
+<a name='L483'></a><a href='#L483'>483</a>
+<a name='L484'></a><a href='#L484'>484</a>
+<a name='L485'></a><a href='#L485'>485</a>
+<a name='L486'></a><a href='#L486'>486</a>
+<a name='L487'></a><a href='#L487'>487</a>
+<a name='L488'></a><a href='#L488'>488</a>
+<a name='L489'></a><a href='#L489'>489</a>
+<a name='L490'></a><a href='#L490'>490</a>
+<a name='L491'></a><a href='#L491'>491</a>
+<a name='L492'></a><a href='#L492'>492</a>
+<a name='L493'></a><a href='#L493'>493</a>
+<a name='L494'></a><a href='#L494'>494</a>
+<a name='L495'></a><a href='#L495'>495</a>
+<a name='L496'></a><a href='#L496'>496</a>
+<a name='L497'></a><a href='#L497'>497</a>
+<a name='L498'></a><a href='#L498'>498</a>
+<a name='L499'></a><a href='#L499'>499</a>
+<a name='L500'></a><a href='#L500'>500</a>
+<a name='L501'></a><a href='#L501'>501</a>
+<a name='L502'></a><a href='#L502'>502</a>
+<a name='L503'></a><a href='#L503'>503</a>
+<a name='L504'></a><a href='#L504'>504</a>
+<a name='L505'></a><a href='#L505'>505</a>
+<a name='L506'></a><a href='#L506'>506</a>
+<a name='L507'></a><a href='#L507'>507</a>
+<a name='L508'></a><a href='#L508'>508</a>
+<a name='L509'></a><a href='#L509'>509</a>
+<a name='L510'></a><a href='#L510'>510</a>
+<a name='L511'></a><a href='#L511'>511</a>
+<a name='L512'></a><a href='#L512'>512</a>
+<a name='L513'></a><a href='#L513'>513</a>
+<a name='L514'></a><a href='#L514'>514</a>
+<a name='L515'></a><a href='#L515'>515</a>
+<a name='L516'></a><a href='#L516'>516</a>
+<a name='L517'></a><a href='#L517'>517</a>
+<a name='L518'></a><a href='#L518'>518</a>
+<a name='L519'></a><a href='#L519'>519</a>
+<a name='L520'></a><a href='#L520'>520</a>
+<a name='L521'></a><a href='#L521'>521</a>
+<a name='L522'></a><a href='#L522'>522</a>
+<a name='L523'></a><a href='#L523'>523</a>
+<a name='L524'></a><a href='#L524'>524</a>
+<a name='L525'></a><a href='#L525'>525</a>
+<a name='L526'></a><a href='#L526'>526</a>
+<a name='L527'></a><a href='#L527'>527</a>
+<a name='L528'></a><a href='#L528'>528</a>
+<a name='L529'></a><a href='#L529'>529</a>
+<a name='L530'></a><a href='#L530'>530</a>
+<a name='L531'></a><a href='#L531'>531</a>
+<a name='L532'></a><a href='#L532'>532</a>
+<a name='L533'></a><a href='#L533'>533</a>
+<a name='L534'></a><a href='#L534'>534</a>
+<a name='L535'></a><a href='#L535'>535</a>
+<a name='L536'></a><a href='#L536'>536</a>
+<a name='L537'></a><a href='#L537'>537</a>
+<a name='L538'></a><a href='#L538'>538</a>
+<a name='L539'></a><a href='#L539'>539</a>
+<a name='L540'></a><a href='#L540'>540</a>
+<a name='L541'></a><a href='#L541'>541</a>
+<a name='L542'></a><a href='#L542'>542</a>
+<a name='L543'></a><a href='#L543'>543</a>
+<a name='L544'></a><a href='#L544'>544</a>
+<a name='L545'></a><a href='#L545'>545</a>
+<a name='L546'></a><a href='#L546'>546</a>
+<a name='L547'></a><a href='#L547'>547</a>
+<a name='L548'></a><a href='#L548'>548</a>
+<a name='L549'></a><a href='#L549'>549</a>
+<a name='L550'></a><a href='#L550'>550</a>
+<a name='L551'></a><a href='#L551'>551</a>
+<a name='L552'></a><a href='#L552'>552</a>
+<a name='L553'></a><a href='#L553'>553</a>
+<a name='L554'></a><a href='#L554'>554</a>
+<a name='L555'></a><a href='#L555'>555</a>
+<a name='L556'></a><a href='#L556'>556</a>
+<a name='L557'></a><a href='#L557'>557</a>
+<a name='L558'></a><a href='#L558'>558</a>
+<a name='L559'></a><a href='#L559'>559</a>
+<a name='L560'></a><a href='#L560'>560</a>
+<a name='L561'></a><a href='#L561'>561</a>
+<a name='L562'></a><a href='#L562'>562</a>
+<a name='L563'></a><a href='#L563'>563</a>
+<a name='L564'></a><a href='#L564'>564</a>
+<a name='L565'></a><a href='#L565'>565</a>
+<a name='L566'></a><a href='#L566'>566</a>
+<a name='L567'></a><a href='#L567'>567</a>
+<a name='L568'></a><a href='#L568'>568</a>
+<a name='L569'></a><a href='#L569'>569</a>
+<a name='L570'></a><a href='#L570'>570</a>
+<a name='L571'></a><a href='#L571'>571</a>
+<a name='L572'></a><a href='#L572'>572</a>
+<a name='L573'></a><a href='#L573'>573</a>
+<a name='L574'></a><a href='#L574'>574</a>
+<a name='L575'></a><a href='#L575'>575</a>
+<a name='L576'></a><a href='#L576'>576</a>
+<a name='L577'></a><a href='#L577'>577</a>
+<a name='L578'></a><a href='#L578'>578</a>
+<a name='L579'></a><a href='#L579'>579</a>
+<a name='L580'></a><a href='#L580'>580</a>
+<a name='L581'></a><a href='#L581'>581</a>
+<a name='L582'></a><a href='#L582'>582</a>
+<a name='L583'></a><a href='#L583'>583</a>
+<a name='L584'></a><a href='#L584'>584</a>
+<a name='L585'></a><a href='#L585'>585</a>
+<a name='L586'></a><a href='#L586'>586</a>
+<a name='L587'></a><a href='#L587'>587</a>
+<a name='L588'></a><a href='#L588'>588</a>
+<a name='L589'></a><a href='#L589'>589</a>
+<a name='L590'></a><a href='#L590'>590</a>
+<a name='L591'></a><a href='#L591'>591</a>
+<a name='L592'></a><a href='#L592'>592</a>
+<a name='L593'></a><a href='#L593'>593</a>
+<a name='L594'></a><a href='#L594'>594</a>
+<a name='L595'></a><a href='#L595'>595</a>
+<a name='L596'></a><a href='#L596'>596</a>
+<a name='L597'></a><a href='#L597'>597</a>
+<a name='L598'></a><a href='#L598'>598</a>
+<a name='L599'></a><a href='#L599'>599</a>
+<a name='L600'></a><a href='#L600'>600</a>
+<a name='L601'></a><a href='#L601'>601</a>
+<a name='L602'></a><a href='#L602'>602</a>
+<a name='L603'></a><a href='#L603'>603</a>
+<a name='L604'></a><a href='#L604'>604</a>
+<a name='L605'></a><a href='#L605'>605</a>
+<a name='L606'></a><a href='#L606'>606</a>
+<a name='L607'></a><a href='#L607'>607</a>
+<a name='L608'></a><a href='#L608'>608</a>
+<a name='L609'></a><a href='#L609'>609</a>
+<a name='L610'></a><a href='#L610'>610</a>
+<a name='L611'></a><a href='#L611'>611</a>
+<a name='L612'></a><a href='#L612'>612</a>
+<a name='L613'></a><a href='#L613'>613</a>
+<a name='L614'></a><a href='#L614'>614</a>
+<a name='L615'></a><a href='#L615'>615</a>
+<a name='L616'></a><a href='#L616'>616</a>
+<a name='L617'></a><a href='#L617'>617</a>
+<a name='L618'></a><a href='#L618'>618</a>
+<a name='L619'></a><a href='#L619'>619</a>
+<a name='L620'></a><a href='#L620'>620</a>
+<a name='L621'></a><a href='#L621'>621</a>
+<a name='L622'></a><a href='#L622'>622</a>
+<a name='L623'></a><a href='#L623'>623</a>
+<a name='L624'></a><a href='#L624'>624</a>
+<a name='L625'></a><a href='#L625'>625</a>
+<a name='L626'></a><a href='#L626'>626</a>
+<a name='L627'></a><a href='#L627'>627</a>
+<a name='L628'></a><a href='#L628'>628</a>
+<a name='L629'></a><a href='#L629'>629</a>
+<a name='L630'></a><a href='#L630'>630</a>
+<a name='L631'></a><a href='#L631'>631</a>
+<a name='L632'></a><a href='#L632'>632</a>
+<a name='L633'></a><a href='#L633'>633</a>
+<a name='L634'></a><a href='#L634'>634</a>
+<a name='L635'></a><a href='#L635'>635</a>
+<a name='L636'></a><a href='#L636'>636</a>
+<a name='L637'></a><a href='#L637'>637</a>
+<a name='L638'></a><a href='#L638'>638</a>
+<a name='L639'></a><a href='#L639'>639</a>
+<a name='L640'></a><a href='#L640'>640</a>
+<a name='L641'></a><a href='#L641'>641</a>
+<a name='L642'></a><a href='#L642'>642</a>
+<a name='L643'></a><a href='#L643'>643</a>
+<a name='L644'></a><a href='#L644'>644</a>
+<a name='L645'></a><a href='#L645'>645</a>
+<a name='L646'></a><a href='#L646'>646</a>
+<a name='L647'></a><a href='#L647'>647</a>
+<a name='L648'></a><a href='#L648'>648</a>
+<a name='L649'></a><a href='#L649'>649</a>
+<a name='L650'></a><a href='#L650'>650</a>
+<a name='L651'></a><a href='#L651'>651</a>
+<a name='L652'></a><a href='#L652'>652</a>
+<a name='L653'></a><a href='#L653'>653</a>
+<a name='L654'></a><a href='#L654'>654</a>
+<a name='L655'></a><a href='#L655'>655</a>
+<a name='L656'></a><a href='#L656'>656</a>
+<a name='L657'></a><a href='#L657'>657</a>
+<a name='L658'></a><a href='#L658'>658</a>
+<a name='L659'></a><a href='#L659'>659</a>
+<a name='L660'></a><a href='#L660'>660</a>
+<a name='L661'></a><a href='#L661'>661</a>
+<a name='L662'></a><a href='#L662'>662</a>
+<a name='L663'></a><a href='#L663'>663</a>
+<a name='L664'></a><a href='#L664'>664</a>
+<a name='L665'></a><a href='#L665'>665</a>
+<a name='L666'></a><a href='#L666'>666</a>
+<a name='L667'></a><a href='#L667'>667</a>
+<a name='L668'></a><a href='#L668'>668</a>
+<a name='L669'></a><a href='#L669'>669</a>
+<a name='L670'></a><a href='#L670'>670</a>
+<a name='L671'></a><a href='#L671'>671</a>
+<a name='L672'></a><a href='#L672'>672</a>
+<a name='L673'></a><a href='#L673'>673</a>
+<a name='L674'></a><a href='#L674'>674</a>
+<a name='L675'></a><a href='#L675'>675</a>
+<a name='L676'></a><a href='#L676'>676</a>
+<a name='L677'></a><a href='#L677'>677</a>
+<a name='L678'></a><a href='#L678'>678</a>
+<a name='L679'></a><a href='#L679'>679</a>
+<a name='L680'></a><a href='#L680'>680</a>
+<a name='L681'></a><a href='#L681'>681</a>
+<a name='L682'></a><a href='#L682'>682</a>
+<a name='L683'></a><a href='#L683'>683</a>
+<a name='L684'></a><a href='#L684'>684</a>
+<a name='L685'></a><a href='#L685'>685</a>
+<a name='L686'></a><a href='#L686'>686</a>
+<a name='L687'></a><a href='#L687'>687</a>
+<a name='L688'></a><a href='#L688'>688</a>
+<a name='L689'></a><a href='#L689'>689</a>
+<a name='L690'></a><a href='#L690'>690</a>
+<a name='L691'></a><a href='#L691'>691</a>
+<a name='L692'></a><a href='#L692'>692</a>
+<a name='L693'></a><a href='#L693'>693</a>
+<a name='L694'></a><a href='#L694'>694</a>
+<a name='L695'></a><a href='#L695'>695</a>
+<a name='L696'></a><a href='#L696'>696</a>
+<a name='L697'></a><a href='#L697'>697</a>
+<a name='L698'></a><a href='#L698'>698</a>
+<a name='L699'></a><a href='#L699'>699</a>
+<a name='L700'></a><a href='#L700'>700</a>
+<a name='L701'></a><a href='#L701'>701</a>
+<a name='L702'></a><a href='#L702'>702</a>
+<a name='L703'></a><a href='#L703'>703</a>
+<a name='L704'></a><a href='#L704'>704</a>
+<a name='L705'></a><a href='#L705'>705</a>
+<a name='L706'></a><a href='#L706'>706</a>
+<a name='L707'></a><a href='#L707'>707</a>
+<a name='L708'></a><a href='#L708'>708</a>
+<a name='L709'></a><a href='#L709'>709</a>
+<a name='L710'></a><a href='#L710'>710</a>
+<a name='L711'></a><a href='#L711'>711</a>
+<a name='L712'></a><a href='#L712'>712</a>
+<a name='L713'></a><a href='#L713'>713</a>
+<a name='L714'></a><a href='#L714'>714</a>
+<a name='L715'></a><a href='#L715'>715</a>
+<a name='L716'></a><a href='#L716'>716</a>
+<a name='L717'></a><a href='#L717'>717</a>
+<a name='L718'></a><a href='#L718'>718</a>
+<a name='L719'></a><a href='#L719'>719</a>
+<a name='L720'></a><a href='#L720'>720</a>
+<a name='L721'></a><a href='#L721'>721</a>
+<a name='L722'></a><a href='#L722'>722</a>
+<a name='L723'></a><a href='#L723'>723</a>
+<a name='L724'></a><a href='#L724'>724</a>
+<a name='L725'></a><a href='#L725'>725</a>
+<a name='L726'></a><a href='#L726'>726</a>
+<a name='L727'></a><a href='#L727'>727</a>
+<a name='L728'></a><a href='#L728'>728</a>
+<a name='L729'></a><a href='#L729'>729</a>
+<a name='L730'></a><a href='#L730'>730</a>
+<a name='L731'></a><a href='#L731'>731</a>
+<a name='L732'></a><a href='#L732'>732</a>
+<a name='L733'></a><a href='#L733'>733</a>
+<a name='L734'></a><a href='#L734'>734</a>
+<a name='L735'></a><a href='#L735'>735</a>
+<a name='L736'></a><a href='#L736'>736</a>
+<a name='L737'></a><a href='#L737'>737</a>
+<a name='L738'></a><a href='#L738'>738</a>
+<a name='L739'></a><a href='#L739'>739</a>
+<a name='L740'></a><a href='#L740'>740</a>
+<a name='L741'></a><a href='#L741'>741</a>
+<a name='L742'></a><a href='#L742'>742</a>
+<a name='L743'></a><a href='#L743'>743</a>
+<a name='L744'></a><a href='#L744'>744</a>
+<a name='L745'></a><a href='#L745'>745</a>
+<a name='L746'></a><a href='#L746'>746</a>
+<a name='L747'></a><a href='#L747'>747</a>
+<a name='L748'></a><a href='#L748'>748</a>
+<a name='L749'></a><a href='#L749'>749</a>
+<a name='L750'></a><a href='#L750'>750</a>
+<a name='L751'></a><a href='#L751'>751</a>
+<a name='L752'></a><a href='#L752'>752</a>
+<a name='L753'></a><a href='#L753'>753</a>
+<a name='L754'></a><a href='#L754'>754</a>
+<a name='L755'></a><a href='#L755'>755</a>
+<a name='L756'></a><a href='#L756'>756</a>
+<a name='L757'></a><a href='#L757'>757</a>
+<a name='L758'></a><a href='#L758'>758</a>
+<a name='L759'></a><a href='#L759'>759</a>
+<a name='L760'></a><a href='#L760'>760</a>
+<a name='L761'></a><a href='#L761'>761</a>
+<a name='L762'></a><a href='#L762'>762</a>
+<a name='L763'></a><a href='#L763'>763</a>
+<a name='L764'></a><a href='#L764'>764</a>
+<a name='L765'></a><a href='#L765'>765</a>
+<a name='L766'></a><a href='#L766'>766</a>
+<a name='L767'></a><a href='#L767'>767</a>
+<a name='L768'></a><a href='#L768'>768</a>
+<a name='L769'></a><a href='#L769'>769</a>
+<a name='L770'></a><a href='#L770'>770</a>
+<a name='L771'></a><a href='#L771'>771</a>
+<a name='L772'></a><a href='#L772'>772</a>
+<a name='L773'></a><a href='#L773'>773</a>
+<a name='L774'></a><a href='#L774'>774</a>
+<a name='L775'></a><a href='#L775'>775</a>
+<a name='L776'></a><a href='#L776'>776</a>
+<a name='L777'></a><a href='#L777'>777</a>
+<a name='L778'></a><a href='#L778'>778</a>
+<a name='L779'></a><a href='#L779'>779</a>
+<a name='L780'></a><a href='#L780'>780</a>
+<a name='L781'></a><a href='#L781'>781</a>
+<a name='L782'></a><a href='#L782'>782</a>
+<a name='L783'></a><a href='#L783'>783</a>
+<a name='L784'></a><a href='#L784'>784</a>
+<a name='L785'></a><a href='#L785'>785</a>
+<a name='L786'></a><a href='#L786'>786</a>
+<a name='L787'></a><a href='#L787'>787</a>
+<a name='L788'></a><a href='#L788'>788</a>
+<a name='L789'></a><a href='#L789'>789</a>
+<a name='L790'></a><a href='#L790'>790</a>
+<a name='L791'></a><a href='#L791'>791</a>
+<a name='L792'></a><a href='#L792'>792</a>
+<a name='L793'></a><a href='#L793'>793</a>
+<a name='L794'></a><a href='#L794'>794</a>
+<a name='L795'></a><a href='#L795'>795</a>
+<a name='L796'></a><a href='#L796'>796</a>
+<a name='L797'></a><a href='#L797'>797</a>
+<a name='L798'></a><a href='#L798'>798</a>
+<a name='L799'></a><a href='#L799'>799</a>
+<a name='L800'></a><a href='#L800'>800</a>
+<a name='L801'></a><a href='#L801'>801</a>
+<a name='L802'></a><a href='#L802'>802</a>
+<a name='L803'></a><a href='#L803'>803</a>
+<a name='L804'></a><a href='#L804'>804</a>
+<a name='L805'></a><a href='#L805'>805</a>
+<a name='L806'></a><a href='#L806'>806</a>
+<a name='L807'></a><a href='#L807'>807</a>
+<a name='L808'></a><a href='#L808'>808</a>
+<a name='L809'></a><a href='#L809'>809</a>
+<a name='L810'></a><a href='#L810'>810</a>
+<a name='L811'></a><a href='#L811'>811</a>
+<a name='L812'></a><a href='#L812'>812</a>
+<a name='L813'></a><a href='#L813'>813</a>
+<a name='L814'></a><a href='#L814'>814</a>
+<a name='L815'></a><a href='#L815'>815</a>
+<a name='L816'></a><a href='#L816'>816</a>
+<a name='L817'></a><a href='#L817'>817</a>
+<a name='L818'></a><a href='#L818'>818</a>
+<a name='L819'></a><a href='#L819'>819</a>
+<a name='L820'></a><a href='#L820'>820</a>
+<a name='L821'></a><a href='#L821'>821</a>
+<a name='L822'></a><a href='#L822'>822</a>
+<a name='L823'></a><a href='#L823'>823</a>
+<a name='L824'></a><a href='#L824'>824</a>
+<a name='L825'></a><a href='#L825'>825</a>
+<a name='L826'></a><a href='#L826'>826</a>
+<a name='L827'></a><a href='#L827'>827</a>
+<a name='L828'></a><a href='#L828'>828</a>
+<a name='L829'></a><a href='#L829'>829</a>
+<a name='L830'></a><a href='#L830'>830</a>
+<a name='L831'></a><a href='#L831'>831</a>
+<a name='L832'></a><a href='#L832'>832</a>
+<a name='L833'></a><a href='#L833'>833</a>
+<a name='L834'></a><a href='#L834'>834</a>
+<a name='L835'></a><a href='#L835'>835</a>
+<a name='L836'></a><a href='#L836'>836</a>
+<a name='L837'></a><a href='#L837'>837</a>
+<a name='L838'></a><a href='#L838'>838</a>
+<a name='L839'></a><a href='#L839'>839</a>
+<a name='L840'></a><a href='#L840'>840</a>
+<a name='L841'></a><a href='#L841'>841</a>
+<a name='L842'></a><a href='#L842'>842</a>
+<a name='L843'></a><a href='#L843'>843</a>
+<a name='L844'></a><a href='#L844'>844</a>
+<a name='L845'></a><a href='#L845'>845</a>
+<a name='L846'></a><a href='#L846'>846</a>
+<a name='L847'></a><a href='#L847'>847</a>
+<a name='L848'></a><a href='#L848'>848</a>
+<a name='L849'></a><a href='#L849'>849</a>
+<a name='L850'></a><a href='#L850'>850</a>
+<a name='L851'></a><a href='#L851'>851</a>
+<a name='L852'></a><a href='#L852'>852</a>
+<a name='L853'></a><a href='#L853'>853</a>
+<a name='L854'></a><a href='#L854'>854</a>
+<a name='L855'></a><a href='#L855'>855</a>
+<a name='L856'></a><a href='#L856'>856</a>
+<a name='L857'></a><a href='#L857'>857</a>
+<a name='L858'></a><a href='#L858'>858</a>
+<a name='L859'></a><a href='#L859'>859</a>
+<a name='L860'></a><a href='#L860'>860</a>
+<a name='L861'></a><a href='#L861'>861</a>
+<a name='L862'></a><a href='#L862'>862</a>
+<a name='L863'></a><a href='#L863'>863</a>
+<a name='L864'></a><a href='#L864'>864</a>
+<a name='L865'></a><a href='#L865'>865</a>
+<a name='L866'></a><a href='#L866'>866</a>
+<a name='L867'></a><a href='#L867'>867</a>
+<a name='L868'></a><a href='#L868'>868</a>
+<a name='L869'></a><a href='#L869'>869</a>
+<a name='L870'></a><a href='#L870'>870</a>
+<a name='L871'></a><a href='#L871'>871</a>
+<a name='L872'></a><a href='#L872'>872</a>
+<a name='L873'></a><a href='#L873'>873</a>
+<a name='L874'></a><a href='#L874'>874</a>
+<a name='L875'></a><a href='#L875'>875</a>
+<a name='L876'></a><a href='#L876'>876</a>
+<a name='L877'></a><a href='#L877'>877</a>
+<a name='L878'></a><a href='#L878'>878</a>
+<a name='L879'></a><a href='#L879'>879</a>
+<a name='L880'></a><a href='#L880'>880</a>
+<a name='L881'></a><a href='#L881'>881</a>
+<a name='L882'></a><a href='#L882'>882</a>
+<a name='L883'></a><a href='#L883'>883</a>
+<a name='L884'></a><a href='#L884'>884</a>
+<a name='L885'></a><a href='#L885'>885</a>
+<a name='L886'></a><a href='#L886'>886</a>
+<a name='L887'></a><a href='#L887'>887</a>
+<a name='L888'></a><a href='#L888'>888</a>
+<a name='L889'></a><a href='#L889'>889</a>
+<a name='L890'></a><a href='#L890'>890</a>
+<a name='L891'></a><a href='#L891'>891</a>
+<a name='L892'></a><a href='#L892'>892</a>
+<a name='L893'></a><a href='#L893'>893</a>
+<a name='L894'></a><a href='#L894'>894</a>
+<a name='L895'></a><a href='#L895'>895</a>
+<a name='L896'></a><a href='#L896'>896</a>
+<a name='L897'></a><a href='#L897'>897</a>
+<a name='L898'></a><a href='#L898'>898</a>
+<a name='L899'></a><a href='#L899'>899</a>
+<a name='L900'></a><a href='#L900'>900</a>
+<a name='L901'></a><a href='#L901'>901</a>
+<a name='L902'></a><a href='#L902'>902</a>
+<a name='L903'></a><a href='#L903'>903</a>
+<a name='L904'></a><a href='#L904'>904</a>
+<a name='L905'></a><a href='#L905'>905</a>
+<a name='L906'></a><a href='#L906'>906</a>
+<a name='L907'></a><a href='#L907'>907</a>
+<a name='L908'></a><a href='#L908'>908</a>
+<a name='L909'></a><a href='#L909'>909</a>
+<a name='L910'></a><a href='#L910'>910</a>
+<a name='L911'></a><a href='#L911'>911</a>
+<a name='L912'></a><a href='#L912'>912</a>
+<a name='L913'></a><a href='#L913'>913</a>
+<a name='L914'></a><a href='#L914'>914</a>
+<a name='L915'></a><a href='#L915'>915</a>
+<a name='L916'></a><a href='#L916'>916</a>
+<a name='L917'></a><a href='#L917'>917</a>
+<a name='L918'></a><a href='#L918'>918</a>
+<a name='L919'></a><a href='#L919'>919</a>
+<a name='L920'></a><a href='#L920'>920</a>
+<a name='L921'></a><a href='#L921'>921</a>
+<a name='L922'></a><a href='#L922'>922</a>
+<a name='L923'></a><a href='#L923'>923</a>
+<a name='L924'></a><a href='#L924'>924</a>
+<a name='L925'></a><a href='#L925'>925</a>
+<a name='L926'></a><a href='#L926'>926</a>
+<a name='L927'></a><a href='#L927'>927</a>
+<a name='L928'></a><a href='#L928'>928</a>
+<a name='L929'></a><a href='#L929'>929</a>
+<a name='L930'></a><a href='#L930'>930</a>
+<a name='L931'></a><a href='#L931'>931</a>
+<a name='L932'></a><a href='#L932'>932</a>
+<a name='L933'></a><a href='#L933'>933</a>
+<a name='L934'></a><a href='#L934'>934</a>
+<a name='L935'></a><a href='#L935'>935</a>
+<a name='L936'></a><a href='#L936'>936</a>
+<a name='L937'></a><a href='#L937'>937</a>
+<a name='L938'></a><a href='#L938'>938</a>
+<a name='L939'></a><a href='#L939'>939</a>
+<a name='L940'></a><a href='#L940'>940</a>
+<a name='L941'></a><a href='#L941'>941</a>
+<a name='L942'></a><a href='#L942'>942</a>
+<a name='L943'></a><a href='#L943'>943</a>
+<a name='L944'></a><a href='#L944'>944</a>
+<a name='L945'></a><a href='#L945'>945</a>
+<a name='L946'></a><a href='#L946'>946</a>
+<a name='L947'></a><a href='#L947'>947</a>
+<a name='L948'></a><a href='#L948'>948</a>
+<a name='L949'></a><a href='#L949'>949</a>
+<a name='L950'></a><a href='#L950'>950</a>
+<a name='L951'></a><a href='#L951'>951</a>
+<a name='L952'></a><a href='#L952'>952</a>
+<a name='L953'></a><a href='#L953'>953</a>
+<a name='L954'></a><a href='#L954'>954</a>
+<a name='L955'></a><a href='#L955'>955</a>
+<a name='L956'></a><a href='#L956'>956</a>
+<a name='L957'></a><a href='#L957'>957</a>
+<a name='L958'></a><a href='#L958'>958</a>
+<a name='L959'></a><a href='#L959'>959</a>
+<a name='L960'></a><a href='#L960'>960</a>
+<a name='L961'></a><a href='#L961'>961</a>
+<a name='L962'></a><a href='#L962'>962</a>
+<a name='L963'></a><a href='#L963'>963</a>
+<a name='L964'></a><a href='#L964'>964</a>
+<a name='L965'></a><a href='#L965'>965</a>
+<a name='L966'></a><a href='#L966'>966</a>
+<a name='L967'></a><a href='#L967'>967</a>
+<a name='L968'></a><a href='#L968'>968</a>
+<a name='L969'></a><a href='#L969'>969</a>
+<a name='L970'></a><a href='#L970'>970</a>
+<a name='L971'></a><a href='#L971'>971</a>
+<a name='L972'></a><a href='#L972'>972</a>
+<a name='L973'></a><a href='#L973'>973</a>
+<a name='L974'></a><a href='#L974'>974</a>
+<a name='L975'></a><a href='#L975'>975</a>
+<a name='L976'></a><a href='#L976'>976</a>
+<a name='L977'></a><a href='#L977'>977</a>
+<a name='L978'></a><a href='#L978'>978</a>
+<a name='L979'></a><a href='#L979'>979</a>
+<a name='L980'></a><a href='#L980'>980</a>
+<a name='L981'></a><a href='#L981'>981</a>
+<a name='L982'></a><a href='#L982'>982</a>
+<a name='L983'></a><a href='#L983'>983</a>
+<a name='L984'></a><a href='#L984'>984</a>
+<a name='L985'></a><a href='#L985'>985</a>
+<a name='L986'></a><a href='#L986'>986</a>
+<a name='L987'></a><a href='#L987'>987</a>
+<a name='L988'></a><a href='#L988'>988</a>
+<a name='L989'></a><a href='#L989'>989</a>
+<a name='L990'></a><a href='#L990'>990</a>
+<a name='L991'></a><a href='#L991'>991</a>
+<a name='L992'></a><a href='#L992'>992</a>
+<a name='L993'></a><a href='#L993'>993</a>
+<a name='L994'></a><a href='#L994'>994</a>
+<a name='L995'></a><a href='#L995'>995</a>
+<a name='L996'></a><a href='#L996'>996</a>
+<a name='L997'></a><a href='#L997'>997</a>
+<a name='L998'></a><a href='#L998'>998</a>
+<a name='L999'></a><a href='#L999'>999</a>
+<a name='L1000'></a><a href='#L1000'>1000</a>
+<a name='L1001'></a><a href='#L1001'>1001</a>
+<a name='L1002'></a><a href='#L1002'>1002</a>
+<a name='L1003'></a><a href='#L1003'>1003</a>
+<a name='L1004'></a><a href='#L1004'>1004</a>
+<a name='L1005'></a><a href='#L1005'>1005</a>
+<a name='L1006'></a><a href='#L1006'>1006</a>
+<a name='L1007'></a><a href='#L1007'>1007</a>
+<a name='L1008'></a><a href='#L1008'>1008</a>
+<a name='L1009'></a><a href='#L1009'>1009</a>
+<a name='L1010'></a><a href='#L1010'>1010</a>
+<a name='L1011'></a><a href='#L1011'>1011</a>
+<a name='L1012'></a><a href='#L1012'>1012</a>
+<a name='L1013'></a><a href='#L1013'>1013</a>
+<a name='L1014'></a><a href='#L1014'>1014</a>
+<a name='L1015'></a><a href='#L1015'>1015</a>
+<a name='L1016'></a><a href='#L1016'>1016</a>
+<a name='L1017'></a><a href='#L1017'>1017</a>
+<a name='L1018'></a><a href='#L1018'>1018</a>
+<a name='L1019'></a><a href='#L1019'>1019</a>
+<a name='L1020'></a><a href='#L1020'>1020</a>
+<a name='L1021'></a><a href='#L1021'>1021</a>
+<a name='L1022'></a><a href='#L1022'>1022</a>
+<a name='L1023'></a><a href='#L1023'>1023</a>
+<a name='L1024'></a><a href='#L1024'>1024</a>
+<a name='L1025'></a><a href='#L1025'>1025</a>
+<a name='L1026'></a><a href='#L1026'>1026</a>
+<a name='L1027'></a><a href='#L1027'>1027</a>
+<a name='L1028'></a><a href='#L1028'>1028</a>
+<a name='L1029'></a><a href='#L1029'>1029</a>
+<a name='L1030'></a><a href='#L1030'>1030</a>
+<a name='L1031'></a><a href='#L1031'>1031</a>
+<a name='L1032'></a><a href='#L1032'>1032</a>
+<a name='L1033'></a><a href='#L1033'>1033</a>
+<a name='L1034'></a><a href='#L1034'>1034</a>
+<a name='L1035'></a><a href='#L1035'>1035</a>
+<a name='L1036'></a><a href='#L1036'>1036</a>
+<a name='L1037'></a><a href='#L1037'>1037</a>
+<a name='L1038'></a><a href='#L1038'>1038</a>
+<a name='L1039'></a><a href='#L1039'>1039</a>
+<a name='L1040'></a><a href='#L1040'>1040</a>
+<a name='L1041'></a><a href='#L1041'>1041</a>
+<a name='L1042'></a><a href='#L1042'>1042</a>
+<a name='L1043'></a><a href='#L1043'>1043</a>
+<a name='L1044'></a><a href='#L1044'>1044</a>
+<a name='L1045'></a><a href='#L1045'>1045</a>
+<a name='L1046'></a><a href='#L1046'>1046</a>
+<a name='L1047'></a><a href='#L1047'>1047</a>
+<a name='L1048'></a><a href='#L1048'>1048</a>
+<a name='L1049'></a><a href='#L1049'>1049</a>
+<a name='L1050'></a><a href='#L1050'>1050</a>
+<a name='L1051'></a><a href='#L1051'>1051</a>
+<a name='L1052'></a><a href='#L1052'>1052</a>
+<a name='L1053'></a><a href='#L1053'>1053</a>
+<a name='L1054'></a><a href='#L1054'>1054</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-yes">27666x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-yes">348x</span>
+<span class="cline-any cline-yes">348x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">348x</span>
+<span class="cline-any cline-yes">348x</span>
+<span class="cline-any cline-yes">348x</span>
+<span class="cline-any cline-yes">3509x</span>
+<span class="cline-any cline-yes">3509x</span>
+<span class="cline-any cline-yes">9280x</span>
+<span class="cline-any cline-yes">3509x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3509x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3509x</span>
+<span class="cline-any cline-yes">9280x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2523x</span>
+<span class="cline-any cline-yes">3828x</span>
+<span class="cline-any cline-yes">3509x</span>
+<span class="cline-any cline-yes">15631x</span>
+<span class="cline-any cline-yes">15631x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3509x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">348x</span>
+<span class="cline-any cline-yes">1160x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27666x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">180x</span>
+<span class="cline-any cline-yes">180x</span>
+<span class="cline-any cline-yes">15144x</span>
+<span class="cline-any cline-yes">28620x</span>
+<span class="cline-any cline-yes">180x</span>
+<span class="cline-any cline-yes">180x</span>
+<span class="cline-any cline-yes">174x</span>
+<span class="cline-any cline-yes">174x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27666x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">174x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">'use strict'
+&nbsp;
+// ─────────────────────────────────────────────────────────────────────────────
+// Prioritisation Template Library — seeded, standards-calibrated starting-point
+// models per asset class across Transport, Infrastructure, Mining and Government
+// sectors. Each template encodes the published practice of the leading bodies in
+// that asset class (Austroads, AASHTO, FHWA, EN 13848/UIC, GISTM/ANCOLD/ICOLD,
+// ISO 24516/AWWA, IPWEA IIMM/APPA, NCC/AS 1851) as governed CONFIG — criteria,
+// value bands, source bindings, per-class weights, missing-data policies and
+// non-compensatory rules — never as code.
+//
+// Templates are seeded with status='Template' + isTemplate=true so the engine's
+// Active-model resolution ignores them. An admin instantiates one through the
+// instantiateTemplate action (deep clone → new code, version 1, status Draft),
+// tailors weights/bands to the portfolio, and activates it after review.
+//
+// Seeding contract (mirrors model-builder-seed.js): insert-if-missing keyed on
+// fixed deterministic UUIDs; existing rows — including admin-edited copies of
+// seed rows — are never touched; every insert is ChangeLogged (rule 3).
+// The UUID of a spec row is a pure function of (template ordinal, entity kind,
+// sequence) — append new rows at the end of a template's lists; never reorder
+// or re-number released rows.
+// ─────────────────────────────────────────────────────────────────────────────
+&nbsp;
+const cds = require('@sap/cds')
+const { SELECT, INSERT } = cds.ql
+const { writeChangeLogs } = require('../audit-log')
+&nbsp;
+const NS = 'bridge.management.'
+&nbsp;
+const TABLES = [
+  'PrioritisationModel',
+  'ModelCriterion',
+  'CriterionSourceBinding',
+  'CriterionValueBand',
+  'AssetClassCriterionWeight',
+  'AggregationRule'
+]
+&nbsp;
+// Deterministic UUID: 00000000-0000-4000-8&lt;t&gt;&lt;k&gt;0-&lt;seq as 12 hex digits&gt;
+// t = template ordinal (1..f), k = entity kind (0 model, 1 criterion, 2 binding,
+// 3 band, 4 weight, 5 rule). Stable across releases by construction.
+const uid = (t, kind, seq) =&gt;
+  `00000000-0000-4000-8${t.toString(16)}${kind}0-${seq.toString(16).padStart(12, '0')}`
+&nbsp;
+// Level1to5 rubric helper: 5 labels → rubric JSON + standard 20..100 score bands.
+const L5_SCORES = { 1: 20, 2: 40, 3: 60, 4: 80, 5: 100 }
+&nbsp;
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE SPECS
+// criterion: { code, name, category, valueType, standardRef, description,
+//              levels: [l1..l5]            (Level1to5 → rubric + 20..100 bands)
+//              bands: [[lo,hi,score,label]] (Numeric)
+//              bands: [[text,score]]        (Discrete)
+//              binding: {sourceType, sourceRef, unit, transform},
+//              weight (0-10), policy (flag|neutral|penalise[:n]|exclude) }
+// rule: { ruleType, criterion (code|null), config (object), rationale, priority }
+// ─────────────────────────────────────────────────────────────────────────────
+const TEMPLATES = [
+&nbsp;
+  // ═══ 1. BRIDGES &amp; MAJOR STRUCTURES ════════════════════════════════════════
+  {
+    t: 1,
+    code: 'TPL-BRIDGE-INTL-V1',
+    name: 'Bridges &amp; Major Structures — International Practice',
+    sector: 'Transport',
+    scope: 'Bridges, major culverts &amp; gantry structures',
+    standards: 'AS 5100.7; Austroads AGBM; AASHTO MBE (LRFR); FHWA SNBI/HEC-18; CS 454',
+    description: 'Condition-and-consequence model encoding the converged practice of AS 5100.7 ' +
+      'condition states, AASHTO MBE load-and-resistance factor rating, FHWA scour (HEC-18) and ' +
+      'fracture-criticality screening, with network consequence per Austroads AGAM. Safety floors ' +
+      'are non-compensatory: a Critical structure can never be averaged out of the top bands.',
+    criteria: [
+      { code: 'COND_OVERALL', name: 'Overall condition', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'AS 5100.7; FHWA SNBI', description: 'Stored legacy 1-10 rating (10 = best); banded to the 1-5 condition scale.',
+        bands: [[8.5, 10, 10, 'Good (band 1)'], [6.5, 8.49, 30, 'Fair (band 2)'], [4.5, 6.49, 55, 'Poor (band 3)'], [2.5, 4.49, 80, 'Very Poor (band 4)'], [1, 2.49, 100, 'Critical (band 5)']],
+        binding: { sourceType: 'BridgeField', sourceRef: 'conditionRating', unit: 'rating(1-10)' },
+        weight: 3.0, policy: 'flag' },
+      { code: 'LOAD_RATING', name: 'Load rating factor (RF)', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'AASHTO MBE LRFR; AS 5100.7', description: 'Governing rating factor at legal loads. RF &lt; 1.0 indicates posting territory.',
+        bands: [[1.3, 99, 10, 'RF ≥ 1.3 — ample reserve'], [1.0, 1.299, 40, 'RF 1.0–1.3'], [0.8, 0.999, 75, 'RF &lt; 1.0 — posting territory'], [0, 0.799, 100, 'RF &lt; 0.8 — restricted/critical']],
+        binding: { sourceType: 'Attribute', sourceRef: 'LOAD_RATING_FACTOR', unit: 'ratio' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'SCOUR', name: 'Scour vulnerability', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'FHWA HEC-18', description: 'Waterway-crossing scour screening outcome. Scour is the leading cause of bridge collapse worldwide.',
+        bands: [['Stable', 10], ['Monitored', 55], ['Scour-critical', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'SCOUR_STATUS' },
+        weight: 2.0, policy: 'penalise:60' },
+      { code: 'FATIGUE_FC', name: 'Fatigue / fracture criticality', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'AASHTO MBE §6A.6', description: 'Presence of fatigue-prone or fracture-critical (non-redundant tension) details.',
+        bands: [['None', 10], ['Monitored', 60], ['Fracture-critical', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'FATIGUE_CLASS' },
+        weight: 1.5, policy: 'flag' },
+      { code: 'SEISMIC', name: 'Seismic vulnerability', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'AS 1170.4; AASHTO seismic', description: 'Site hazard × structural era screening (pre-modern detailing scores high).',
+        levels: ['Modern design, low hazard', 'Modern design, moderate hazard', 'Older design, low hazard', 'Older design, moderate hazard', 'Non-ductile detailing, high hazard'],
+        binding: { sourceType: 'Manual', sourceRef: 'seismicVulnerability' },
+        weight: 1.0, policy: 'neutral' },
+      { code: 'AGE_CONSUMED', name: 'Design life consumed', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'ISO 55000 lifecycle', description: 'Percentage of design life consumed.',
+        bands: [[0, 50, 10, '&lt; 50%'], [50, 75, 35, '50–75%'], [75, 90, 60, '75–90%'], [90, 100, 80, '90–100%'], [100, 999, 100, 'Beyond design life']],
+        binding: { sourceType: 'Attribute', sourceRef: 'DESIGN_LIFE_CONSUMED_PCT', unit: '%' },
+        weight: 1.0, policy: 'neutral' },
+      { code: 'TRAFFIC', name: 'Traffic volume (AADT)', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Austroads AGAM', description: 'Annual average daily traffic carried.',
+        bands: [[0, 1000, 10, '&lt; 1k'], [1000, 10000, 35, '1–10k'], [10000, 40000, 60, '10–40k'], [40000, 90000, 80, '40–90k'], [90000, 9999999, 100, '&gt; 90k']],
+        binding: { sourceType: 'BridgeField', sourceRef: 'averageDailyTraffic', unit: 'veh/day' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'FREIGHT', name: 'Freight network importance', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'NHVR network; Austroads freight', description: 'Importance to the heavy-vehicle network (HML / OSOM corridors score high).',
+        levels: ['Local access only', 'Secondary freight', 'Regional freight route', 'Key freight corridor', 'Critical HML/OSOM corridor'],
+        binding: { sourceType: 'Manual', sourceRef: 'freightImportance' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'DETOUR_KM', name: 'Detour length', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'FHWA sufficiency-rating practice', description: 'Shortest practical detour if the structure is closed.',
+        bands: [[0, 5, 10, '&lt; 5 km'], [5, 20, 40, '5–20 km'], [20, 50, 70, '20–50 km'], [50, 99999, 100, '&gt; 50 km / no detour']],
+        binding: { sourceType: 'Attribute', sourceRef: 'DETOUR_LENGTH_KM', unit: 'km' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'COMMUNITY', name: 'Community access criticality', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'ISO 55000; IPWEA IIMM', description: 'Sole-access and community severance consequence of closure.',
+        levels: ['Multiple alternatives', 'Minor inconvenience', 'Material detour burden', 'Limited alternative access', 'Sole access — community severed'],
+        binding: { sourceType: 'Manual', sourceRef: 'communityCriticality' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'UTILITIES', name: 'Services carried', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'IPWEA IIMM', description: 'Water / power / comms utilities carried by the structure.',
+        levels: ['None', 'Minor comms', 'Local distribution', 'Major utility', 'Trunk lifeline services'],
+        binding: { sourceType: 'Manual', sourceRef: 'utilitiesCarried' },
+        weight: 0.5, policy: 'exclude' },
+      { code: 'HERITAGE', name: 'Heritage significance', category: 'Modifier', valueType: 'Level1to5',
+        standardRef: 'Burra Charter practice', description: 'Heritage listing / significance (raises intervention complexity).',
+        levels: ['None', 'Local interest', 'Local listing', 'State listing', 'National/world significance'],
+        binding: { sourceType: 'Manual', sourceRef: 'heritageSignificance' },
+        weight: 0.5, policy: 'exclude' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'COND_OVERALL', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'A structure in Critical condition (band 5) can never be compensated below P1 — AS 5100.7 / AASHTO MBE practice.', priority: 1 },
+      { ruleType: 'SafetyFloor', criterion: 'COND_OVERALL', config: { when: '&gt;=75', floorBand: 'P2' },
+        rationale: 'Very Poor condition (band 4) floors at P2 regardless of consequence scores.', priority: 2 },
+      { ruleType: 'Escalate', criterion: 'SCOUR', config: { on: 'raw', when: '==Scour-critical', raiseBands: 1, forceReview: true },
+        rationale: 'FHWA HEC-18: scour-critical structures escalate one band and are held for engineering review.', priority: 3 },
+      { ruleType: 'HurdleMin', criterion: 'LOAD_RATING', config: { when: '&gt;=75', capBand: 'P2' },
+        rationale: 'RF &lt; 1.0 (posting territory) cannot rank below P2 — load-posting is an active safety control.', priority: 4 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 24, floor: 0.5 },
+        rationale: 'Austroads AGBM Level 2 inspection cycle: data older than 24 months decays toward half confidence.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 2. SEALED ROAD PAVEMENTS ═════════════════════════════════════════════
+  {
+    t: 2,
+    code: 'TPL-ROAD-PAVEMENT-V1',
+    name: 'Sealed Road Pavements — Network Asset Management',
+    sector: 'Transport',
+    scope: 'Sealed road pavements &amp; surfacings',
+    standards: 'Austroads AGAM/AGPT; ASTM E1926 (IRI); AusRAP/iRAP; ISO 55000; IPWEA IIMM',
+    description: 'Pavement prioritisation per Austroads asset-management and pavement-technology ' +
+      'guides: ride quality (IRI), rutting, cracking and skid resistance on the condition axis; ' +
+      'traffic loading, functional class and AusRAP safety risk on the consequence axis. Skid ' +
+      'resistance below investigatory level is treated as a non-compensatory safety floor.',
+    criteria: [
+      { code: 'IRI', name: 'Roughness (IRI)', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'ASTM E1926; Austroads AGAM', description: 'Lane IRI in m/km; intervention thresholds per Austroads network practice.',
+        bands: [[0, 2, 5, '&lt; 2 — very good ride'], [2, 3, 25, '2–3'], [3, 4, 50, '3–4'], [4, 5.5, 75, '4–5.5 — intervention'], [5.5, 99, 100, '&gt; 5.5 — poor']],
+        binding: { sourceType: 'Attribute', sourceRef: 'IRI_MKM', unit: 'm/km' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'RUTTING', name: 'Rut depth', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'Austroads AGPT; aquaplaning threshold', description: 'Mean rut depth; &gt; 12 mm risks water ponding and aquaplaning.',
+        bands: [[0, 8, 10, '&lt; 8 mm'], [8, 12, 40, '8–12 mm'], [12, 20, 70, '12–20 mm — aquaplaning risk'], [20, 999, 100, '&gt; 20 mm']],
+        binding: { sourceType: 'Attribute', sourceRef: 'RUT_DEPTH_MM', unit: 'mm' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'CRACKING', name: 'Surface cracking', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'Austroads visual condition', description: 'Cracked area as % of lane area — moisture-ingress precursor to structural failure.',
+        bands: [[0, 2, 10, '&lt; 2%'], [2, 5, 35, '2–5%'], [5, 15, 65, '5–15%'], [15, 100, 100, '&gt; 15%']],
+        binding: { sourceType: 'Attribute', sourceRef: 'CRACKED_AREA_PCT', unit: '%' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'SKID', name: 'Skid resistance vs investigatory level', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'Austroads skid management; CS 228', description: 'Measured friction against the site-category investigatory level (IL).',
+        bands: [['Above IL', 10], ['At IL', 60], ['Below IL', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'SKID_VS_IL' },
+        weight: 2.5, policy: 'penalise:60' },
+      { code: 'STRUCT_LIFE', name: 'Remaining structural life', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'Austroads AGPT Part 5 (FWD)', description: 'Deflection-derived remaining structural life.',
+        bands: [[50, 100, 10, '&gt; 50% remaining'], [25, 50, 40, '25–50%'], [10, 25, 70, '10–25%'], [0, 10, 100, '&lt; 10%']],
+        binding: { sourceType: 'Attribute', sourceRef: 'STRUCT_LIFE_REMAIN_PCT', unit: '%' },
+        weight: 1.5, policy: 'flag' },
+      { code: 'MAINT_INTENSITY', name: 'Reactive maintenance intensity', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'IPWEA IIMM', description: 'Reactive maintenance spend vs network mean — a leading indicator of terminal condition.',
+        levels: ['Well below mean', 'Below mean', 'At mean', 'Above mean', 'Far above mean — terminal'],
+        binding: { sourceType: 'Manual', sourceRef: 'maintenanceIntensity' },
+        weight: 1.0, policy: 'neutral' },
+      { code: 'TRAFFIC', name: 'Traffic volume (AADT)', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Austroads AGAM', description: 'Annual average daily traffic.',
+        bands: [[0, 1000, 10, '&lt; 1k'], [1000, 10000, 35, '1–10k'], [10000, 40000, 60, '10–40k'], [40000, 90000, 80, '40–90k'], [90000, 9999999, 100, '&gt; 90k']],
+        binding: { sourceType: 'Attribute', sourceRef: 'AADT', unit: 'veh/day' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'HV_PCT', name: 'Heavy vehicle share', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Austroads pavement loading (ESA)', description: 'Heavy vehicles as % of AADT — drives pavement consumption rate.',
+        bands: [[0, 5, 10, '&lt; 5%'], [5, 10, 35, '5–10%'], [10, 20, 60, '10–20%'], [20, 35, 80, '20–35%'], [35, 100, 100, '&gt; 35%']],
+        binding: { sourceType: 'Attribute', sourceRef: 'HV_PCT', unit: '%' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'ROAD_CLASS', name: 'Functional class', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Austroads functional hierarchy', description: 'Functional classification of the carriageway.',
+        levels: ['Local access', 'Collector', 'Sub-arterial', 'Arterial', 'Motorway / national corridor'],
+        binding: { sourceType: 'Manual', sourceRef: 'functionalClass' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'CRASH_RISK', name: 'Road safety star rating', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'AusRAP / iRAP star rating', description: 'Infrastructure safety star rating of the corridor.',
+        bands: [['4-5 star', 10], ['3 star', 50], ['1-2 star', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'AUSRAP_STARS' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'REDUNDANCY', name: 'Network redundancy', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Austroads AGAM resilience', description: 'Availability of practical alternative routes.',
+        levels: ['Multiple parallel routes', 'Good alternatives', 'Single practical alternative', 'Long detour only', 'No practical alternative'],
+        binding: { sourceType: 'Manual', sourceRef: 'networkRedundancy' },
+        weight: 1.0, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'SKID', config: { when: '&gt;=90', floorBand: 'P2', forceReview: true },
+        rationale: 'Skid resistance below investigatory level is the pavement parameter most directly correlated with casualty crashes — floors at P2 and is held for review.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'IRI', config: { when: '&gt;=90', raiseBands: 1 },
+        rationale: 'IRI beyond the poor threshold escalates one band: ride quality at this level indicates accelerating structural distress.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 36, floor: 0.6 },
+        rationale: 'Triennial network-survey cycle: condition data decays to 0.6 confidence past 36 months.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 3. RAIL TRACK &amp; FORMATION ════════════════════════════════════════════
+  {
+    t: 3,
+    code: 'TPL-RAIL-TRACK-V1',
+    name: 'Rail Track &amp; Formation — Geometry-led Practice',
+    sector: 'Transport',
+    scope: 'Rail track, formation &amp; earthworks (per segment)',
+    standards: 'EN 13848-5; UIC 714; AREMA; RISSB AS 7635; ONRSR SFAIRP',
+    description: 'Track-segment prioritisation led by EN 13848 geometry quality levels (QN1 planning, ' +
+      'QN2 intervention, QN3 immediate action), with ultrasonic rail-defect density — the principal ' +
+      'broken-rail/derailment precursor — as a second non-compensatory axis. Consequence follows ' +
+      'UIC 714 traffic class, line speed and passenger / dangerous-goods exposure per ONRSR SFAIRP.',
+    criteria: [
+      { code: 'TQI', name: 'Track geometry quality', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'EN 13848-5 (QN levels)', description: '35 m SD composite against speed-band limits.',
+        levels: ['Well within QN1', 'Approaching QN1 (planning)', 'QN1 exceeded — plan works', 'QN2 exceeded — intervene', 'QN3 — immediate action / speed restriction'],
+        binding: { sourceType: 'Attribute', sourceRef: 'TQI_QN_LEVEL' },
+        weight: 3.0, policy: 'penalise:80' },
+      { code: 'RAIL_DEFECTS', name: 'Ultrasonic rail defects', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'UT inspection practice', description: 'Actionable internal defects per km — the leading broken-rail precursor.',
+        bands: [[0, 0.5, 10, '&lt; 0.5 /km'], [0.5, 2, 40, '0.5–2 /km'], [2, 5, 70, '2–5 /km'], [5, 999, 100, '&gt; 5 /km']],
+        binding: { sourceType: 'Attribute', sourceRef: 'UT_DEFECTS_PER_KM', unit: '/km' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'SLEEPERS', name: 'Sleeper &amp; fastening condition', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'AREMA Ch.30; RISSB', description: 'Defective sleepers/fastenings as % of segment.',
+        bands: [[0, 5, 10, '&lt; 5%'], [5, 15, 40, '5–15%'], [15, 30, 70, '15–30%'], [30, 100, 100, '&gt; 30%']],
+        binding: { sourceType: 'Attribute', sourceRef: 'SLEEPER_DEFECTIVE_PCT', unit: '%' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'BALLAST', name: 'Ballast &amp; drainage condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'AREMA; Selig &amp; Waters', description: 'Fouling index and drainage performance.',
+        levels: ['Clean, free-draining', 'Minor fouling', 'Moderate fouling', 'Heavily fouled / wet spots', 'Fully fouled — pumping'],
+        binding: { sourceType: 'Manual', sourceRef: 'ballastCondition' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'RAIL_WEAR', name: 'Railhead wear', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'Rail wear / grinding limits', description: 'Railhead wear as % of condemning limit.',
+        bands: [[0, 50, 10, '&lt; 50% of limit'], [50, 75, 40, '50–75%'], [75, 90, 70, '75–90%'], [90, 999, 100, '&gt; 90% — renewal due']],
+        binding: { sourceType: 'Attribute', sourceRef: 'RAILHEAD_WEAR_PCT', unit: '%' },
+        weight: 1.5, policy: 'flag' },
+      { code: 'FORMATION', name: 'Formation &amp; earthworks stability', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Geotechnical asset practice', description: 'Mud holes, pumping, embankment/cutting instability.',
+        levels: ['Stable', 'Isolated soft spots', 'Recurrent mud holes', 'Active settlement/pumping', 'Unstable — speed restricted'],
+        binding: { sourceType: 'Manual', sourceRef: 'formationCondition' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'TONNAGE', name: 'Traffic tonnage (MGT)', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'UIC 714 line classification', description: 'Million gross tonnes per annum.',
+        bands: [[0, 5, 10, '&lt; 5 MGT'], [5, 20, 40, '5–20 MGT'], [20, 60, 70, '20–60 MGT'], [60, 9999, 100, '&gt; 60 MGT — heavy haul']],
+        binding: { sourceType: 'Attribute', sourceRef: 'MGT_PA', unit: 'MGT/yr' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'LINE_SPEED', name: 'Line speed', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Derailment-energy scaling', description: 'Permissible line speed — derailment consequence scales with speed.',
+        bands: [[0, 80, 20, '≤ 80 km/h'], [80, 115, 50, '80–115 km/h'], [115, 160, 75, '115–160 km/h'], [160, 999, 100, '&gt; 160 km/h']],
+        binding: { sourceType: 'Attribute', sourceRef: 'LINE_SPEED_KMH', unit: 'km/h' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'PAX_EXPOSURE', name: 'Passenger exposure', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'ONRSR SFAIRP', description: 'Passenger service intensity over the segment.',
+        levels: ['Freight only', 'Occasional passenger', 'Regional passenger', 'Frequent suburban', 'High-frequency metro'],
+        binding: { sourceType: 'Manual', sourceRef: 'passengerExposure' },
+        weight: 2.5, policy: 'neutral' },
+      { code: 'DG_FREIGHT', name: 'Dangerous goods exposure', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'DG routing practice', description: 'Dangerous-goods traffic over the segment.',
+        bands: [['None', 10], ['Routine', 60], ['High', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'DG_EXPOSURE' },
+        weight: 1.0, policy: 'neutral' },
+      { code: 'NETWORK_CRIT', name: 'Network criticality', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'UIC 714; network resilience', description: 'Single-line dependency and diversionary options.',
+        levels: ['Fully duplicated, alternatives', 'Duplicated', 'Partially single line', 'Single line, diversion possible', 'Single line, no diversion'],
+        binding: { sourceType: 'Manual', sourceRef: 'networkCriticality' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'LX_EXPOSURE', name: 'Level crossing exposure', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'ALCAM-style exposure', description: 'Level-crossing density and exposure over the segment.',
+        levels: ['None', 'Grade-separated only', 'Few protected crossings', 'Multiple active crossings', 'Passive crossings present'],
+        binding: { sourceType: 'Manual', sourceRef: 'levelCrossingExposure' },
+        weight: 1.0, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'TQI', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'EN 13848 QN3 means immediate action — the segment floors at P1 and is held for engineering review.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'RAIL_DEFECTS', config: { when: '&gt;=90', raiseBands: 1, forceReview: true },
+        rationale: 'High actionable-defect density is the principal broken-rail / derailment precursor.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 12, floor: 0.5 },
+        rationale: 'Geometry-car and UT cycles are at most annual on prioritised lines; older data halves in confidence.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 4. MINING — TAILINGS STORAGE FACILITIES ══════════════════════════════
+  {
+    t: 4,
+    code: 'TPL-MINE-TSF-V1',
+    name: 'Tailings Storage Facilities — GISTM Practice',
+    sector: 'Mining',
+    scope: 'Tailings storage facilities (per facility)',
+    standards: 'GISTM (2020); ANCOLD Tailings Dams; ICOLD Bulletin 194; ISO 31000',
+    description: 'Facility prioritisation per the Global Industry Standard on Tailings Management: ' +
+      'consequence is led by ANCOLD category and population at risk; likelihood by stability ' +
+      'compliance, raise method (upstream construction carries the dominant share of historical ' +
+      'failures — ICOLD B121), freeboard and Engineer-of-Record findings. Extreme-consequence ' +
+      'facilities are non-compensatorily pinned to the top band, per GISTM intent.',
+    criteria: [
+      { code: 'STABILITY', name: 'Stability compliance (FoS)', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'ANCOLD / GISTM stability criteria', description: 'Factor of safety against drained/undrained criteria from the latest DSR.',
+        bands: [['Meets criteria', 10], ['Marginal', 60], ['Below criteria', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'FOS_STATUS' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'RAISE_METHOD', name: 'Raise method', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'ICOLD B121 failure statistics', description: 'Construction method — upstream raises carry the dominant share of recorded failures.',
+        bands: [['Downstream', 15], ['Centreline', 50], ['Upstream', 90]],
+        binding: { sourceType: 'Attribute', sourceRef: 'RAISE_METHOD' },
+        weight: 2.0, policy: 'penalise:70' },
+      { code: 'SEEPAGE', name: 'Seepage &amp; piezometric trend', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'GISTM Principle 7 monitoring', description: 'Phreatic surface trend against design expectations.',
+        levels: ['Below design, stable', 'At design, stable', 'At design, rising', 'Above design', 'Above design, accelerating'],
+        binding: { sourceType: 'Manual', sourceRef: 'seepageTrend' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'FREEBOARD', name: 'Freeboard adequacy', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'Design storm (PMP/AEP) capacity', description: 'Spillway/freeboard capacity against the design flood.',
+        bands: [['Adequate', 10], ['Marginal', 60], ['Deficient', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'FREEBOARD_STATUS' },
+        weight: 2.5, policy: 'penalise' },
+      { code: 'MONITORING', name: 'Instrumentation &amp; monitoring coverage', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'GISTM Principle 7', description: 'Coverage and review cadence of instrumentation (sparse monitoring raises uncertainty).',
+        levels: ['Comprehensive, real-time', 'Comprehensive, routine review', 'Adequate coverage', 'Sparse coverage', 'Minimal / none'],
+        binding: { sourceType: 'Manual', sourceRef: 'monitoringCoverage' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'EOR_FINDINGS', name: 'Engineer-of-Record open findings', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'GISTM EoR regime', description: 'Severity of open EoR / ITRB findings.',
+        levels: ['None open', 'Minor observations', 'Material findings, plans in place', 'Material findings, overdue', 'Critical findings open'],
+        binding: { sourceType: 'Manual', sourceRef: 'eorFindings' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'ANCOLD_CAT', name: 'ANCOLD consequence category', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'ANCOLD consequence framework', description: 'Dam-break consequence category from the latest assessment.',
+        bands: [['Low', 10], ['Significant', 30], ['High C', 55], ['High B', 70], ['High A', 85], ['Extreme', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'ANCOLD_CATEGORY' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'PAR', name: 'Population at risk', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'ANCOLD PAR bands', description: 'Population at risk in the inundation path.',
+        bands: [[0, 0.99, 5, 'Zero'], [1, 10, 40, '1–10'], [10, 100, 65, '10–100'], [100, 1000, 85, '100–1,000'], [1000, 99999999, 100, '&gt; 1,000']],
+        binding: { sourceType: 'Attribute', sourceRef: 'PAR_COUNT', unit: 'persons' },
+        weight: 2.5, policy: 'penalise' },
+      { code: 'ENV_RECEPTOR', name: 'Environmental receptor sensitivity', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'ICMM environmental practice', description: 'Sensitivity of receiving environment (waterways, protected areas).',
+        levels: ['Contained / benign', 'Low sensitivity', 'Moderate sensitivity', 'High sensitivity', 'Protected / drinking-water catchment'],
+        binding: { sourceType: 'Manual', sourceRef: 'environmentalReceptor' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'LIFECYCLE', name: 'Lifecycle stage', category: 'Modifier', valueType: 'Discrete',
+        standardRef: 'GISTM closure planning', description: 'Operational status — active facilities carry higher change-driven risk.',
+        bands: [['Closed-rehabilitated', 10], ['Closed-care', 35], ['Inactive', 55], ['Active', 75]],
+        binding: { sourceType: 'Attribute', sourceRef: 'TSF_STATUS' },
+        weight: 1.0, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'Veto', criterion: 'ANCOLD_CAT', config: { on: 'raw', when: '==Extreme', floorBand: 'P1' },
+        rationale: 'GISTM intent: an Extreme-consequence facility is pinned to the top band regardless of condition scores — consequence of failure dominates.', priority: 1 },
+      { ruleType: 'SafetyFloor', criterion: 'STABILITY', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'Stability below criteria floors at P1 and is held for Engineer-of-Record review.', priority: 2 },
+      { ruleType: 'Escalate', criterion: 'RAISE_METHOD', config: { on: 'raw', when: '==Upstream', raiseBands: 1 },
+        rationale: 'Upstream-raised facilities escalate one band — the construction method carries the dominant share of historical failures (ICOLD B121).', priority: 3 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 12, floor: 0.4 },
+        rationale: 'GISTM requires at least annual DSR cadence; stale facility data decays sharply.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 5. MINING — HAUL ROADS &amp; SITE CIRCUITS ═══════════════════════════════
+  {
+    t: 5,
+    code: 'TPL-MINE-HAUL-V1',
+    name: 'Mine Haul Roads &amp; Site Circuits',
+    sector: 'Mining',
+    scope: 'Haul roads, ramps &amp; site traffic circuits (per segment)',
+    standards: 'Thompson &amp; Visser haul-road methodology; ISO 17757; site traffic management practice',
+    description: 'Haul-road prioritisation per the Thompson &amp; Visser functional-design methodology: ' +
+      'rolling resistance and surface condition drive cost and productivity; geometry compliance ' +
+      'against the largest operating vehicle and dust/visibility drive the safety axis. Autonomous ' +
+      'haulage corridors (ISO 17757) tolerate less geometric deviation and weight accordingly.',
+    criteria: [
+      { code: 'ROLL_RESIST', name: 'Rolling resistance', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'Thompson &amp; Visser', description: 'Estimated rolling resistance — each 1% costs ~10% truck productivity.',
+        bands: [[0, 2, 10, '&lt; 2% — well maintained'], [2, 3, 35, '2–3%'], [3, 5, 65, '3–5%'], [5, 99, 100, '&gt; 5% — severe']],
+        binding: { sourceType: 'Attribute', sourceRef: 'ROLLING_RESIST_PCT', unit: '%' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'SURFACE', name: 'Surface condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Thompson &amp; Visser defect scoring', description: 'Potholes, corrugation, loose material, spillage.',
+        levels: ['Defect-free', 'Minor defects', 'Moderate defects', 'Frequent defects', 'Severe — speed restricted'],
+        binding: { sourceType: 'Manual', sourceRef: 'surfaceCondition' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'GEOMETRY', name: 'Geometric compliance', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'Design for largest vehicle', description: 'Width, grade, superelevation and sight distance against design for the largest operating truck.',
+        bands: [['Compliant', 10], ['Minor deviation', 55], ['Major deviation', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'GEOM_COMPLIANCE' },
+        weight: 2.5, policy: 'penalise:60' },
+      { code: 'DUST_VIS', name: 'Dust &amp; visibility', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Site visibility standards', description: 'Dust generation and visibility impairment — a leading vehicle-interaction fatality factor.',
+        levels: ['Controlled', 'Occasional impairment', 'Regular impairment', 'Frequent severe impairment', 'Chronic — interaction risk'],
+        binding: { sourceType: 'Manual', sourceRef: 'dustVisibility' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'DRAINAGE', name: 'Drainage &amp; windrow condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Thompson &amp; Visser; site standards', description: 'Cross-fall, drains and safety-berm/windrow integrity.',
+        levels: ['Fully compliant', 'Minor deficiencies', 'Localised failures', 'Widespread deficiencies', 'Non-compliant berms/windrows'],
+        binding: { sourceType: 'Manual', sourceRef: 'drainageWindrows' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'PROD_CRIT', name: 'Production criticality', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Production dependency', description: 'Material movement through the segment.',
+        bands: [[0, 10, 10, '&lt; 10 kt/day'], [10, 50, 40, '10–50 kt/day'], [50, 150, 70, '50–150 kt/day'], [150, 99999, 100, '&gt; 150 kt/day']],
+        binding: { sourceType: 'Attribute', sourceRef: 'KT_PER_DAY', unit: 'kt/day' },
+        weight: 2.5, policy: 'neutral' },
+      { code: 'INTERACTION', name: 'Vehicle interaction exposure', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Traffic management plans', description: 'Light/heavy vehicle mix, intersections and congestion points.',
+        levels: ['Segregated heavy only', 'Minimal interaction', 'Controlled interaction points', 'Frequent mixed traffic', 'Uncontrolled mixed traffic'],
+        binding: { sourceType: 'Manual', sourceRef: 'vehicleInteraction' },
+        weight: 2.5, policy: 'neutral' },
+      { code: 'AUTONOMY', name: 'Autonomous haulage dependency', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'ISO 17757', description: 'AHS corridors tolerate less surface/geometry deviation.',
+        bands: [['None', 10], ['Mixed fleet', 60], ['AHS corridor', 90]],
+        binding: { sourceType: 'Attribute', sourceRef: 'AHS_DEPENDENCY' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'REDUNDANCY', name: 'Alternative route availability', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Mine planning', description: 'Ability to reroute haulage if the segment closes.',
+        levels: ['Multiple alternatives', 'Practical alternative', 'Alternative with penalty', 'Severe rerouting penalty', 'No alternative — pit-critical'],
+        binding: { sourceType: 'Manual', sourceRef: 'routeRedundancy' },
+        weight: 1.0, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'GEOMETRY', config: { when: '&gt;=90', floorBand: 'P2', forceReview: true },
+        rationale: 'Major geometric deviation against the design vehicle (sight distance, width, grade) is a rollover/collision precursor — floors at P2.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'DUST_VIS', config: { when: '&gt;=80', raiseBands: 1 },
+        rationale: 'Chronic visibility impairment escalates one band — vehicle-interaction events dominate surface-mining fatality statistics.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 6, floor: 0.5 },
+        rationale: 'Haul-road condition changes weekly; data older than 6 months halves in confidence.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 6. CULVERTS &amp; STORMWATER DRAINAGE ════════════════════════════════════
+  {
+    t: 6,
+    code: 'TPL-CULVERT-V1',
+    name: 'Culverts &amp; Stormwater Drainage Structures',
+    sector: 'Infrastructure',
+    scope: 'Cross-drainage culverts &amp; stormwater structures',
+    standards: 'FHWA Culvert Inspection Manual; Austroads AGRD 5/5A; ARR 2019; IPWEA IIMM',
+    description: 'Drainage-structure prioritisation: structural condition and hydraulic adequacy ' +
+      'against current design-storm science (ARR 2019) on the likelihood axis; road class above, ' +
+      'embankment height (stored failure energy) and flood consequence on the consequence axis. ' +
+      'Culverts fail suddenly and invisibly — condition floors are deliberately conservative.',
+    criteria: [
+      { code: 'STRUCT_COND', name: 'Structural condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'FHWA Culvert Inspection Manual', description: 'Barrel, joints, headwalls and wingwalls.',
+        levels: ['Like new', 'Minor deterioration', 'Moderate — barrel distortion onset', 'Major — section loss/deflection', 'Critical — collapse risk'],
+        binding: { sourceType: 'Manual', sourceRef: 'culvertCondition' },
+        weight: 3.0, policy: 'flag' },
+      { code: 'HYDRAULIC', name: 'Hydraulic capacity', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'ARR 2019 design AEP', description: 'Capacity against the current design storm for the road class.',
+        bands: [['Adequate', 10], ['Marginal', 55], ['Deficient', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'HYD_CAPACITY' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'SCOUR_EROSION', name: 'Inlet/outlet scour', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'FHWA HEC-14', description: 'Scour and erosion at inlet, outlet and around the barrel.',
+        levels: ['None', 'Minor', 'Moderate', 'Undermining onset', 'Active undermining'],
+        binding: { sourceType: 'Manual', sourceRef: 'culvertScour' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'BLOCKAGE', name: 'Blockage propensity', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'ARR blockage assessment', description: 'Debris blockage history and catchment debris potential.',
+        levels: ['Clear history', 'Occasional minor debris', 'Regular partial blockage', 'Frequent significant blockage', 'Chronic blockage'],
+        binding: { sourceType: 'Manual', sourceRef: 'blockageHistory' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'MATERIAL_DEG', name: 'Material degradation', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Durability practice (CSP invert loss etc.)', description: 'Material-specific degradation: CSP invert corrosion, RCP joint wear, masonry loss.',
+        levels: ['None', 'Surface only', 'Measurable loss', 'Significant section loss', 'Through-section loss'],
+        binding: { sourceType: 'Manual', sourceRef: 'materialDegradation' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'ROAD_ABOVE', name: 'Road class carried', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Austroads functional hierarchy', description: 'Functional class of the road over the structure.',
+        levels: ['Local access', 'Collector', 'Sub-arterial', 'Arterial', 'Motorway / national corridor'],
+        binding: { sourceType: 'Manual', sourceRef: 'roadClassAbove' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'EMBANKMENT_M', name: 'Embankment height', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Failure-energy proxy', description: 'Fill height over the structure — failure consequence scales with stored energy.',
+        bands: [[0, 2, 10, '&lt; 2 m'], [2, 5, 40, '2–5 m'], [5, 10, 70, '5–10 m'], [10, 999, 100, '&gt; 10 m']],
+        binding: { sourceType: 'Attribute', sourceRef: 'EMBANK_HEIGHT_M', unit: 'm' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'FLOOD_CONSEQ', name: 'Flood consequence', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'ARR 2019; floodplain practice', description: 'Upstream/downstream property and access impact if blocked or failed.',
+        levels: ['Rural, no receptors', 'Isolated rural property', 'Several properties', 'Urban area affected', 'Major urban / critical facility'],
+        binding: { sourceType: 'Manual', sourceRef: 'floodConsequence' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'WATERWAY_ENV', name: 'Waterway significance', category: 'Modifier', valueType: 'Level1to5',
+        standardRef: 'Fish-passage guidelines', description: 'Environmental significance incl. fish passage obligations.',
+        levels: ['None', 'Minor drain', 'Named watercourse', 'Fish-passage obligation', 'Protected waterway'],
+        binding: { sourceType: 'Manual', sourceRef: 'waterwaySignificance' },
+        weight: 1.0, policy: 'exclude' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'STRUCT_COND', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'Culverts fail suddenly and invisibly under live traffic — Critical condition floors at P1 with engineering review.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'HYDRAULIC', config: { on: 'raw', when: '==Deficient', raiseBands: 1 },
+        rationale: 'Hydraulically deficient structures escalate — overtopping under the ARR 2019 design storm is an embankment-failure precursor.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 60, floor: 0.6 },
+        rationale: 'Typical culvert inspection cycle is 5-yearly; older data decays to 0.6 confidence.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 7. WATER DISTRIBUTION MAINS ══════════════════════════════════════════
+  {
+    t: 7,
+    code: 'TPL-WATER-MAINS-V1',
+    name: 'Water Distribution Mains — Utility Practice',
+    sector: 'Government',
+    scope: 'Potable water trunk &amp; reticulation mains (per segment)',
+    standards: 'ISO 24516-1; AWWA M28; IPWEA IIMM; WSAA practice',
+    description: 'Mains-renewal prioritisation per ISO 24516 / AWWA M28: break-rate benchmarking ' +
+      'and material-cohort survival analysis on the likelihood axis; customers served, critical ' +
+      'customers (hospitals, dialysis), trunk role and third-party damage consequence on the ' +
+      'consequence axis. Critical-customer exposure escalates non-compensatorily.',
+    criteria: [
+      { code: 'BREAK_RATE', name: 'Break rate', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'AWWA benchmarking', description: 'Breaks per 100 km per year (rolling 5-year).',
+        bands: [[0, 10, 10, '&lt; 10 — good'], [10, 25, 40, '10–25'], [25, 40, 70, '25–40'], [40, 9999, 100, '&gt; 40 — poor']],
+        binding: { sourceType: 'Attribute', sourceRef: 'BREAKS_PER_100KM_YR', unit: '/100km/yr' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'COHORT', name: 'Material / vintage cohort', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'Cohort survival analysis', description: 'Material-vintage cohort risk from network survival curves.',
+        bands: [['Modern PE/DICL', 10], ['PVC vintage', 35], ['Cast iron pre-1960', 70], ['AC late-life', 90]],
+        binding: { sourceType: 'Attribute', sourceRef: 'MATERIAL_COHORT' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'WALL_LOSS', name: 'Sampled wall loss', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'Condition sampling practice', description: 'Wall loss from coupon/CCTV/acoustic sampling.',
+        bands: [[0, 20, 10, '&lt; 20%'], [20, 40, 40, '20–40%'], [40, 60, 70, '40–60%'], [60, 100, 100, '&gt; 60%']],
+        binding: { sourceType: 'Attribute', sourceRef: 'WALL_LOSS_PCT', unit: '%' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'PRESSURE', name: 'Pressure / transient exposure', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'WSAA operating practice', description: 'Operating pressure regime and transient (water-hammer) exposure.',
+        levels: ['Low, stable', 'Moderate, stable', 'High, stable', 'High with transients', 'Severe transient regime'],
+        binding: { sourceType: 'Manual', sourceRef: 'pressureRegime' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'SOIL', name: 'Soil corrosivity', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Soil corrosivity mapping', description: 'External corrosion environment for ferrous cohorts.',
+        levels: ['Benign', 'Low', 'Moderate', 'Aggressive', 'Highly aggressive / stray current'],
+        binding: { sourceType: 'Manual', sourceRef: 'soilCorrosivity' },
+        weight: 1.0, policy: 'neutral' },
+      { code: 'CUSTOMERS', name: 'Customers served', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'ISO 24516 service impact', description: 'Connections losing supply on segment failure.',
+        bands: [[0, 100, 10, '&lt; 100'], [100, 1000, 40, '100–1,000'], [1000, 10000, 70, '1,000–10,000'], [10000, 99999999, 100, '&gt; 10,000']],
+        binding: { sourceType: 'Attribute', sourceRef: 'CUSTOMERS_SERVED', unit: 'connections' },
+        weight: 2.5, policy: 'neutral' },
+      { code: 'CRITICAL_CUST', name: 'Critical customers', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'Utility criticality registers', description: 'Hospitals, dialysis patients, critical industry on the segment.',
+        bands: [['None', 10], ['Present', 60], ['Multiple', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'CRITICAL_CUSTOMERS' },
+        weight: 2.0, policy: 'penalise:50' },
+      { code: 'MAIN_ROLE', name: 'Network role', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'ISO 24516 hierarchy', description: 'Trunk vs reticulation role.',
+        levels: ['Minor reticulation', 'Reticulation', 'Distribution main', 'Trunk main', 'Sole-feed trunk'],
+        binding: { sourceType: 'Manual', sourceRef: 'mainRole' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'DAMAGE_CONSEQ', name: 'Third-party damage consequence', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Burst-consequence practice', description: 'Burst consequence to surroundings (CBD, under rail, steep terrain).',
+        levels: ['Open land', 'Residential street', 'Commercial precinct', 'CBD / transport corridor', 'Under rail / critical infrastructure'],
+        binding: { sourceType: 'Manual', sourceRef: 'damageConsequence' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'REDUNDANCY', name: 'Supply redundancy', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Network configuration', description: 'Looped vs dead-end supply configuration.',
+        levels: ['Fully looped', 'Looped, ample capacity', 'Looped, limited capacity', 'Single feed, rezone possible', 'Dead-end single feed'],
+        binding: { sourceType: 'Manual', sourceRef: 'supplyRedundancy' },
+        weight: 1.5, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'Escalate', criterion: 'CRITICAL_CUST', config: { on: 'raw', when: '==Multiple', raiseBands: 1 },
+        rationale: 'Multiple critical customers (hospitals, dialysis) escalate one band — supply continuity is a clinical-safety issue.', priority: 1 },
+      { ruleType: 'SafetyFloor', criterion: 'BREAK_RATE', config: { when: '&gt;=90', floorBand: 'P2' },
+        rationale: 'Break rate beyond the AWWA poor benchmark floors at P2 — the cohort is in run-to-fail territory.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 48, floor: 0.6 },
+        rationale: 'Cohort statistics refresh ~4-yearly; older condition sampling decays to 0.6 confidence.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 8. GOVERNMENT BUILDINGS &amp; COMMUNITY FACILITIES ═══════════════════════
+  {
+    t: 8,
+    code: 'TPL-GOVT-FACILITIES-V1',
+    name: 'Government Buildings &amp; Community Facilities',
+    sector: 'Government',
+    scope: 'Public buildings &amp; community facilities (per facility)',
+    standards: 'IPWEA IIMM; APPA FCI; NCC; AS 1851; ISO 41001',
+    description: 'Facility prioritisation per IPWEA IIMM and APPA facility-condition practice: the ' +
+      'Facility Condition Index (backlog ÷ replacement value) anchors the condition axis, with ' +
+      'statutory life-safety compliance (NCC, AS 1851 fire, access) as a non-compensatory floor. ' +
+      'Consequence follows service criticality, occupancy and community dependency.',
+    criteria: [
+      { code: 'FCI', name: 'Facility Condition Index', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'APPA FCI bands', description: 'Maintenance backlog ÷ current replacement value.',
+        bands: [[0, 0.05, 10, '&lt; 0.05 — good'], [0.05, 0.1, 35, '0.05–0.10 — fair'], [0.1, 0.3, 65, '0.10–0.30 — poor'], [0.3, 99, 100, '&gt; 0.30 — critical']],
+        binding: { sourceType: 'Attribute', sourceRef: 'FCI_RATIO', unit: 'ratio' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'STRUCT_ENV', name: 'Structure &amp; envelope condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'IPWEA IIMM condition', description: 'Structure, roof, façade and waterproofing condition.',
+        levels: ['Like new', 'Minor wear', 'Moderate deterioration', 'Major defects / water ingress', 'Structural concern'],
+        binding: { sourceType: 'Manual', sourceRef: 'structureEnvelope' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'SERVICES', name: 'Building services condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'ISO 41001 FM practice', description: 'HVAC, electrical, vertical transport, hydraulics.',
+        levels: ['New / recently renewed', 'Serviceable', 'Ageing, increasing faults', 'Frequent failures', 'End-of-life / obsolete'],
+        binding: { sourceType: 'Manual', sourceRef: 'buildingServices' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'COMPLIANCE', name: 'Statutory compliance gaps', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'NCC; AS 1851; access standards', description: 'Open fire-safety (AS 1851), essential-services and access compliance gaps.',
+        bands: [['None', 10], ['Minor', 55], ['Major', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'STATUTORY_GAPS' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'FUNCTIONALITY', name: 'Functional suitability', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'IPWEA IIMM service levels', description: 'Fitness of the facility for its current service delivery.',
+        levels: ['Purpose-ideal', 'Suitable', 'Workable with constraints', 'Materially constrains service', 'Unfit for service'],
+        binding: { sourceType: 'Manual', sourceRef: 'functionalSuitability' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'SERVICE_CRIT', name: 'Service criticality', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Community service hierarchy', description: 'Criticality of the service delivered from the facility.',
+        levels: ['Storage / ancillary', 'Administrative', 'Community / recreation', 'Education / care', 'Emergency / health-critical'],
+        binding: { sourceType: 'Manual', sourceRef: 'serviceCriticality' },
+        weight: 2.5, policy: 'neutral' },
+      { code: 'OCCUPANCY', name: 'Peak occupancy', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Life-safety exposure', description: 'Peak occupant load.',
+        bands: [[0, 50, 10, '&lt; 50'], [50, 250, 40, '50–250'], [250, 1000, 70, '250–1,000'], [1000, 9999999, 100, '&gt; 1,000']],
+        binding: { sourceType: 'Attribute', sourceRef: 'PEAK_OCCUPANCY', unit: 'persons' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'COMMUNITY_DEP', name: 'Community dependency', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'IPWEA IIMM', description: 'Availability of alternative facilities for the community served.',
+        levels: ['Many alternatives', 'Alternatives nearby', 'Limited alternatives', 'Sole facility in district', 'Sole facility, vulnerable users'],
+        binding: { sourceType: 'Manual', sourceRef: 'communityDependency' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'HERITAGE', name: 'Heritage significance', category: 'Modifier', valueType: 'Level1to5',
+        standardRef: 'Burra Charter practice', description: 'Heritage status (raises intervention complexity and cost).',
+        levels: ['None', 'Local interest', 'Local listing', 'State listing', 'National significance'],
+        binding: { sourceType: 'Manual', sourceRef: 'heritageStatus' },
+        weight: 0.5, policy: 'exclude' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'COMPLIANCE', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'Major statutory life-safety gaps (fire systems, egress) floor at P1 — these are legal obligations, not trade-offs.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'FCI', config: { when: '&gt;=90', raiseBands: 1 },
+        rationale: 'FCI beyond 0.30 (APPA critical) escalates — backlog at this level compounds faster than budgets recover it.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 36, floor: 0.6 },
+        rationale: 'Triennial facility condition audit cycle.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 9. MARITIME — WHARVES, JETTIES &amp; MARINE STRUCTURES ═══════════════════
+  {
+    t: 9,
+    code: 'TPL-MARINE-WHARF-V1',
+    name: 'Wharves, Jetties &amp; Marine Structures',
+    sector: 'Maritime',
+    scope: 'Wharves, jetties, ferry terminals &amp; marine structures',
+    standards: 'PIANC inspection guidance; AS 4997; ASCE/COPRI waterfront practice',
+    description: 'Marine-structure prioritisation per PIANC and ASCE waterfront inspection ' +
+      'practice: pile section loss (including accelerated low-water corrosion, the dominant ' +
+      'hidden failure mode of steel piles), splash-zone deterioration and deck load compliance ' +
+      'on the likelihood axis; berth criticality, dangerous-goods transfer and public exposure ' +
+      'on the consequence axis.',
+    criteria: [
+      { code: 'COND_STRUCT', name: 'Structural condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'PIANC condition grading', description: 'Deck, headstocks, beams and piles overall grade.',
+        levels: ['Like new', 'Minor defects', 'Moderate deterioration', 'Major defects — capacity affected', 'Severe — partial closure warranted'],
+        binding: { sourceType: 'Manual', sourceRef: 'marineStructCondition' },
+        weight: 3.0, policy: 'flag' },
+      { code: 'PILE_LOSS', name: 'Pile section loss', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'ALWC / marine-borer practice', description: 'Worst measured pile section loss — accelerated low-water corrosion and borers act below the visible zone.',
+        bands: [[0, 10, 10, '&lt; 10%'], [10, 25, 40, '10–25%'], [25, 40, 70, '25–40%'], [40, 100, 100, '&gt; 40% — capacity-critical']],
+        binding: { sourceType: 'Attribute', sourceRef: 'PILE_SECTION_LOSS_PCT', unit: '%' },
+        weight: 2.5, policy: 'penalise:60' },
+      { code: 'SPLASH_ZONE', name: 'Splash/tidal zone deterioration', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'AS 4997 durability', description: 'Concrete spalling / steel corrosion in the most aggressive exposure zone.',
+        levels: ['Sound', 'Surface staining', 'Localised spalling', 'Widespread spalling, exposed reinforcement', 'Section loss in primary members'],
+        binding: { sourceType: 'Manual', sourceRef: 'splashZoneCondition' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'LOAD_COMPLIANCE', name: 'Deck load compliance', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'AS 4997 / berth operating limits', description: 'Rated deck capacity against current cargo and plant operations.',
+        bands: [['Compliant', 10], ['Marginal', 60], ['Non-compliant', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'DECK_LOAD_STATUS' },
+        weight: 2.5, policy: 'penalise:60' },
+      { code: 'FENDER_COND', name: 'Fender &amp; berthing systems', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'PIANC WG 33 fender practice', description: 'Energy-absorption capacity of fenders and berthing hardware.',
+        levels: ['Full capacity', 'Minor wear', 'Reduced capacity', 'Localised failures', 'Inadequate for design vessel'],
+        binding: { sourceType: 'Manual', sourceRef: 'fenderCondition' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'SEABED_SCOUR', name: 'Berth-pocket scour', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Hydrographic survey practice', description: 'Seabed scour at piles/quay toe from propeller wash.',
+        levels: ['None', 'Minor', 'Monitored deepening', 'Approaching pile design depth', 'Undermining toe/piles'],
+        binding: { sourceType: 'Manual', sourceRef: 'berthScour' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'BERTH_CRIT', name: 'Berth/terminal criticality', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Port trade dependency', description: 'Trade or service throughput dependent on the berth.',
+        levels: ['Lay-by / recreational', 'Minor cargo', 'Significant trade share', 'Major trade gateway', 'Sole berth for critical trade'],
+        binding: { sourceType: 'Manual', sourceRef: 'berthCriticality' },
+        weight: 2.5, policy: 'neutral' },
+      { code: 'HAZMAT', name: 'Dangerous goods transfer', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'Port DG handling codes', description: 'Bulk liquids / dangerous goods transferred over the structure.',
+        bands: [['None', 10], ['Routine', 60], ['High volume', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'DG_TRANSFER' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'PUBLIC_ACCESS', name: 'Public access exposure', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Ferry/public wharf practice', description: 'Public and passenger exposure (ferry terminals score high).',
+        levels: ['No public access', 'Occasional access', 'Regular public use', 'Daily passenger service', 'High-volume ferry terminal'],
+        binding: { sourceType: 'Manual', sourceRef: 'publicAccessExposure' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'REDUNDANCY', name: 'Alternate berth availability', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Port operations planning', description: 'Ability to relocate operations if the berth closes.',
+        levels: ['Multiple equivalent berths', 'Practical alternative', 'Alternative with constraints', 'Severe operational penalty', 'No alternative'],
+        binding: { sourceType: 'Manual', sourceRef: 'berthRedundancy' },
+        weight: 1.0, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'COND_STRUCT', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'Severe structural condition on a live berth floors at P1 — collapse under cargo or passengers is a multiple-fatality scenario.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'LOAD_COMPLIANCE', config: { on: 'raw', when: '==Non-compliant', raiseBands: 1, forceReview: true },
+        rationale: 'Operating beyond rated deck capacity escalates with review hold — an active, controllable overload condition.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 60, floor: 0.5 },
+        rationale: 'PIANC underwater inspection cycles run to 5 years; older dive data halves in confidence.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 10. ENERGY — DISTRIBUTION POLES &amp; TOWERS ═════════════════════════════
+  {
+    t: 10,
+    code: 'TPL-POWER-POLES-V1',
+    name: 'Electricity Distribution Poles &amp; Towers',
+    sector: 'Energy',
+    scope: 'Distribution poles, towers &amp; pole-top structures (per feeder/cohort)',
+    standards: 'AS/NZS 7000; Energy Networks Australia practice; ISO 55000',
+    description: 'Pole/tower prioritisation per AS/NZS 7000 residual-strength practice: poles are ' +
+      'condemned on residual strength, with decay/termite activity and cohort failure history as ' +
+      'leading indicators. Consequence is dominated by bushfire ignition risk — pole-top failure in ' +
+      'an extreme bushfire-risk zone escalates non-compensatorily — plus customers served and ' +
+      'critical loads.',
+    criteria: [
+      { code: 'POLE_STRENGTH', name: 'Residual strength', category: 'Likelihood', valueType: 'Numeric',
+        standardRef: 'AS/NZS 7000 serviceability', description: 'Residual strength as % of as-new design capacity.',
+        bands: [[80, 999, 10, '&gt; 80%'], [65, 80, 35, '65–80%'], [50, 65, 70, '50–65% — intervention zone'], [0, 50, 100, '&lt; 50% — condemnable']],
+        binding: { sourceType: 'Attribute', sourceRef: 'RESIDUAL_STRENGTH_PCT', unit: '%' },
+        weight: 3.0, policy: 'penalise:70' },
+      { code: 'DECAY_TERMITE', name: 'Decay / termite activity', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'Timber-pole inspection practice', description: 'Internal decay or termite activity from drill/sound inspection.',
+        bands: [['None', 10], ['Detected', 60], ['Active', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'DECAY_STATUS' },
+        weight: 2.0, policy: 'flag' },
+      { code: 'CORROSION', name: 'Steel/concrete deterioration', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'AS/NZS 7000 durability', description: 'Corrosion of steel poles/towers, concrete spalling, stay condition.',
+        levels: ['Sound', 'Surface corrosion', 'Measurable section loss', 'Significant loss / cracked concrete', 'Structural capacity affected'],
+        binding: { sourceType: 'Manual', sourceRef: 'poleCorrosion' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'AGE_COHORT', name: 'Age vs cohort survival', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Cohort survival analysis', description: 'Position of the asset within its material/vintage survival curve.',
+        levels: ['Early life', 'Mid life', 'Approaching mean life', 'Beyond mean life', 'Tail of survival curve'],
+        binding: { sourceType: 'Manual', sourceRef: 'ageCohortPosition' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'DEFECT_HIST', name: 'Feeder defect history', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'ENA reliability practice', description: 'Defect and unassisted-failure history on the feeder/cohort.',
+        levels: ['Clean history', 'Isolated defects', 'Recurring defects', 'Multiple failures', 'Chronic failure cohort'],
+        binding: { sourceType: 'Manual', sourceRef: 'feederDefectHistory' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'BUSHFIRE_ZONE', name: 'Bushfire risk zone', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'Bushfire-prone land mapping', description: 'Fire-loss consequence of pole-top failure or conductor drop.',
+        bands: [['Low', 10], ['Moderate', 40], ['High', 70], ['Extreme', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'BUSHFIRE_ZONE' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'CUSTOMERS', name: 'Customers on feeder', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'Reliability (SAIDI) exposure', description: 'Customers interrupted by failure of the asset.',
+        bands: [[0, 50, 10, '&lt; 50'], [50, 500, 40, '50–500'], [500, 5000, 70, '500–5,000'], [5000, 99999999, 100, '&gt; 5,000']],
+        binding: { sourceType: 'Attribute', sourceRef: 'FEEDER_CUSTOMERS', unit: 'customers' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'CRITICAL_LOAD', name: 'Critical loads', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'Utility criticality registers', description: 'Hospitals, water pumping, communications on the feeder.',
+        bands: [['None', 10], ['Present', 60], ['Multiple', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'CRITICAL_LOADS' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'PUBLIC_EXPOSURE', name: 'Public exposure at location', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Public-safety exposure', description: 'Pedestrian/vehicle exposure beneath the asset (school zones, busy roadsides).',
+        levels: ['Remote rural', 'Low-traffic rural', 'Suburban street', 'Busy road / shared path', 'School zone / high pedestrian'],
+        binding: { sourceType: 'Manual', sourceRef: 'publicExposure' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'NETWORK_REDUND', name: 'Feeder redundancy', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Network switching capability', description: 'Backfeed/switching options to restore supply around the asset.',
+        levels: ['Full backfeed', 'Backfeed with constraints', 'Partial restoration only', 'Radial — generator support possible', 'Radial — no alternative'],
+        binding: { sourceType: 'Manual', sourceRef: 'feederRedundancy' },
+        weight: 1.0, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'POLE_STRENGTH', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'Residual strength below the condemnable limit floors at P1 — unassisted pole failure over public space is intolerable.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'BUSHFIRE_ZONE', config: { on: 'raw', when: '==Extreme', raiseBands: 1, forceReview: true },
+        rationale: 'Extreme bushfire-risk zones escalate with review hold — asset-initiated ignition is the dominant catastrophic-loss scenario for distribution networks.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 48, floor: 0.5 },
+        rationale: 'Ground-line inspection cycles run 4–5 years; older inspection data halves in confidence.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 11. ROAD &amp; RAIL TUNNELS ══════════════════════════════════════════════
+  {
+    t: 11,
+    code: 'TPL-TUNNEL-V1',
+    name: 'Road &amp; Rail Tunnels',
+    sector: 'Transport',
+    scope: 'Road &amp; rail tunnels (per tube)',
+    standards: 'PIARC Road Tunnels Manual; EU Directive 2004/54/EC practice; NFPA 502',
+    description: 'Tunnel prioritisation per PIARC and NFPA 502 practice: civil condition (lining, ' +
+      'groundwater ingress, portal stability) plus the life-safety systems axis — fire detection/ ' +
+      'suppression, ventilation and egress — where compliance gaps floor non-compensatorily. ' +
+      'Consequence scales with traffic, tube length (egress difficulty) and dangerous-goods policy.',
+    criteria: [
+      { code: 'LINING_COND', name: 'Lining condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'PIARC tunnel inspection', description: 'Cracking, spalling, delamination and joint condition of the lining.',
+        levels: ['Sound', 'Minor cracking', 'Moderate spalling', 'Widespread defects / delamination', 'Falling-object or structural risk'],
+        binding: { sourceType: 'Manual', sourceRef: 'liningCondition' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'WATER_INGRESS', name: 'Groundwater ingress', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Tunnel drainage practice', description: 'Ingress severity and effect on equipment, icing and corrosion.',
+        levels: ['Dry', 'Damp patches', 'Dripping — managed', 'Flowing — affecting systems', 'Severe — structural washout risk'],
+        binding: { sourceType: 'Manual', sourceRef: 'waterIngress' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'MEP_SYSTEMS', name: 'Life-safety systems condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'NFPA 502; PIARC M&amp;E', description: 'Ventilation, fire detection/suppression, emergency lighting and comms condition.',
+        levels: ['New / fully tested', 'Serviceable', 'Ageing, rising fault rate', 'Frequent failures / obsolete parts', 'Degraded — reduced protection'],
+        binding: { sourceType: 'Manual', sourceRef: 'lifeSafetySystems' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'FIRE_COMPLIANCE', name: 'Fire-safety compliance', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'NFPA 502 / EU 2004/54/EC', description: 'Compliance of fire-life-safety provisions against current code.',
+        bands: [['Compliant', 10], ['Gaps — mitigated', 60], ['Major gaps', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'FIRE_COMPLIANCE' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'GEOTECH', name: 'Portal &amp; ground stability', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'Geotechnical asset practice', description: 'Portal slopes, rock bolts, ground movement monitoring.',
+        levels: ['Stable', 'Minor weathering', 'Localised instability', 'Active movement — monitored', 'Unstable — intervention due'],
+        binding: { sourceType: 'Manual', sourceRef: 'portalStability' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'TRAFFIC', name: 'Traffic volume', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'PIARC risk exposure', description: 'AADT (road) or services/day equivalent (rail).',
+        bands: [[0, 5000, 10, '&lt; 5k'], [5000, 30000, 40, '5–30k'], [30000, 80000, 70, '30–80k'], [80000, 9999999, 100, '&gt; 80k']],
+        binding: { sourceType: 'Attribute', sourceRef: 'TUNNEL_AADT', unit: 'veh/day' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'TUBE_LENGTH', name: 'Tube length', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'EU 2004/54/EC thresholds', description: 'Length drives egress difficulty and incident consequence.',
+        bands: [[0, 300, 10, '&lt; 300 m'], [300, 1000, 40, '300–1,000 m'], [1000, 3000, 70, '1–3 km'], [3000, 99999, 100, '&gt; 3 km']],
+        binding: { sourceType: 'Attribute', sourceRef: 'TUBE_LENGTH_M', unit: 'm' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'DG_TRANSIT', name: 'Dangerous goods policy', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'ADR tunnel categories', description: 'Dangerous-goods transit permission for the tube.',
+        bands: [['Prohibited', 10], ['Escorted/limited', 55], ['Permitted', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'DG_POLICY' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'REDUNDANCY', name: 'Network alternative', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Network resilience', description: 'Practical alternative route if the tube closes.',
+        levels: ['Parallel tube + surface route', 'Surface alternative', 'Long detour', 'Severe detour penalty', 'No practical alternative'],
+        binding: { sourceType: 'Manual', sourceRef: 'tunnelRedundancy' },
+        weight: 1.5, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'SafetyFloor', criterion: 'FIRE_COMPLIANCE', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'Major fire-life-safety gaps floor at P1 — tunnel fire history (Mont Blanc, Gotthard) drove the EU directive for a reason.', priority: 1 },
+      { ruleType: 'Escalate', criterion: 'MEP_SYSTEMS', config: { when: '&gt;=80', raiseBands: 1 },
+        rationale: 'Degraded ventilation/detection escalates — life-safety systems are the consequence-control layer for every other tunnel risk.', priority: 2 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 24, floor: 0.5 },
+        rationale: 'Tunnel principal inspections and systems testing run on 1–2 year cycles.', priority: 9 }
+    ]
+  },
+&nbsp;
+  // ═══ 12. WATER SUPPLY &amp; FLOOD MITIGATION DAMS ═════════════════════════════
+  {
+    t: 12,
+    code: 'TPL-WATER-DAM-V1',
+    name: 'Water Supply &amp; Flood Mitigation Dams',
+    sector: 'Government',
+    scope: 'Water supply, flood mitigation &amp; weir structures (per dam)',
+    standards: 'ANCOLD guidelines; ICOLD bulletins; state dam-safety regulation',
+    description: 'Dam-safety prioritisation per ANCOLD/ICOLD portfolio risk practice: spillway ' +
+      'adequacy against the design flood, piping/seepage indicators (the leading embankment ' +
+      'failure mode) and Dam Safety Review findings on likelihood; ANCOLD consequence category ' +
+      'and population at risk dominating consequence — Extreme-category dams pin to the top band.',
+    criteria: [
+      { code: 'DSR_FINDINGS', name: 'Dam Safety Review findings', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'ANCOLD DSR practice', description: 'Severity of open findings from the latest comprehensive DSR.',
+        levels: ['None open', 'Minor observations', 'Material findings — programmed', 'Material findings — overdue', 'Critical findings open'],
+        binding: { sourceType: 'Manual', sourceRef: 'dsrFindings' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'STABILITY_FOS', name: 'Stability compliance', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'ANCOLD stability criteria', description: 'Factor of safety against current loading criteria incl. seismic.',
+        bands: [['Meets criteria', 10], ['Marginal', 60], ['Below criteria', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'DAM_FOS_STATUS' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'SPILLWAY_CAP', name: 'Spillway capacity', category: 'Likelihood', valueType: 'Discrete',
+        standardRef: 'ANCOLD acceptable flood capacity', description: 'Capacity against the dam-break design flood for the consequence category.',
+        bands: [['Adequate', 10], ['Marginal', 60], ['Deficient', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'SPILLWAY_STATUS' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'SEEPAGE', name: 'Seepage &amp; piping indicators', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'ICOLD internal-erosion bulletins', description: 'Seepage quantity/clarity trends — piping is the leading embankment failure mode.',
+        levels: ['Dry / clear, stable', 'Clear, stable flow', 'Increasing clear flow', 'Turbid or new exit points', 'Active internal erosion indicators'],
+        binding: { sourceType: 'Manual', sourceRef: 'damSeepage' },
+        weight: 2.5, policy: 'flag' },
+      { code: 'STRUCT_COND', name: 'Structure &amp; appurtenances condition', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'ANCOLD surveillance', description: 'Embankment/concrete condition, outlet works, gates and valves.',
+        levels: ['Excellent', 'Good', 'Fair — programmed works', 'Poor — capability affected', 'Very poor — reliability doubtful'],
+        binding: { sourceType: 'Manual', sourceRef: 'damStructCondition' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'INSTRUMENT', name: 'Surveillance &amp; instrumentation', category: 'Likelihood', valueType: 'Level1to5',
+        standardRef: 'ANCOLD surveillance guidelines', description: 'Instrumentation coverage and surveillance cadence (sparse raises uncertainty).',
+        levels: ['Comprehensive, telemetered', 'Comprehensive, routine reads', 'Adequate', 'Sparse', 'Minimal / none'],
+        binding: { sourceType: 'Manual', sourceRef: 'damInstrumentation' },
+        weight: 1.5, policy: 'neutral' },
+      { code: 'ANCOLD_CAT', name: 'ANCOLD consequence category', category: 'Consequence', valueType: 'Discrete',
+        standardRef: 'ANCOLD consequence framework', description: 'Dam-break consequence category.',
+        bands: [['Low', 10], ['Significant', 30], ['High C', 55], ['High B', 70], ['High A', 85], ['Extreme', 100]],
+        binding: { sourceType: 'Attribute', sourceRef: 'DAM_ANCOLD_CATEGORY' },
+        weight: 3.0, policy: 'penalise' },
+      { code: 'PAR', name: 'Population at risk', category: 'Consequence', valueType: 'Numeric',
+        standardRef: 'ANCOLD PAR bands', description: 'Population at risk in the dam-break inundation path.',
+        bands: [[0, 0.99, 5, 'Zero'], [1, 10, 40, '1–10'], [10, 100, 65, '10–100'], [100, 1000, 85, '100–1,000'], [1000, 99999999, 100, '&gt; 1,000']],
+        binding: { sourceType: 'Attribute', sourceRef: 'DAM_PAR_COUNT', unit: 'persons' },
+        weight: 2.5, policy: 'penalise' },
+      { code: 'SUPPLY_ROLE', name: 'Water supply criticality', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Urban water security planning', description: 'Supply role — sole town supply scores highest.',
+        levels: ['Recreation/amenity only', 'Supplementary supply', 'Significant supply share', 'Major system storage', 'Sole supply for community'],
+        binding: { sourceType: 'Manual', sourceRef: 'supplyRole' },
+        weight: 2.0, policy: 'neutral' },
+      { code: 'ENV_DOWNSTREAM', name: 'Downstream environmental consequence', category: 'Consequence', valueType: 'Level1to5',
+        standardRef: 'Environmental flow practice', description: 'Environmental consequence of uncontrolled release or loss of storage.',
+        levels: ['Minimal', 'Low', 'Moderate', 'High', 'Protected/critical ecosystems'],
+        binding: { sourceType: 'Manual', sourceRef: 'downstreamEnvironment' },
+        weight: 1.0, policy: 'neutral' }
+    ],
+    rules: [
+      { ruleType: 'Veto', criterion: 'ANCOLD_CAT', config: { on: 'raw', when: '==Extreme', floorBand: 'P1' },
+        rationale: 'ANCOLD portfolio practice: an Extreme-consequence dam is pinned to the top band regardless of condition scores.', priority: 1 },
+      { ruleType: 'SafetyFloor', criterion: 'SPILLWAY_CAP', config: { when: '&gt;=90', floorBand: 'P1', forceReview: true },
+        rationale: 'Spillway deficiency against the acceptable flood is the dominant historical dam-failure mechanism — floors at P1.', priority: 2 },
+      { ruleType: 'Escalate', criterion: 'SEEPAGE', config: { when: '&gt;=80', raiseBands: 1, forceReview: true },
+        rationale: 'Turbid seepage or new exit points are internal-erosion precursors — escalate and hold for dam engineer review.', priority: 3 },
+      { ruleType: 'ConfidenceWeight', criterion: null, config: { maxAgeMonths: 12, floor: 0.4 },
+        rationale: 'ANCOLD surveillance is at least annual; stale dam data decays sharply.', priority: 9 }
+    ]
+  }
+]
+&nbsp;
+// ─────────────────────────────────────────────────────────────────────────────
+// Expansion: spec → seed rows (deterministic IDs; parent-first table order)
+// ─────────────────────────────────────────────────────────────────────────────
+function expand () {
+  const SEED = { PrioritisationModel: [], ModelCriterion: [], CriterionSourceBinding: [], CriterionValueBand: [], AssetClassCriterionWeight: [], AggregationRule: [] }
+  for (const tpl of TEMPLATES) {
+    const modelID = uid(tpl.t, 0, 1)
+    SEED.PrioritisationModel.push({
+      ID: modelID, code: tpl.code, name: tpl.name, version: 1, status: 'Template',
+      aggregationMethod: 'WeightedSumWithRules', description: tpl.description,
+      reviewedBy: null, reviewedAt: null,
+      reviewSource: 'docs/prioritisation/TEMPLATE-LIBRARY.md',
+      isTemplate: true, sector: tpl.sector, assetClassScope: tpl.scope, standardsBasis: tpl.standards
+    })
+    const critIdByCode = {}
+    let bandSeq = 0
+    tpl.criteria.forEach((c, ci) =&gt; {
+      const critID = uid(tpl.t, 1, ci + 1)
+      critIdByCode[c.code] = critID
+      const rubric = c.levels ? JSON.stringify(Object.fromEntries(c.levels.map((l, i) =&gt; [String(i + 1), l]))) : null
+      SEED.ModelCriterion.push({
+        ID: critID, model_ID: modelID, code: c.code, name: c.name, category: c.category,
+        valueType: c.valueType, standardRef: c.standardRef, description: c.description,
+        rubric, displayOrder: ci + 1, active: true
+      })
+      SEED.CriterionSourceBinding.push({
+        ID: uid(tpl.t, 2, ci + 1), criterion_ID: critID,
+        sourceType: c.binding.sourceType, sourceRef: c.binding.sourceRef,
+        unit: c.binding.unit || null, transform: c.binding.transform || null
+      })
+      const bands = c.levels
+        ? c.levels.map((l, i) =&gt; ({ lowerBound: i + 1, upperBound: i + 1, textValue: null, score: L5_SCORES[i + 1], label: l, displayOrder: i + 1 }))
+        : (typeof c.bands[0][0] === 'string')
+            ? c.bands.map((b, i) =&gt; ({ lowerBound: null, upperBound: null, textValue: b[0], score: b[1], label: b[2] || b[0], displayOrder: i + 1 }))
+            : c.bands.map((b, i) =&gt; ({ lowerBound: b[0], upperBound: b[1], textValue: null, score: b[2], label: b[3] || <span class="branch-1 cbranch-no" title="branch not covered" >null,</span> displayOrder: i + 1 }))
+      for (const b of bands) {
+        bandSeq += 1
+        SEED.CriterionValueBand.push(Object.assign({ ID: uid(tpl.t, 3, bandSeq), criterion_ID: critID }, b))
+      }
+      SEED.AssetClassCriterionWeight.push({
+        ID: uid(tpl.t, 4, ci + 1), model_ID: modelID, assetClass: '*', transportMode: '*',
+        criterion_ID: critID, included: true, weight: c.weight, missingDataPolicy: c.policy
+      })
+    })
+    tpl.rules.forEach((r, ri) =&gt; {
+      SEED.AggregationRule.push({
+        ID: uid(tpl.t, 5, ri + 1), model_ID: modelID, ruleType: r.ruleType,
+        criterion_ID: r.criterion ? critIdByCode[r.criterion] : null,
+        config: JSON.stringify(r.config), rationale: r.rationale, priority: r.priority, active: true
+      })
+    })
+  }
+  return SEED
+}
+&nbsp;
+const SEED = expand()
+&nbsp;
+const rowLabel = (row) =&gt; row.code || row.name || row.ruleType || row.label || String(row.ID)
+&nbsp;
+// Insert-if-missing seeding keyed on the fixed UUIDs above. Mirrors
+// ensureModelBuilderSeed: never touches existing rows; ChangeLogs every insert.
+async function ensureTemplateLibrarySeed (db, { changedBy = <span class="branch-0 cbranch-no" title="branch not covered" >'system' </span>} = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+  const batchId = cds.utils.uuid()
+  let inserted = 0
+  const perTable = {}
+  for (const table of TABLES) {
+    const rows = SEED[table] || <span class="branch-1 cbranch-no" title="branch not covered" >[]</span>
+    const existing = await db.run(SELECT.from(NS + table).columns('ID'))
+    const have = new Set((existing || <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>.map((r) =&gt; String(r.ID).toLowerCase()))
+    const missing = rows.filter((r) =&gt; !have.has(String(r.ID).toLowerCase()))
+    perTable[table] = missing.length
+    if (!missing.length) continue
+    await db.run(INSERT.into(NS + table).entries(missing))
+    await writeChangeLogs(db, {
+      objectType: 'Lookup',
+      objectId: table,
+      objectName: `${table} (template-library seed)`,
+      source: 'Calibration',
+      batchId,
+      changedBy,
+      changes: missing.map((row) =&gt; ({ fieldName: String(row.ID), oldValue: '', newValue: rowLabel(row) }))
+    })
+    inserted += missing.length
+  }
+  return { inserted, perTable }
+}
+&nbsp;
+module.exports = { TABLES, SEED, TEMPLATES, ensureTemplateLibrarySeed }
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-06-19T00:35:58.865Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

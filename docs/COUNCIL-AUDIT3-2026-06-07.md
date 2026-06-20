@@ -1,6 +1,6 @@
 # Third-Audit Report — NSW Bridge Information System (BridgeManagement v3.9.3)
 
-**Prepared by:** Expert Council (ISO 55000 · NSW/TfNSW Bridges · SAP BTP · SAP S/4 EAM · Fiori UX · Product)
+**Prepared by:** Expert Council (ISO 55000 · NSW Bridges · SAP BTP · SAP S/4 EAM · Fiori UX · Product)
 **Audit round:** 3 of 3 · **Date:** 2026-06-07 · **Baseline:** B+ (v3.x post second audit)
 **Scope:** 45 surviving findings (3-vote verified) + independent code re-verification of 7 high-severity items
 
@@ -15,7 +15,7 @@ This is the third pass on an asset that climbed C+ → B+ → B+. The plateau is
 What holds the grade at B+ rather than advancing it is a **concentrated, low-effort P1 cluster that is mostly hygiene, not redesign**:
 
 - **A live latent defect** (ARCH-T1/T3): I re-verified the code — `LOG` is genuinely undefined in `srv/server.js`; only `_bootLog` and inline `cds.log` exist. The four fire-and-forget audit-write `.catch(err => LOG.error(...))` handlers at lines 522/726/792/886 will themselves throw a `ReferenceError` the moment an audit write fails, converting a recoverable logging path into a silent black hole over the audit trail. This is the single most important finding in the set and is a one-line fix.
-- **Two authorization gaps** (SEC-T1, SEC-T2): re-verified. The BNAC config router (line 2677) and the admin-bridges attachment router (line 2524) mount with `requiresAuthentication` + CSRF but **no scope/admin check**, so any authenticated view/manage user can mutate environment config and documents. Real privilege-escalation surface for a NSW government system.
+- **Two authorization gaps** (SEC-T1, SEC-T2): re-verified. The BNAC config router (line 2677) and the admin-bridges attachment router (line 2524) mount with `requiresAuthentication` + CSRF but **no scope/admin check**, so any authenticated view/manage user can mutate environment config and documents. Real privilege-escalation surface for a government asset-management system.
 - **Two EAM schema asymmetries** (EAM-T1/T2): re-verified. `eamLastSyncAt` is present on Bridges (132), Restrictions (224), Inspections (312) but **missing on BridgeCapacities (after 233) and BridgeDefects (after 336)** — additive, nullable, safe.
 - **Zero integration-test coverage on the highest-risk code paths** (OPS-T3): the bulk upload / mass-edit handlers — the exact class of code where the historical SELECT/UPDATE import bug lived — have no test. 102 unit tests exist but none exercise these handlers end-to-end.
 

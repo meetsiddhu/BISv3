@@ -1,0 +1,95 @@
+<mvc:View
+  controllerName="BridgeManagement.bmsadmin.controller.BhiConfig"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  displayBlock="true">
+
+  <Page id="bhiConfigPage" showHeader="true" title="{i18n>bhi.title}">
+    <customHeader>
+      <Bar>
+        <contentLeft>
+          <Title text="{i18n>bhi.title}" level="H3" />
+        </contentLeft>
+        <contentRight>
+          <ObjectStatus text="{= ${bhi>/isCustom} ? ${i18n>bhi.statusCustom} : ${i18n>bhi.statusDefault} }"
+                        state="{= ${bhi>/isCustom} ? 'Information' : 'Success' }" class="sapUiSmallMarginEnd" />
+          <Button icon="sap-icon://refresh" tooltip="{i18n>btn.refresh}" press=".onRefresh" type="Transparent" />
+          <Button text="{i18n>bhi.btnReset}" icon="sap-icon://reset" press=".onResetDefaults" type="Transparent" />
+          <Button text="{i18n>action.save}" icon="sap-icon://save" press=".onSave" type="Emphasized" enabled="{bhi>/dirty}" />
+        </contentRight>
+      </Bar>
+    </customHeader>
+    <content>
+      <MessageStrip text="{i18n>bhi.note}" type="Information" showIcon="true" class="sapUiSmallMargin" />
+      <IconTabBar id="bhiTabs" expandable="false" class="sapUiResponsiveContentPadding">
+        <items>
+          <!-- ── Element weights per transport mode ── -->
+          <IconTabFilter text="{i18n>bhi.tab.weights}" key="weights" icon="sap-icon://weights">
+            <MessageStrip text="{i18n>bhi.weights.hint}" type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
+            <Table items="{path:'bhi>/weights', templateShareable:false}" growing="true" growingThreshold="60" noDataText="-">
+              <columns>
+                <Column width="11rem"><Text text="{i18n>bhi.col.mode}" /></Column>
+                <Column><Text text="{i18n>bhi.col.bucket}" /></Column>
+                <Column hAlign="End" width="9rem"><Text text="{i18n>bhi.col.weight}" /></Column>
+                <Column hAlign="End" width="8rem"><Text text="{i18n>bhi.col.default}" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <ObjectIdentifier title="{bhi>mode}" text="{= ${bhi>calibrated} ? '' : ${i18n>bhi.uncalibrated} }" />
+                  <Text text="{bhi>bucket}" />
+                  <Input value="{bhi>value}" type="Number" textAlign="End" change=".onCellChange" width="8rem" />
+                  <Text text="{bhi>def}" />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+            <HBox class="sapUiSmallMargin" wrap="Wrap" items="{path:'bhi>/sums', templateShareable:false}">
+              <ObjectStatus class="sapUiTinyMarginEnd"
+                text="{bhi>mode}: Σ = {bhi>sum}"
+                state="{= ${bhi>ok} ? 'Success' : 'Warning' }" />
+            </HBox>
+            <Text text="{i18n>bhi.weights.sumNote}" class="sapUiSmallMarginBegin sapUiTinyText" />
+          </IconTabFilter>
+
+          <!-- ── Environmental / age / importance coefficients ── -->
+          <IconTabFilter text="{i18n>bhi.tab.coeffs}" key="coeffs" icon="sap-icon://settings">
+            <MessageStrip text="{i18n>bhi.coeffs.hint}" type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
+            <Table items="{path:'bhi>/coeffs', templateShareable:false}" growing="true" growingThreshold="60" noDataText="-">
+              <columns>
+                <Column width="14rem"><Text text="{i18n>bhi.col.coeff}" /></Column>
+                <Column hAlign="End" width="9rem"><Text text="{i18n>bhi.col.value}" /></Column>
+                <Column hAlign="End" width="8rem"><Text text="{i18n>bhi.col.default}" /></Column>
+                <Column><Text text="{i18n>bhi.col.controls}" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <Text text="{bhi>key}" />
+                  <Input value="{bhi>value}" type="Number" textAlign="End" change=".onCellChange" width="8rem" />
+                  <Text text="{bhi>def}" />
+                  <Text text="{bhi>desc}" />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+          </IconTabFilter>
+
+          <!-- ── Calibrated-mode honesty flags ── -->
+          <IconTabFilter text="{i18n>bhi.tab.calibrated}" key="calibrated" icon="sap-icon://accept">
+            <MessageStrip text="{i18n>bhi.calibrated.hint}" type="Warning" showIcon="true" class="sapUiSmallMarginBottom" />
+            <Table items="{path:'bhi>/calibrated', templateShareable:false}" noDataText="-">
+              <columns>
+                <Column><Text text="{i18n>bhi.col.mode}" /></Column>
+                <Column hAlign="Center" width="12rem"><Text text="{i18n>bhi.col.calibrated}" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <Text text="{bhi>mode}" />
+                  <Switch state="{bhi>on}" change=".onCalibratedChange" customTextOn=" " customTextOff=" " />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>

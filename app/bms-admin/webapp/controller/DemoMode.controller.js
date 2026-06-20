@@ -44,10 +44,10 @@ sap.ui.define([
           demoModel.setProperty("/statusLabel", active ? "Demo Mode ACTIVE" : "Not Active");
           demoModel.setProperty("/statusState", active ? "Warning" : "Success");
           demoModel.setProperty("/statusText",  active
-            ? "⚠  Demo Mode is ACTIVE: the system is running NSW demonstration data. Users see demo bridges in Map View and Bridge Register."
+            ? "⚠  Demo Mode is ACTIVE: the system is running demonstration data. Users see demo bridges in Map View and Bridge Register."
             : "Demo Mode is not active. The system is in its normal state.");
           demoModel.setProperty("/statusType", active ? "Warning" : "Success");
-          demoModel.setProperty("/dataSource", active ? "Transport for NSW: Public Demo Dataset (30 NSW bridges)" : "Production / empty");
+          demoModel.setProperty("/dataSource", active ? "Demonstration dataset (30 fictional bridges)" : "Production / empty");
         })
         .catch(function () {
           // Config key may not exist yet: treat as inactive

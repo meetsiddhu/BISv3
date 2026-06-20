@@ -246,7 +246,7 @@ async function loadRestrictionLookups (db) {
   const { SELECT } = cds.ql
   const out = {}
   for (const [listName, def] of Object.entries(CODELIST_ENTITIES)) {
-    let codes = []
+    let codes
     try {
       const rows = await db.run(SELECT.from(def.entity).columns('code').where({ isActive: { '!=': false } }))
       codes = (rows || []).map((r) => r.code)

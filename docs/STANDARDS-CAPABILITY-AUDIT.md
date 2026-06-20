@@ -1,7 +1,7 @@
 # Standards & Capability Audit — BIS v3.9.3
 
 > Maps the Bridge Information System against ISO 55000 (asset management), SAP S/4HANA
-> EAM (as a **complement**, not a replacement), and NSW/TfNSW + Austroads bridge standards.
+> EAM (as a **complement**, not a replacement), and NSW + Austroads bridge standards.
 > Legend: ✅ Met · ◑ Partial / advisory · ↗ Complemented-by-EAM (by design) · ⛔ Gap.
 
 ---
@@ -50,11 +50,11 @@ reachable S/4 EAM endpoint + credentials to exercise — the standalone app runs
 
 ---
 
-## 3. NSW / TfNSW + Austroads bridge management
+## 3. NSW + Austroads bridge management
 
 | Standard / concept | BIS capability | Status |
 |---|---|---|
-| TfNSW Bridge Inspection Manual — condition 1–5 band | Canonical TfNSW labels mapped from legacy 1–10 (single module) | ✅ |
+| The bridge inspection manual (AS 5100-aligned) — condition 1–5 band | Canonical 1–5 band labels mapped from legacy 1–10 (single module) | ✅ |
 | Level-2 element-level inspection | `BridgeElements` hierarchy + `ElementTypes` + element condition | ✅ |
 | Inspection accreditation levels (1–4) | `accreditationLevel` | ✅ |
 | Importance level (1–4) | `importanceLevel` feeds risk consequence | ✅ |

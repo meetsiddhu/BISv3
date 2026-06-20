@@ -1,10 +1,11 @@
 const cds = require('@sap/cds')
 
 const { diffRecords, writeChangeLogs, fetchCurrentRecord } = require('./audit-log')
+const mappingPlugin = require('./lib/plugins/mapping')
 
 module.exports = class AdminService extends cds.ApplicationService { init() {
 
-  const { Bridges, Restrictions, BridgeRestrictions, BridgeCapacities, BridgeStatusValues, ConditionStates, SeverityValues, UrgencyValues, AccreditationLevelValues } = this.entities
+  const { Bridges, Restrictions, BridgeRestrictions, BridgeCapacities, BridgeStatusValues, ConditionStates, SeverityValues, UrgencyValues, AccreditationLevelValues, ChangeObjectTypeValues, ChangeKindValues, ChangeSourceValues, ChangeUserValues } = this.entities
   const BridgeInspections = 'BridgeInspections'
   const BridgeDefects = 'BridgeDefects'
   const LOOKUP_ENTITY_NAMES = [
@@ -19,12 +20,22 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   const { deriveRisk, weightsFromConfig, bandsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig } = require('./lib/risk')
   const { nextInspectionDue, isOverdue } = require('./lib/inspection')
 
-  // Load the governing strategy (interval + degradation rate) for a bridge.
+  // Load the governing strategy (interval + degradation rate) for a bridge. Cached per
+  // process (keyed by strategy ID), mirroring getRiskWeights/getRiskBands; the cache is
+  // cleared after any AssetClassStrategy CUD (see the rescore hook below) so an edited
+  // interval/threshold takes effect immediately. Avoids a per-bridge DB read during fleet
+  // rescore + inspection propagation (P2 optimisation).
+  const _strategyCache = new Map()
+  const invalidateStrategyCache = () => { _strategyCache.clear() }
+  this.invalidateStrategyCache = invalidateStrategyCache
   const getStrategy = async (stratId) => {
     if (!stratId) return null
+    if (_strategyCache.has(stratId)) return _strategyCache.get(stratId)
     const db = await cds.connect.to('db')
-    return db.run(SELECT.one.from('bridge.management.AssetClassStrategy')
+    const strat = await db.run(SELECT.one.from('bridge.management.AssetClassStrategy')
       .columns('inspectionIntervalMonths', 'degradationRatePerYear', 'interventionThreshold').where({ ID: stratId }))
+    _strategyCache.set(stratId, strat || null)
+    return strat || null
   }
 
   // Load active RiskConfig weights (config-driven scoring; rule 4). Cached per
@@ -84,8 +95,13 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   LOOKUP_ENTITY_NAMES.forEach((entityName) => {
     this.on('READ', entityName, async () => {
+      // AssetClasses carries an extra objectType (class-type) so the UI can show only the
+      // classes relevant to each object (bridge vs restriction) — ATTR-3.
+      const cols = entityName === 'AssetClasses'
+        ? ['code', 'name', 'descr', 'isActive', 'objectType']
+        : ['code', 'name', 'descr', 'isActive']
       return SELECT.from(`bridge.management.${entityName}`)
-        .columns('code', 'name', 'descr', 'isActive')
+        .columns(...cols)
         .where({ isActive: { '!=': false } })
         .orderBy('code')
     })
@@ -540,6 +556,38 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     }
   })
 
+  // ── COUNCIL P2-2 / SEC: enforce the Risk Band ladder invariant SERVER-SIDE ────
+  // The band ladder (0–100 tiled, no gaps/overlaps, lowest band starts at 0) was only
+  // validated client-side in the bms-admin editor (RiskBands.controller._validateLadder),
+  // so a direct OData write (Postman / integration / any admin token) could leave the
+  // priority ladder corrupt and silently mis-band every bridge on the next rescore.
+  // Per the deep-research finding (Fiori @Capabilities are UI hints only; integrity must be
+  // enforced at the CAP service layer), this guard governs EVERY write path — the freestyle
+  // editor, direct OData, and any future FE screen. Runs on CREATE/UPDATE (the active-toggle
+  // is an UPDATE of `active`). @assert.range on minScore/maxScore already covers per-field
+  // bounds; this adds the cross-row invariant @assert.range cannot express.
+  // Validated in an AFTER handler (reads the actual post-write state within the tx), so it is
+  // robust to keyed, filter, and bulk writes alike — a reject here rolls back the write. It is
+  // registered BEFORE the RiskConfig/RiskBand/AssetClassStrategy rescore hook below, so an
+  // invalid ladder never reaches the fleet rescore.
+  this.after(['CREATE', 'UPDATE'], 'RiskBand', async (_data, req) => {
+    const db = await cds.connect.to('db')
+    const bands = await db.run(SELECT.from('bridge.management.RiskBand'))
+    const active = bands
+      .filter(r => r.active !== false && r.minScore != null)
+      .map(r => ({ name: r.name || r.code, min: Number(r.minScore), max: r.maxScore == null ? null : Number(r.maxScore) }))
+      .sort((a, b) => b.min - a.min)
+    const fail = (m) => req.reject(400, m)
+    if (!active.length) return fail('At least one active risk band is required.')
+    for (let i = 0; i < active.length; i++) {
+      if (!Number.isFinite(active[i].min)) return fail(`Band "${active[i].name}" has a non-numeric Min Score.`)
+      if (active[i].min < 0 || active[i].min > 100) return fail(`Band "${active[i].name}" Min Score must be between 0 and 100.`)
+      if (active[i].max != null && active[i].max < active[i].min) return fail(`Band "${active[i].name}": Max Score is below Min Score.`)
+      if (i > 0 && active[i].min === active[i - 1].min) return fail(`Bands "${active[i - 1].name}" and "${active[i].name}" share the same Min Score (${active[i].min}).`)
+    }
+    if (active[active.length - 1].min !== 0) return fail('The lowest active risk band must start at Min Score 0 to cover the full 0–100 range.')
+  })
+
 
   // Refinement (R1/R5): a bridge's transport mode must match its network's mode, so a
   // Rail bridge can't be filed under a road network and corrupt the cross-modal view.
@@ -651,7 +699,11 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // a per-process cache + stored scores meant edits silently no-op'd until restart. After
   // any create/update/delete on either config entity, drop the caches and rescore every
   // bridge so the change actually takes effect and is auditable (source 'Calibration').
+  // Reusable mapping plugin: drop its process cache when an admin edits the generic mappings.
+  this.after(['CREATE', 'UPDATE', 'DELETE'], ['MappingDomains', 'MappingValues'], () => mappingPlugin.invalidate())
+
   this.after(['CREATE', 'UPDATE', 'DELETE'], ['RiskConfig', 'RiskBand', 'AssetClassStrategy'], async (_data, req) => {
+    invalidateStrategyCache() // drop the per-process strategy cache so an edited interval/threshold takes effect immediately
     try {
       const { n, audited } = await recomputeAllRisk(req)
       cds.log('bms').info('Risk config changed -> fleet rescored', { entity: req.target?.name, bridges: n, changed: audited })
@@ -994,6 +1046,44 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     { code: 3, name: 'Level 3' },
     { code: 4, name: 'Level 4' }
   ])
+
+  // ── Change Documents filter search-helps ────────────────────────────────
+  // Dynamic DISTINCT over the audit trail (ChangeLog + AttributeValueHistory)
+  // so the filter dropdowns always reflect the values actually logged — no
+  // hardcoded enum to drift (CLAUDE.md §4). objectType for attribute rows is
+  // mapped to match ChangeDocumentReport (bridge→Bridge, restriction→Restriction).
+  const CHANGELOG_TBL = 'bridge.management.ChangeLog'
+  const ATTRHIST_TBL  = 'bridge.management.AttributeValueHistory'
+  const mapAttrObjectType = (t) => (t === 'bridge' ? 'Bridge' : t === 'restriction' ? 'Restriction' : t)
+  const distinctValues = async (entity, col) => {
+    const rows = await SELECT.distinct.from(entity).columns(col).where(`${col} is not null`)
+    return rows.map((r) => r[col]).filter((v) => v != null && v !== '')
+  }
+  const toCodeList = (values) => [...new Set(values)].sort().map((code) => ({ code, name: code }))
+
+  this.on('READ', ChangeObjectTypeValues, async () => {
+    const fromLog  = await distinctValues(CHANGELOG_TBL, 'objectType')
+    const fromAttr = (await distinctValues(ATTRHIST_TBL, 'objectType')).map(mapAttrObjectType)
+    return toCodeList([...fromLog, ...fromAttr])
+  })
+
+  // changeKind is the structural discriminator of the union view — exactly two values.
+  this.on('READ', ChangeKindValues, () => [
+    { code: 'Field',     name: 'Field' },
+    { code: 'Attribute', name: 'Attribute' }
+  ])
+
+  this.on('READ', ChangeSourceValues, async () => {
+    const fromLog  = await distinctValues(CHANGELOG_TBL, 'changeSource')
+    const fromAttr = await distinctValues(ATTRHIST_TBL, 'changeSource')
+    return toCodeList([...fromLog, ...fromAttr])
+  })
+
+  this.on('READ', ChangeUserValues, async () => {
+    const fromLog  = await distinctValues(CHANGELOG_TBL, 'changedBy')
+    const fromAttr = await distinctValues(ATTRHIST_TBL, 'changedBy')
+    return toCodeList([...fromLog, ...fromAttr])
+  })
 
   // Default to Active-only on collection reads.
   // • No status filter present → inject status = 'Active'
@@ -1442,6 +1532,46 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // ── Configurable Attributes — integrity guards ───────────────────────────
 
   const { AttributeDefinitions, AttributeAllowedValues } = this.entities
+
+  // FIX (ATTR-2): creating an attribute definition failed because objectType is NOT NULL
+  // but the Fiori Elements create form never sets it (it's a technical field). Default it
+  // from the parent group — whether the group arrives in the payload (group_ID) or as the
+  // composition parent key in req.params. Same for an allowed value created under a
+  // definition. Without this, "Create" on Attribute Definitions / Allowed Values errors out.
+  const parentKeyFrom = (req) => {
+    if (req.data && req.data.group_ID) return req.data.group_ID
+    if (Array.isArray(req.params)) { const p = req.params.find(x => x && x.ID); if (p) return p.ID }
+    return null
+  }
+  this.before('CREATE', AttributeDefinitions, async (req) => {
+    if (req.data && !req.data.objectType) {
+      const groupId = parentKeyFrom(req)
+      if (groupId) {
+        const g = await SELECT.one.from('bridge.management.AttributeGroups').where({ ID: groupId })
+        if (g && g.objectType) req.data.objectType = g.objectType
+      }
+      // Fallback so the NOT NULL constraint never blocks a create (e.g. a deep insert where
+      // the parent group is not yet persisted). The FE draft flow edits an already-active
+      // group, so the inherited value above applies there; 'bridge' is the safe default.
+      if (!req.data.objectType) req.data.objectType = 'bridge'
+    }
+    // sensible defaults so a minimal create succeeds
+    if (req.data && !req.data.dataType) req.data.dataType = 'Text'
+    if (req.data && req.data.status == null) req.data.status = 'Active'
+  })
+  this.before('CREATE', AttributeAllowedValues, async (req) => {
+    // value is NOT NULL; surface a clear message instead of a raw DB error
+    if (req.data && (req.data.value === undefined || req.data.value === null || req.data.value === '')) {
+      return req.error(400, 'An allowed value requires a non-empty "value".')
+    }
+    if (req.data && req.data.status == null) req.data.status = 'Active'
+  })
+  // A new top-level group also needs objectType (NOT NULL) — default to 'bridge' when the
+  // create form omits it, so creating a group never fails on a hidden technical field.
+  this.before('CREATE', 'AttributeGroups', async (req) => {
+    if (req.data && !req.data.objectType) req.data.objectType = 'bridge'
+    if (req.data && req.data.status == null) req.data.status = 'Active'
+  })
 
   // Block DELETE on AttributeDefinition if any values exist for its internalKey
   this.before('DELETE', AttributeDefinitions, async (req) => {

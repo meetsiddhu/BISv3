@@ -1,6 +1,6 @@
 # Bridge Asset Lifecycle Management — Solution Design
 
-**Expert-council design** · asset lifecycle management (ISO 55000/55001) · bridge delivery & maintenance (NSW practice: TfNSW inspection regime, AS 5100, NHVR, ONRSR) · SAP EAM · SAP BTP/CAP · SAP Business Data Cloud (BDC) & Datasphere
+**Expert-council design** · asset lifecycle management (ISO 55000/55001) · bridge delivery & maintenance (NSW practice: state road authority inspection regime, AS 5100, NHVR, ONRSR) · SAP EAM · SAP BTP/CAP · SAP Business Data Cloud (BDC) & Datasphere
 
 **Status:** Target architecture. The *Now* horizon is substantially **realised and live** in BIS v3.9.33 (each realised capability is marked ✅); *Next* and *Later* are the committed expansion path.
 **Posture:** Side-by-side complement to SAP EAM on SAP BTP — **clean core**, SAP application-certification aligned. EAM is never modified.
@@ -26,7 +26,7 @@ Building that into EAM customisations breaks clean core and couples engineering 
 | P2 | **Clean core / certification-aligned.** Side-by-side CAP app on BTP; public released APIs only; XSUAA auth; no S/4 modification; standalone-capable (runs with *no* live EAM). | Upgrade-safe S/4; SAP app certification; the solution survives EAM release cycles untouched. |
 | P3 | **Engineering data is governed data.** Additive-only schema, soft-delete only, ChangeLog on every create/update/deactivate, immutable decision runs. | Bridges are safety-critical, litigable assets. Every number must be explainable years later. |
 | P4 | **Zero hardcoding — config is data.** Weights, bands, rubrics, thresholds, mappings, KPIs live in versioned config entities with admin UIs, not code. | NSW today, another jurisdiction tomorrow; methodology evolves without releases; auditors see the parameters. |
-| P5 | **One computed truth per concept.** Single condition-rating module (BMS 1–10 ↔ TfNSW 1–5), single criticality, restriction is a *treatment flag* never a score input, network importance counted once. | Double-counting is how prioritisation models die in audit. |
+| P5 | **One computed truth per concept.** Single condition-rating module (BMS 1–10 ↔ 1–5 condition band), single criticality, restriction is a *treatment flag* never a score input, network importance counted once. | Double-counting is how prioritisation models die in audit. |
 | P6 | **Decisions are reproducible.** Funding decisions freeze their inputs, parameter snapshot, rubric wording, config/formula version. Exec and engineer views read the *same stored run*. | A ranking that can't be reproduced byte-identically is an opinion, not a defensible funding case. |
 | P7 | **Operational vs analytical separation.** CAP/HANA Cloud serves operations; portfolio analytics and cross-system models go to **Datasphere/BDC**, not into the transactional app. | Keeps the app fast and bounded; analytics scale independently; aligns with SAP's BDC data-fabric strategy. |
 
@@ -36,7 +36,7 @@ Building that into EAM customisations breaks clean core and couples engineering 
 |---|---|---|---|
 | Asset master (FLOC, equipment) | **EAM** | Read-only reference (`eamFlocId`, `eamEquipId`), value-mapped in-app ✅ | Owns hierarchy, classification |
 | Bridge engineering master (spans, elements, materials, GIS) | **BIS** ✅ | Owns | n/a |
-| Condition (TfNSW L1/L2 element condition states 1–5, BHI inputs) | **BIS** ✅ | Owns canonical module | Receives advisory signal |
+| Condition (L1/L2 element condition states 1–5, BHI inputs) | **BIS** ✅ | Owns canonical module | Receives advisory signal |
 | Load rating / capacity (AS 5100, HML/NHVR regimes) | **BIS** ✅ | Owns | n/a |
 | Restrictions (load/speed/lane/height, statutory notifications) | **BIS** ✅ (the "gold" capability) | Owns lifecycle + audit | Work to remove cause runs in EAM |
 | Risk (operational, fleet-recomputed) | **BIS** ✅ | Owns engine + config | n/a |
@@ -85,7 +85,7 @@ This matrix **is** the architecture. Everything else is implementation.
 | Lifecycle stage | Capability | Status |
 |---|---|---|
 | **Acquire/Plan** | Register onboarding (mass upload, natural-key upsert, validation); asset-class strategy as engineering policy | ✅ |
-| **Operate/Monitor** | Condition (TfNSW), capacity/load rating, **restrictions lifecycle**, GIS map, overdue-inspection advisory, defects linked to EAM | ✅ |
+| **Operate/Monitor** | Condition (1–5 band), capacity/load rating, **restrictions lifecycle**, GIS map, overdue-inspection advisory, defects linked to EAM | ✅ |
 | **Evaluate** | Operational **risk engine** (config bands/weights, fleet recompute) + **funding prioritisation** (5-dim criticality with frozen rubrics, constrained risk matrix, likelihood override with mandatory logged reason, immutable reproducible runs, run history) | ✅ |
 | **Intervene** | Strategy (Renew/Maintain/Monitor/Decommission) per run; EAM work-request queue; execution in EAM | ✅ (queue) / Next (live push) |
 | **Renew/Dispose** | Decommission strategy lane; deterioration + scenario modelling to time renewals | Later |

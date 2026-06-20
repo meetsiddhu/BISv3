@@ -69,7 +69,7 @@
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
                     "title": "Bridge Prioritisation",
-                    "subtitle": "Ranked worklist \u00b7 assess \u00b7 reports",
+                    "subtitle": "Ranked worklist · assess · reports",
                     "icon": "sap-icon://sort-descending",
                     "targetURL": "#Prioritisation-display"
                   }
@@ -216,7 +216,7 @@
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
                     "title": "Prioritisation Run Archive",
-                    "subtitle": "All runs \u00b7 history \u00b7 export",
+                    "subtitle": "All runs · history · export",
                     "icon": "sap-icon://timesheet",
                     "targetURL": "#PrioritisationReport-display"
                   }
@@ -229,6 +229,65 @@
                     "subtitle": "Condition health & calculations",
                     "icon": "sap-icon://stethoscope",
                     "targetURL": "#BhiExplorer-display"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "bms.group.config",
+              "title": "CONFIGURATION (FIORI ELEMENTS)",
+              "isPreset": true,
+              "isVisible": true,
+              "isGroupLocked": false,
+              "tiles": [
+                {
+                  "id": "CfgRiskBands",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Risk Bands",
+                    "subtitle": "Priority band thresholds (FE)",
+                    "icon": "sap-icon://measurement-document",
+                    "targetURL": "#RiskBands-manage&/RiskBand"
+                  }
+                },
+                {
+                  "id": "CfgClassTypes",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Class Types",
+                    "subtitle": "Maintain class types (FE)",
+                    "icon": "sap-icon://tag",
+                    "targetURL": "#ClassTypes-manage&/ClassTypes"
+                  }
+                },
+                {
+                  "id": "CfgRiskFactors",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Risk Factors",
+                    "subtitle": "Scoring weightings (FE)",
+                    "icon": "sap-icon://settings",
+                    "targetURL": "#RiskFactors-manage&/RiskConfig"
+                  }
+                },
+                {
+                  "id": "CfgAssetStrategy",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "Asset Class Strategy",
+                    "subtitle": "Inspection & intervention policy (FE)",
+                    "icon": "sap-icon://example",
+                    "targetURL": "#AssetClassStrategyCfg-manage&/AssetClassStrategy"
+                  }
+                },
+                {
+                  "id": "CfgSystemSettings",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "System Settings",
+                    "subtitle": "System configuration (FE)",
+                    "icon": "sap-icon://system-exit",
+                    "targetURL": "#SystemSettings-manage&/SystemConfig"
                   }
                 }
               ]
@@ -524,6 +583,76 @@
                 "applicationType": "SAPUI5",
                 "additionalInformation": "SAPUI5.Component=BridgeManagement.bhiexplorer",
                 "url": "/BridgeManagementbhiexplorer"
+              }
+            },
+            "RiskBands-manage": {
+              "semanticObject": "RiskBands",
+              "action": "manage",
+              "title": "Risk Bands",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "ClassTypes-manage": {
+              "semanticObject": "ClassTypes",
+              "action": "manage",
+              "title": "Class Types",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "RiskFactors-manage": {
+              "semanticObject": "RiskFactors",
+              "action": "manage",
+              "title": "Risk Factors",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "AssetClassStrategyCfg-manage": {
+              "semanticObject": "AssetClassStrategyCfg",
+              "action": "manage",
+              "title": "Asset Class Strategy",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "SystemSettings-manage": {
+              "semanticObject": "SystemSettings",
+              "action": "manage",
+              "title": "System Settings",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
               }
             }
           }

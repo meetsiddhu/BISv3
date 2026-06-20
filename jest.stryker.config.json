@@ -1,0 +1,9 @@
+{
+  "testEnvironment": "node",
+  "testMatch": [
+    "**/test/hv-assessment.test.js",
+    "**/test/deterioration.test.js",
+    "**/test/capital-optimiser.test.js",
+    "**/test/condition-rating.test.js"
+  ]
+}

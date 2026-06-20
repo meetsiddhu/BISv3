@@ -25,6 +25,7 @@ sap.ui.define([
         busy: false,
         datasets: [],
         historyFilterOptions: [],
+        uploadMode: "upsert", // Create/Update radio: upsert (default) | create | update
         selectedDataset: this._ALL_DATASETS_KEY,
         selectedDatasetLabel: "",
         selectedDatasetDescription: "",
@@ -56,6 +57,9 @@ sap.ui.define([
         uploadSummaries: [],
         uploadWarnings: [],
         uploadWarningsTitle: "",
+        uploadRowResults: [],
+        uploadResultsCsv: "",
+        uploadSourceFileId: "",
         lastMessage: "",
         skippedMessage: "",
         hasUploadResults: false,
@@ -260,6 +264,10 @@ sap.ui.define([
       model.setProperty("/uploadSummaries", []);
       model.setProperty("/uploadWarnings", []);
       model.setProperty("/uploadWarningsTitle", "");
+      model.setProperty("/uploadRowResults", []);
+      model.setProperty("/uploadRowResultsTitle", "");
+      model.setProperty("/uploadResultsCsv", "");
+      model.setProperty("/uploadSourceFileId", "");
       model.setProperty("/lastMessage", "");
       model.setProperty("/skippedMessage", "");
       model.setProperty("/hasUploadResults", false);
@@ -372,6 +380,7 @@ sap.ui.define([
           body: JSON.stringify({
             fileName: this._file.name,
             dataset: model.getProperty("/selectedDataset"),
+            mode: model.getProperty("/uploadMode") || "upsert",
             contentBase64
           })
         });
@@ -411,6 +420,16 @@ sap.ui.define([
           model.setProperty("/uploadWarnings", []);
           model.setProperty("/uploadWarningsTitle", "");
         }
+
+        // Per-row results ledger + retained source file (reusable mass-upload plugin surface).
+        const rowResults = (payload.rowResults || []).map((r) => Object.assign({}, r, {
+          statusState: r.status === "Error" ? "Error" : r.status === "Warning" ? "Warning" : "Success"
+        }));
+        model.setProperty("/uploadRowResults", rowResults);
+        model.setProperty("/uploadRowResultsTitle",
+          rowResults.length ? `Per-row results (${rowResults.length} row${rowResults.length === 1 ? "" : "s"})` : "");
+        model.setProperty("/uploadResultsCsv", payload.resultsCsv || "");
+        model.setProperty("/uploadSourceFileId", payload.sourceFileId || "");
 
         model.setProperty("/hasUploadResults", !!(payload.message || (payload.summaries || []).length));
         await this._appendUploadHistory();
@@ -552,6 +571,41 @@ sap.ui.define([
         insertedRows: 0,
         updatedRows: 0
       });
+    },
+
+    // Download the server-generated, injection-safe per-row results CSV (plugin resultsToCsv).
+    // Create/Update radio: 0=Create & Update (upsert), 1=Create only, 2=Update only.
+    onUploadModeSelect: function (oEvent) {
+      const modes = ["upsert", "create", "update"];
+      const idx = oEvent.getParameter("selectedIndex");
+      this._getViewModel().setProperty("/uploadMode", modes[idx] || "upsert");
+    },
+
+    onDownloadResultsCsv: function () {
+      const csv = this._getViewModel().getProperty("/uploadResultsCsv") || "";
+      if (!csv) {
+        MessageToast.show("No per-row results to download");
+        return;
+      }
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "mass-upload-results.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+
+    // Download the retained raw source file for this upload (UploadSourceFile, manage-gated).
+    onDownloadSourceFile: function () {
+      const id = this._getViewModel().getProperty("/uploadSourceFileId");
+      if (!id) {
+        MessageToast.show("No source file was retained for this upload");
+        return;
+      }
+      window.open(this._massUploadBase + "/source/" + encodeURIComponent(id), "_blank");
     },
 
     _downloadRowsAsCsv: function (rows, fileName) {

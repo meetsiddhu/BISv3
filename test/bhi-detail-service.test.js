@@ -5,7 +5,7 @@ const { SELECT, INSERT, UPDATE } = cds.ql
 //   • the 'bhiWeights' SystemConfig row is RUNTIME-ENSURED (insert-if-missing, never CSV-seeded)
 //     with the documented defaults from srv/lib/bhi.js;
 //   • bhiDetail labels every NON-CALIBRATED mode 'road-derived weights (calibrate)' — the
-//     calculator's four tabs are NHVR/RMS ROAD methodology, not rail/pedestrian methodology;
+//     default weight sets are NHVR-aligned road load-rating methodology, not rail/pedestrian methodology;
 //   • an admin edit of the JSON row actually changes the computation (config-driven, rule 4).
 if (cds.env.requires && cds.env.requires.db && cds.env.requires.db.credentials) {
   cds.env.requires.db.credentials.url = ':memory:'
@@ -38,7 +38,7 @@ describe('bhiDetail — governed config + calibration honesty (council B8)', () 
     expect(row).toBeTruthy()
     expect(row.isReadOnly).toBeFalsy() // admin-editable via the config tile
     const dflt = JSON.parse(row.defaultValue)
-    expect(dflt.modeWeights.Road.superstructure).toBe(0.3) // the calculator values, documented
+    expect(dflt.modeWeights.Road.superstructure).toBe(0.3) // pinned documented defaults
     expect(dflt.calibrated).toEqual(['Road', 'RoadOverWater'])
   })
 

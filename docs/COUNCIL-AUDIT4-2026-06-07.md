@@ -33,7 +33,7 @@ P1 scope/durability items, and the recalcRisk audit-trail P1 — *all in-app, ~o
 |---|------|:---:|---|
 | 1 | ISO 55000/55001 asset management | A− | spirit met; governance items (audit on mass recalc, mandatory override reason) — **closed in v3.9.14** |
 | 2 | SAP S/4HANA EAM complement boundary | **A** | cleanest lens — reference-linkage, no valuation/scheduling engine, soft-delete, config-mapping all verified correct |
-| 3 | NSW/TfNSW + Austroads bridge mgmt | B+ | TfNSW 1–5 SSOT, GDA2020, AS 5100 present; gaps = NHVR/PBS mutual validation, classification codelist, element roll-up |
+| 3 | NSW + Austroads bridge mgmt | B+ | 1–5 condition band SSOT, GDA2020, AS 5100 present; gaps = NHVR/PBS mutual validation, classification codelist, element roll-up |
 | 4 | International bridge mgmt standards | B+ | transparent linear RUL proxy (documented), no Markov deterioration / network optimization yet |
 | 5 | Cybersecurity / OWASP / gov-grade | B→**B+** | fundamentals solid; scope + durability gaps **closed in v3.9.14** |
 | 6 | Code modularity / maintainability | B | server.js still ~2,780 LOC (god-file); silent catch; trajectory right |
@@ -53,7 +53,7 @@ P1 scope/durability items, and the recalcRisk audit-trail P1 — *all in-app, ~o
 |---|---|
 | **ISO 55000** | Mostly → **stronger after v3.9.14** (mass-recalc now audited; override reason now mandatory). 55001 *certificate* is an external org audit. |
 | **SAP EAM complement** | **Yes** — verified reference-based, no replication. |
-| **NSW (TfNSW/Austroads/AS 5100)** | Substantially — codelists + NHVR/PBS cross-validation remain. |
+| **NSW (Austroads/AS 5100)** | Substantially — codelists + NHVR/PBS cross-validation remain. |
 | **International standards** | Partially — planning-grade; deterioration/network-optimization are future modules (documented, no false precision). |
 | **Multi-modal** | Partial — mode-aware risk + restriction model present; PBS-lane enforcement pending. |
 | **Cybersecurity** | **Closed the gating P1s in v3.9.14** (scope on all privileged routers, durable audit, prod-locked CSRF). |

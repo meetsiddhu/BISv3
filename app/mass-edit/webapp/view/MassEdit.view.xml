@@ -71,6 +71,7 @@
             <SearchField
               width="18rem"
               placeholder="{i18n>search}"
+              tooltip="{i18n>search}"
               value="{view>/filters/search}"
               liveChange="onFilterChange"/>
 
@@ -112,7 +113,7 @@
             <content>
               <HBox wrap="Wrap" alignItems="End" class="massEditBulkBar">
                 <VBox>
-                  <Label text="{i18n>field}"/>
+                  <Label text="{i18n>field}" labelFor="bulkFieldSelect"/>
                   <Select id="bulkFieldSelect" selectedKey="{view>/bulkFieldKey}"
                           change="onBulkFieldChange" width="14rem"
                           items="{view>/options/bulkFields}">
@@ -121,18 +122,19 @@
                 </VBox>
 
                 <VBox>
-                  <Label text=" "/>
-                  <Input id="bulkValueInput" width="14rem"
+                  <!-- WCAG 4.1.2/3.3.2: a real "Value" label naming all value-input variants (was a blank spacer) -->
+                  <Label id="meBulkValueLabel" text="{i18n>value}"/>
+                  <Input id="bulkValueInput" width="14rem" ariaLabelledBy="meBulkValueLabel"
                          visible="{= ${view>/bulkInputType} === 'text' || ${view>/bulkInputType} === 'number' || ${view>/bulkInputType} === 'decimal' }"/>
-                  <Select id="bulkValueSelect" width="14rem"
+                  <Select id="bulkValueSelect" width="14rem" ariaLabelledBy="meBulkValueLabel"
                           visible="{= ${view>/bulkInputType} === 'select' }"
                           items="{view>/options/bulkFieldOptions}">
                     <core:Item key="{view>key}" text="{view>text}"/>
                   </Select>
-                  <DatePicker id="bulkValueDate" width="12rem"
+                  <DatePicker id="bulkValueDate" width="12rem" ariaLabelledBy="meBulkValueLabel"
                               valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy"
                               visible="{= ${view>/bulkInputType} === 'date' }"/>
-                  <CheckBox id="bulkValueBool"
+                  <CheckBox id="bulkValueBool" ariaLabelledBy="meBulkValueLabel"
                             visible="{= ${view>/bulkInputType} === 'boolean' }"/>
                 </VBox>
 

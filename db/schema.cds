@@ -76,7 +76,7 @@ entity Bridges : managed {
       // Manual | DerivedFromInspection (FIT-002 auto from latest inspection) | DerivedFromElements.
       conditionSource       : String(20) default 'Manual';
       worstElementCondition : Integer @assert.range: [1, 10];
-      // BSI/BHI (additive — calculator incorporation): element-weighted structure & health indices
+      // BSI/BHI (additive): element-weighted structure & health indices
       // computed by srv/lib/bhi.js (per-mode weights); refreshed by computeBhi/scoreFleet.
       bsiScore              : Decimal(4,2);   // 0-10
       bhiScore              : Decimal(5,1);   // 0-100
@@ -89,6 +89,24 @@ entity Bridges : managed {
       asBuiltDrawingReference : String(111);
       floodImmunityAriYears : Integer;
       floodImpacted : Boolean;
+      // SCOUR-1 (additive): scour is the leading bridge-failure cause worldwide — track it
+      // as first-class fields, not only as a BHI bucket. scourRating e.g. Stable|Monitored|
+      // Scour-critical (FHWA-style); waterwayAdequacy A..D; design flood ARI; foundation type
+      // and any installed countermeasures; date of the last underwater/scour inspection.
+      scourRating          : String(20);
+      waterwayAdequacy     : String(20);
+      foundationType       : String(60);
+      scourCountermeasures : String(255);
+      designFloodAriYears  : Integer;
+      lastScourInspectionDate : Date;
+      // REGISTER-1 (additive): standard Austroads register items used for treatment
+      // selection and heavy-vehicle load distribution.
+      skewAngleDeg          : Decimal(5,2);
+      superstructureMaterial : String(60);
+      substructureMaterial   : String(60);
+      deckType              : String(60);
+      jointType             : String(60);
+      bearingType           : String(60);
       highPriorityAsset : Boolean;
       remarks      : LargeString;
       status       : String(40);
@@ -394,6 +412,11 @@ entity BridgeDefects : cuid, managed {
   location            : String(255);
   elementAffected     : String(111);                  // legacy free-text (kept, additive)
   element             : Association to BridgeElements; // INSPECT-4: structured element link
+  // DEFECT-EXTENT: measured extent of the defect (e.g. 2.5 m of cracking, 0.3 m2 spall).
+  // Extent — not just a severity tier — drives treatment quantity and deterioration trend.
+  extentValue         : Decimal(12,2);
+  extentUnit          : String(20);                   // m | m2 | ea | % | mm
+  conditionState      : Integer @assert.range: [1, 4];// AS 5100 condition state of the defect
   recommendedAction   : LargeString;
   status              : String(20) default 'Open';     // Open | InProgress | Completed | Cancelled
   targetCompletionDate: Date;
@@ -426,12 +449,27 @@ entity BridgeElements : cuid, managed {
   description     : String(255);
   material        : String(60);
   conditionRating : Integer @assert.range: [1, 10];   // legacy 1-10 (10=best)
+  // ELEM-CS (council ATTR-review): AS 5100 / AASHTO NBE condition-state quantities — the
+  // amount of the element in each of the four condition states (CS1 good … CS4 severe).
+  // Quantity-based scoring captures EXTENT, which a single rating loses, and feeds both
+  // BHI and treatment-cost estimation. quantityUnit e.g. 'm','m2','ea'. All additive.
+  totalQuantity   : Decimal(12,2);
+  quantityUnit    : String(10);
+  conditionState1Qty : Decimal(12,2);   // CS1 — good
+  conditionState2Qty : Decimal(12,2);   // CS2 — fair
+  conditionState3Qty : Decimal(12,2);   // CS3 — poor
+  conditionState4Qty : Decimal(12,2);   // CS4 — severe
   eamEquipId      : String(40);   // EAM equipment id for this object-part
   active          : Boolean default true;
 }
 
 entity BridgeDocuments : cuid, managed {
   bridge              : Association to Bridges;
+  // DOC-1: attach evidence to a specific inspection or defect (photos are mandatory for a
+  // defensible Level 2 inspection). Both optional + additive; a document may belong to the
+  // bridge generally, or to an inspection / defect specifically.
+  inspection          : Association to BridgeInspections;
+  defect              : Association to BridgeDefects;
   documentType        : String(60);
   title               : String(111);
   documentUrl         : String(500);
@@ -449,9 +487,68 @@ entity BridgeDocuments : cuid, managed {
   remarks             : LargeString;
 }
 
+// ── TREATMENT-1 (additive): lightweight treatment / action log ─────────────────
+// Closes the inspect → treat → re-inspect loop for STANDALONE (no-EAM) deployments.
+// When EAM is present the real work order lives there (eamWorkOrderId deep-link); this
+// record is the engineering action history + cost/benefit for capital programming.
+// Soft-delete only (active flag); every CUD ChangeLogged.
+entity BridgeTreatments : cuid, managed {
+  bridge          : Association to Bridges;
+  defect          : Association to BridgeDefects;   // optional: the defect this remediates
+  treatmentType   : String(60);                     // e.g. Patch | Joint replace | Strengthen | Repaint | Replace
+  description     : LargeString;
+  status          : String(20) default 'Proposed';  // Proposed | Approved | InProgress | Done | Cancelled
+  proposedCostAud : Decimal(15,2);
+  actualCostAud   : Decimal(15,2);
+  proposedDate    : Date;
+  scheduledDate   : Date;
+  completedDate   : Date;
+  fundingYear     : String(9);                       // e.g. '2026/27'
+  priorityBand    : String(8);                       // P1..P5 carried from prioritisation (advisory)
+  approvedBy      : String(111);
+  approvedAt      : Timestamp;
+  eamWorkOrderId  : String(12);                      // deep-link when EAM executes the work
+  remarks         : LargeString;
+  active          : Boolean default true;
+}
+
+// ── HV-1 (additive): assessment-vehicle library ───────────────────────────────
+// Reusable heavy-vehicle / load-model catalogue (reference design vehicles + common
+// permit configurations). The prerequisite for assessing a candidate vehicle against a
+// bridge's capacity. axleGroups is JSON: [{ "type":"steer|single|tandem|tri|quad",
+// "massT": <t>, "spacingM": <m to next group> }, ...]. Admin-maintained; soft-delete.
+entity AssessmentVehicles : cuid, managed {
+  code            : String(40);                      // e.g. SM1600, T44, HML-BDOUBLE, PBS-L2-26M
+  name            : String(120);
+  category        : String(30);                      // Reference | GML | HML | PBS | Permit | RoadTrain | Custom
+  gvmTonnes       : Decimal(8,2);                    // gross vehicle/combination mass
+  axleGroups      : LargeString;                     // JSON array (see above)
+  overallLengthM  : Decimal(7,2);
+  overallWidthM   : Decimal(6,2);
+  overallHeightM  : Decimal(6,2);
+  standardRef     : String(120);                     // e.g. AS 5100.2 SM1600; NHVR HML
+  description     : LargeString;
+  active          : Boolean default true;
+}
+
 entity AssetClasses : sap.common.CodeList {
-  key code : String(40);
-  isActive : Boolean default true;
+  key code   : String(40);
+  // Class-type scoping (council ATTR-3, additive): which object type(s) a class is
+  // relevant to, so only relevant classes appear when configuring/registering each
+  // object. null/empty = all objects; else a comma list of object types
+  // (e.g. 'bridge' or 'bridge,restriction').
+  objectType : String(80);
+  isActive   : Boolean default true;
+}
+
+// Class Types — the maintainable list of object/class types an Attribute Class can be scoped to
+// (displayed as "Class Type" in the UI). Seeded with Bridge + Restriction; admins add more via the
+// standalone Class Types config tile. The `objectType` field on AttributeGroups / AttributeDefinitions
+// / AttributeObjectTypeConfig value-helps against this list (code stored, name shown). Additive lookup.
+entity ClassTypes : sap.common.CodeList {
+  key code  : String(40);
+  sortOrder : Integer default 0;
+  isActive  : Boolean default true;
 }
 
 // ── Multi-modal lookups (Phase 1) — plain code/name lists (CSV-seeded) ──
@@ -500,7 +597,15 @@ entity AssetClassStrategy : cuid, managed {
   degradationRatePerYear   : Decimal(4,2);
   // DET-1: deterioration model class. Default Linear (the transparent RUL proxy); Markov /
   // Custom are scaffolded for future per-material calibration (ChangeLog is the history feed).
-  deteriorationModel       : String(20) default 'Linear'; // Linear | Markov | Custom
+  deteriorationModel       : String(20) default 'Linear'; // Linear | Markov | Weibull | Custom
+  // DET-2 (Markov): per-state annual transition probabilities as JSON, e.g.
+  // {"1":{"1":0.97,"2":0.03}, ...} on the 1-10 legacy scale (or condition-state form).
+  // Used by srv/lib/deterioration.js when deteriorationModel = 'Markov'.
+  transitionMatrix         : LargeString;
+  // DET-3 (Weibull): shape (beta) + characteristic life (eta, years) for a Weibull survival
+  // model when deteriorationModel = 'Weibull'.
+  weibullShape             : Decimal(6,3);
+  weibullScaleYears        : Decimal(8,2);
   // Complement-EAM: the SAP EAM maintenance plan this engineering strategy maps to.
   // EAM executes the schedule; this app holds the bridge-engineering policy + feeds it.
   eamMaintenancePlan       : String(40);
@@ -734,6 +839,12 @@ entity MassUploadLog {
   processed        : Integer default 0;
   inserted         : Integer default 0;
   updated          : Integer default 0;
+  // Additive (mass-upload plugin): per-status counts + loose link (UUID) to the retained
+  // source file in plugins.upload.UploadSourceFile (loose, not a CDS association, to avoid
+  // a db->srv model dependency).
+  deleted          : Integer default 0;
+  failed           : Integer default 0;
+  sourceFileId     : String(36);
   status           : String(20) default 'Completed';
 }
 
@@ -786,7 +897,7 @@ annotate Restrictions with @(cds.persistence.indexes: [
 ]);
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Bridge Prioritisation module (bounded, additive) — approved design (docs/prioritisation/).
+//  Bridge Prioritisation module (bounded, additive) — documented design (docs/prioritisation/).
 //  Config-driven (rule 4). Every assessment is an IMMUTABLE, reproducible RUN stamped with the
 //  exact param snapshot + version, so any past worklist replays byte-identically. The restriction
 //  is a FLAG only — never in the score. Separate from RiskConfig/RiskBand (no recompute hook).
@@ -942,14 +1053,23 @@ entity PrioritisationModel : cuid, managed {
   code              : String(40);            // e.g. NSW-RISK-V1 (seeded default), RAIL-V1
   name              : String(120);
   version           : Integer default 1;
-  status            : String(20) default 'Draft';   // Draft | Active | Retired
-  // Named aggregation pipelines (Phase 0 Q1): RiskCritBlend-v1 = the approved formula via
+  status            : String(20) default 'Draft';   // Draft | Active | Retired | Template
+  // Named aggregation pipelines (Phase 0 Q1): RiskCritBlend-v1 = the baseline formula via
   // delegation; WeightedSum / WeightedSumWithRules = the generic engine for new models.
   aggregationMethod : String(30) default 'WeightedSumWithRules';
   description       : LargeString;
   reviewedBy        : String(111);           // sign-off (mirrors RiskBand governance)
   reviewedAt        : Date;
   reviewSource      : String(255);
+  // ── Template library (additive) ──────────────────────────────────────────
+  // Templates are seeded, standards-calibrated starting points per asset class.
+  // status='Template' + isTemplate keep them out of Active-model resolution; an
+  // admin creates a working model from one via instantiateTemplate (deep clone,
+  // new code, version 1, status Draft) and tailors weights before activation.
+  isTemplate        : Boolean default false;
+  sector            : String(40);            // Transport | Infrastructure | Mining | Government | Energy | Maritime
+  assetClassScope   : String(120);           // e.g. 'Sealed road pavements'
+  standardsBasis    : String(255);           // headline public standards the template encodes
   criteria          : Composition of many ModelCriterion on criteria.model = $self;
   classWeights      : Composition of many AssetClassCriterionWeight on classWeights.model = $self;
   rules             : Composition of many AggregationRule on rules.model = $self;
@@ -1020,9 +1140,9 @@ entity AggregationRule : cuid {
   active    : Boolean default true;          // soft-delete
 }
 
-// ── RULE-ENGINE G1/G2/G3/G4 (additive): customer user-type axis (TfNSW PS224353), over/under-
+// ── RULE-ENGINE G1/G2/G3/G4 (additive): customer user-type axis (approved prioritisation specification), over/under-
 // bridge dimension, pre-filter eligibility gates, fleet batch-run stamps. ──
-entity UserTypes : cuid, managed {                 // the 9 TfNSW customer user types (config rows)
+entity UserTypes : cuid, managed {                 // the 9 customer user types (config rows)
   code      : String(40);                          // ROAD_PASS | ROAD_HV23 | ROAD_HV1 | RAIL_PASS ...
   name      : String(120);
   weighting : Decimal(5,2) default 1 @assert.range: [0, 10];  // e.g. active transport 0.5

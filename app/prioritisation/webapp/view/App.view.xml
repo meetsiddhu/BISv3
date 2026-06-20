@@ -7,6 +7,9 @@
   displayBlock="true">
   <App id="rootApp">
     <Page id="mainPage" title="{i18n>appTitle}" showHeader="true">
+      <headerContent>
+        <Button id="btnHelp" icon="sap-icon://sys-help" text="{i18n>help.button}" type="Transparent" press=".onShowHelp" />
+      </headerContent>
       <content>
         <IconTabBar id="tabs" expandable="false" select=".onTabSelect" class="sapUiResponsiveContentPadding">
           <items>
@@ -16,7 +19,7 @@
               <MessageStrip text="{wl>/error}" type="Error" showIcon="true" visible="{= !!${wl>/error} }" class="sapUiTinyMarginBottom" />
               <!-- B3a: default = current runs (review-held runs excluded server-side); the
                    'Pending review' segment surfaces the held runs via an explicit filter -->
-              <SegmentedButton id="wlSegment" selectedKey="{wl>/segment}" selectionChange=".onWorklistSegment" class="sapUiTinyMarginBottom">
+              <SegmentedButton id="wlSegment" selectedKey="{wl>/segment}" selectionChange=".onWorklistSegment" tooltip="{i18n>worklist.subtitle}" class="sapUiTinyMarginBottom">
                 <items>
                   <SegmentedButtonItem key="current" text="{i18n>worklist.segCurrent}" />
                   <SegmentedButtonItem key="pending" text="{i18n>worklist.segPending}" />
@@ -70,7 +73,7 @@
             <IconTabFilter id="tabAssess" text="{i18n>tab.assess}" key="assess" icon="sap-icon://measure">
               <VBox class="sapUiSmallMarginBeginEnd">
                 <HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
-                  <Label text="{i18n>assess.pickBridge}" class="sapUiTinyMarginEnd" />
+                  <Label text="{i18n>assess.pickBridge}" labelFor="bridgePicker" class="sapUiTinyMarginEnd" />
                   <ComboBox id="bridgePicker" width="22rem" selectionChange=".onPickBridge"
                             items="{path:'br>/rows', templateShareable:false}">
                     <core:Item key="{br>ID}" text="{br>bridgeName} ({br>bridgeId})" />
@@ -136,7 +139,7 @@
                 <!-- score + band + decomposition + formula -->
                 <Panel class="sapUiSmallMarginTop">
                   <HBox alignItems="Center" wrap="Wrap">
-                    <Label text="{i18n>assess.strategy}" class="sapUiTinyMarginEnd" />
+                    <Label text="{i18n>assess.strategy}" labelFor="strategySelect" class="sapUiTinyMarginEnd" />
                     <Select id="strategySelect" selectedKey="{v>/strategy}" change=".onChange">
                       <core:Item key="Renew" text="Renew" />
                       <core:Item key="Maintain" text="Maintain" />
@@ -160,7 +163,7 @@
 
             <!-- ══════════ REPORTS ══════════ -->
             <IconTabFilter id="tabReports" text="{i18n>tab.reports}" key="reports" icon="sap-icon://bar-chart">
-              <SegmentedButton selectedKey="{rep>/mode}" selectionChange=".onReportMode" class="sapUiTinyMarginBottom">
+              <SegmentedButton selectedKey="{rep>/mode}" selectionChange=".onReportMode" tooltip="{i18n>tab.reports}" class="sapUiTinyMarginBottom">
                 <items>
                   <SegmentedButtonItem key="exec" text="{i18n>reports.exec}" />
                   <SegmentedButtonItem key="eng" text="{i18n>reports.eng}" />
@@ -214,6 +217,93 @@
                       <Text text="{wl>confidence}" />
                       <Button text="Raise to EAM" icon="sap-icon://outbox" press=".onRaiseWorkRequest" type="Transparent"
                               tooltip="Raise an inspection work request to SAP EAM (queued; EAM is never modified here)" />
+                    </cells>
+                  </ColumnListItem></items>
+                </Table>
+              </VBox>
+            </IconTabFilter>
+
+            <!-- ══════════ HEAVY-VEHICLE ASSESSMENT ══════════ -->
+            <IconTabFilter id="tabHv" text="{i18n>tab.hv}" key="hv" icon="sap-icon://shipping-status">
+              <VBox class="sapUiSmallMargin">
+                <MessageStrip text="{i18n>hv.subtitle}" showIcon="true" class="sapUiTinyMarginBottom" />
+                <HBox wrap="Wrap" alignItems="End" class="sapUiSmallMarginBottom">
+                  <VBox class="sapUiSmallMarginEnd" width="20rem">
+                    <Label text="{i18n>hv.bridge}" labelFor="hvBridge" />
+                    <ComboBox id="hvBridge" selectedKey="{hv>/bridgeID}" items="{path:'br>/rows'}">
+                      <core:Item key="{br>ID}" text="{br>bridgeName} ({br>bridgeId})" />
+                    </ComboBox>
+                  </VBox>
+                  <VBox class="sapUiSmallMarginEnd" width="18rem">
+                    <Label text="{i18n>hv.vehicle}" labelFor="hvVehicle" />
+                    <ComboBox id="hvVehicle" selectedKey="{hv>/vehicleCode}" items="{path:'hv>/vehicles'}">
+                      <core:Item key="{hv>code}" text="{hv>name}" />
+                    </ComboBox>
+                  </VBox>
+                  <Button text="{i18n>hv.assess}" type="Emphasized" icon="sap-icon://begin" press=".onAssessVehicle" class="sapUiSmallMarginEnd" />
+                </HBox>
+                <ObjectStatus title="{i18n>hv.verdict}" text="{hv>/verdictText}" state="{hv>/verdictState}" class="sapUiSmallMarginBottom" />
+                <Text text="{hv>/governing}" class="sapUiTinyMarginBottom" visible="{= !!${hv>/governing} }" />
+                <Table items="{path:'hv>/checks'}" noDataText="{i18n>hv.noData}" class="sapUiSmallMarginTop">
+                  <columns>
+                    <Column><Text text="{i18n>hv.col.check}" /></Column>
+                    <Column width="9rem"><Text text="{i18n>hv.col.verdict}" /></Column>
+                    <Column><Text text="{i18n>hv.col.detail}" /></Column>
+                    <Column hAlign="End" width="7rem"><Text text="{i18n>hv.col.margin}" /></Column>
+                  </columns>
+                  <items><ColumnListItem>
+                    <cells>
+                      <Text text="{hv>check}" />
+                      <ObjectStatus text="{hv>verdict}" state="{= ${hv>verdict} === 'fail' ? 'Error' : ${hv>verdict} === 'conditional' ? 'Warning' : ${hv>verdict} === 'pass' ? 'Success' : 'None' }" />
+                      <Text text="{hv>detail}" />
+                      <Text text="{ path: 'hv>marginPct', formatter: '.formatMarginPct' }" />
+                    </cells>
+                  </ColumnListItem></items>
+                </Table>
+              </VBox>
+            </IconTabFilter>
+
+            <!-- ══════════ CAPITAL PROGRAM ══════════ -->
+            <IconTabFilter id="tabCapex" text="{i18n>tab.capex}" key="capex" icon="sap-icon://capital-projects">
+              <VBox class="sapUiSmallMargin">
+                <MessageStrip text="{i18n>capex.subtitle}" showIcon="true" class="sapUiTinyMarginBottom" />
+                <HBox wrap="Wrap" alignItems="End" class="sapUiSmallMarginBottom">
+                  <VBox class="sapUiSmallMarginEnd" width="14rem">
+                    <Label text="{i18n>capex.budget}" labelFor="capexBudget" />
+                    <Input id="capexBudget" value="{capex>/budget}" type="Number" placeholder="e.g. 2000000" />
+                  </VBox>
+                  <VBox class="sapUiSmallMarginEnd" width="12rem">
+                    <Label text="{i18n>capex.strategy}" labelFor="capexStrategy" />
+                    <Select id="capexStrategy" selectedKey="{capex>/strategy}">
+                      <core:Item key="greedy-bcr" text="{i18n>capex.greedy}" />
+                      <core:Item key="knapsack" text="{i18n>capex.knapsack}" />
+                    </Select>
+                  </VBox>
+                  <VBox class="sapUiSmallMarginEnd" width="10rem">
+                    <Label text="{i18n>capex.year}" labelFor="capexYear" />
+                    <Input id="capexYear" value="{capex>/fundingYear}" placeholder="2026/27" />
+                  </VBox>
+                  <Button text="{i18n>capex.optimise}" type="Emphasized" icon="sap-icon://sort" press=".onOptimiseCapital" class="sapUiSmallMarginEnd" />
+                </HBox>
+                <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+                  <ObjectStatus title="{i18n>capex.spent}" text="{capex>/spentText}" state="Information" class="sapUiMediumMarginEnd" />
+                  <ObjectStatus title="{i18n>capex.remaining}" text="{capex>/remainingText}" state="Success" class="sapUiMediumMarginEnd" />
+                  <ObjectStatus title="{i18n>capex.unfunded}" text="{capex>/unfundedText}" state="{= ${capex>/unfundedCount} > 0 ? 'Error' : 'Success' }" />
+                </HBox>
+                <Title text="{i18n>capex.funded}" level="H5" class="sapUiTinyMarginTop" />
+                <Table items="{path:'capex>/selected'}" noDataText="{capex>/noDataText}">
+                  <columns>
+                    <Column><Text text="{i18n>capex.col.name}" /></Column>
+                    <Column width="5rem"><Text text="{i18n>capex.col.band}" /></Column>
+                    <Column hAlign="End" width="9rem"><Text text="{i18n>capex.col.cost}" /></Column>
+                    <Column hAlign="End" width="9rem"><Text text="{i18n>capex.col.benefit}" /></Column>
+                  </columns>
+                  <items><ColumnListItem>
+                    <cells>
+                      <Text text="{capex>name}" />
+                      <ObjectStatus text="{capex>band}" state="{= ${capex>band} === 'P1' ? 'Error' : ${capex>band} === 'P2' ? 'Error' : ${capex>band} === 'P3' ? 'Warning' : 'Success' }" />
+                      <Text text="{capex>costAud}" />
+                      <Text text="{capex>benefitAud}" />
                     </cells>
                   </ColumnListItem></items>
                 </Table>

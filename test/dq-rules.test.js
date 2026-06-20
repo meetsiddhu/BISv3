@@ -173,7 +173,7 @@ describe('calcCompletenessScore', () => {
   test('100% when all 13 default fields are populated', () => {
     const bridge = {
       bridgeName: 'Test', bridgeId: 'B-001', state: 'NSW', region: 'Metro',
-      assetOwner: 'RMS', latitude: -33.8, longitude: 151.2,
+      assetOwner: 'State Roads Authority', latitude: -33.8, longitude: 151.2,
       structureType: 'Concrete', condition: 'Good', conditionRating: 4,
       postingStatus: 'Open', lastInspectionDate: '2024-01-01', geoJson: '{}'
     }
@@ -187,7 +187,7 @@ describe('calcCompletenessScore', () => {
   test('latitude/longitude of 0 counts as missing', () => {
     const bridge = {
       bridgeName: 'Test', bridgeId: 'B-001', state: 'NSW', region: 'Metro',
-      assetOwner: 'RMS', latitude: 0, longitude: 0,
+      assetOwner: 'State Roads Authority', latitude: 0, longitude: 0,
       structureType: 'Concrete', condition: 'Good', conditionRating: 4,
       postingStatus: 'Open', lastInspectionDate: '2024-01-01', geoJson: '{}'
     }

@@ -91,6 +91,27 @@
               </ColumnListItem></items>
             </Table>
           </IconTabFilter>
+          <IconTabFilter text="{i18n>prioModels.tab.templates}" key="templates" icon="sap-icon://blank-tag">
+            <MessageStrip text="{i18n>prioModels.templates.note}" type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
+            <Table items="{path:'pm>/templates', templateShareable:false}" noDataText="-">
+              <columns>
+                <Column><Text text="{i18n>prioModels.col.template}" /></Column>
+                <Column width="8rem"><Text text="{i18n>prioModels.col.sector}" /></Column>
+                <Column width="14rem"><Text text="{i18n>prioModels.col.scope}" /></Column>
+                <Column><Text text="{i18n>prioModels.col.standards}" /></Column>
+                <Column hAlign="End" width="14rem"><Text text="" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <ObjectIdentifier title="{pm>code}" text="{pm>name}" />
+                  <Text text="{pm>sector}" />
+                  <Text text="{pm>assetClassScope}" />
+                  <Text text="{pm>standardsBasis}" />
+                  <Button text="{i18n>prioModels.btn.useTemplate}" icon="sap-icon://duplicate" press=".onUseTemplate" type="Emphasized" />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+          </IconTabFilter>
         </items>
       </IconTabBar>
     </content>

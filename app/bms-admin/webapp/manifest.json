@@ -143,19 +143,14 @@
         "controlId": "adminNavContainer",
         "controlAggregation": "pages",
         "bypassed": {
-          "target": "changeDocuments"
+          "target": "systemConfig"
         }
       },
       "routes": [
         {
           "pattern": "",
           "name": "home",
-          "target": "changeDocuments"
-        },
-        {
-          "pattern": "change-documents",
-          "name": "changeDocuments",
-          "target": "changeDocuments"
+          "target": "systemConfig"
         },
         {
           "pattern": "system-config",
@@ -166,11 +161,6 @@
           "pattern": "bnac-config",
           "name": "bnacConfig",
           "target": "bnacConfig"
-        },
-        {
-          "pattern": "attribute-config",
-          "name": "attributeConfig",
-          "target": "attributeConfig"
         },
         {
           "pattern": "gis-config",
@@ -201,23 +191,20 @@
           "name": "prioritisationModels",
           "pattern": "prioritisation-models",
           "target": "prioritisationModels"
+        },
+        {
+          "name": "bhiConfig",
+          "pattern": "bhi-config",
+          "target": "bhiConfig"
         }
       ],
       "targets": {
-        "changeDocuments": {
-          "viewName": "ChangeDocuments",
-          "viewLevel": 1
-        },
         "systemConfig": {
           "viewName": "SystemConfig",
           "viewLevel": 1
         },
         "bnacConfig": {
           "viewName": "BnacConfig",
-          "viewLevel": 1
-        },
-        "attributeConfig": {
-          "viewName": "AttributeConfig",
           "viewLevel": 1
         },
         "gisConfig": {
@@ -242,6 +229,10 @@
         },
         "prioritisationModels": {
           "viewName": "PrioritisationModels",
+          "viewLevel": 1
+        },
+        "bhiConfig": {
+          "viewName": "BhiConfig",
           "viewLevel": 1
         }
       }

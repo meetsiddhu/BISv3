@@ -2,6 +2,9 @@ using { bridge.management as bms } from '../../db/schema';
 using { BridgeManagementService } from '../service';
 
 extend service BridgeManagementService with {
+    // Facade consolidation (Option C): the mass-edit grid is read-only as an OData entity — the
+    // massEditBridges action (below) performs the writes via the db layer. Single-writer = AdminService.
+    @readonly
     @cds.query.limit: { max: 5000, default: 500 }
     @restrict: [
         { grant: ['READ'],   to: ['view','manage','admin'] },

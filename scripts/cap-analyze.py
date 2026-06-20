@@ -37,7 +37,7 @@ xsec = json.loads((ROOT / 'xs-security.json').read_text())
 scopes = [s['name'].replace('$XSAPPNAME.', '') for s in xsec.get('scopes', [])]
 role_templates = {r['name']: [x.replace('$XSAPPNAME.', '') for x in r.get('scope-references', [])] for r in xsec.get('role-templates', [])}
 
-STD_TERMS = ['AS 5100', 'AS5100', 'NHVR', 'Austroads', 'AGBM', 'BIMM', 'TfNSW', 'RMS', 'HVNL',
+STD_TERMS = ['AS 5100', 'AS5100', 'NHVR', 'Austroads', 'AGBM', 'BIMM', 'HVNL',
              'ISO 55000', 'ISO 55001', 'ISO 27001', 'SOC 2', 'GDPR', 'IRAP', 'Essential 8', 'ONRSR', 'GDA2020', 'EPSG']
 std_hits = {}
 for p in walk('db', '.cds') + walk('srv', '.cds') + walk('docs', '.md') + [ROOT / 'CLAUDE.md']:
@@ -138,7 +138,7 @@ TILE_OUTCOME = {
     'Restrictions': ('Statutory restriction lifecycle + audit', 'Active restrictions managed; time-to-publish', 'Operations / Compliance'),
     'MapView': ('Geographic context for decisions', SME, 'Engineer / Planner'),
     'Prioritisation': ('Defensible, reproducible funding ranking', 'Top-decile $ + band distribution; audit reproducibility', 'Exec / Engineer / Auditor'),
-    'BridgeInspections': ('Inspection evidence captured to TfNSW levels', 'Overdue-inspection count', 'Inspector / Engineer'),
+    'BridgeInspections': ('Inspection evidence captured to inspection-manual levels', 'Overdue-inspection count', 'Inspector / Engineer'),
     'BridgeDefects': ('Engineering defects tracked, linked to EAM', 'Open defects by severity', 'Engineer'),
     'BridgeCapacities': ('Load/capacity (AS 5100) per structure', 'Structures with current load rating %', 'Structural Engineer'),
     'MassUpload': ('Bulk governed data intake', 'Rows loaded / rejected', 'Data Admin'),
@@ -186,10 +186,10 @@ for f in sorted((ROOT / 'test').glob('*.test.js')):
 
 # ---------------- Phase 3 helpers ----------------
 SUGGEST = [
-    (r'conditionRating|conditionState', 'AS 5100.7 Table 4 (condition states) / TfNSW 1-5'),
+    (r'conditionRating|conditionState', 'AS 5100.7 Table 4 (condition states) / 1-5 condition band'),
     (r'postingStatus|loadLimit|loadRating|ratingStandard', 'AS 5100.7 + NHVR Bridge Assessment Guidelines'),
     (r'restrictionType|restrictionUnit|speedLimit|massLimit', 'NHVR Load Restrictions Schedule 2018 / HVNL s147'),
-    (r'inspection(Type|Level|Date)', 'Austroads AGBM Part 6 / TfNSW inspection levels 1-3'),
+    (r'inspection(Type|Level|Date)', 'Austroads AGBM Part 6 / inspection levels 1-3'),
     (r'defect(Severity|Extent|Type)', 'Austroads BIMM 6.2'),
     (r'gvm|gcm|permit', 'HVNL s155 / NHVR permit manual'),
     (r'structureType|material', 'Austroads AGBT04-14 2'),
@@ -197,7 +197,7 @@ SUGGEST = [
     (r'hml|pbs|freightRoute|network', 'NHVR PBS network classification'),
     (r'gazette', 'State gazette under HVNL'),
     (r'latitude|longitude|geoJson|crs', 'GDA2020 (EPSG:7844)'),
-    (r'owner|custodian|lga', 'TfNSW (NSW) asset custodianship'),
+    (r'owner|custodian|lga', 'State (NSW) asset custodianship'),
 ]
 def suggest(field):
     for pat, std in SUGGEST:

@@ -40,7 +40,7 @@ describe('bulk operations integration (OPS-T3)', () => {
 
     const b = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID }))
     expect(b.conditionRating).toBe(4)
-    expect(b.condition).toBe('Very Poor')        // canonical legacy-4 -> TfNSW band
+    expect(b.condition).toBe('Very Poor')        // canonical legacy-4 -> condition band
     expect(b.highPriorityAsset).toBe(true)
 
     const logs = await db.run(SELECT.from('bridge.management.ChangeLog')

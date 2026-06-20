@@ -151,7 +151,7 @@ const GROUPS = [
         name: 'Waterway Adequacy Rating',
         internalKey: 'waterway_adequacy_rating',
         dataType: 'SingleSelect',
-        helpText: 'NSW RMS Waterway Adequacy Rating — A=adequate, D=most deficient',
+        helpText: 'Waterway Adequacy Rating — A=adequate, D=most deficient',
         displayOrder: 4,
         allowedValues: ['A - Adequate', 'B - Minor Deficiency', 'C - Moderate Deficiency', 'D - Major Deficiency'],
         configs: [{ objectType: 'bridge', enabled: true, required: false }]

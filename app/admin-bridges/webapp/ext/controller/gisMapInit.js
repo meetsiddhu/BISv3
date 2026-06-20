@@ -197,7 +197,19 @@
             // hashchange handler can both fire _gisInit): fully reset the container so
             // L.map() can never throw "Map container is already initialized".
             if (canv && canv._leaflet_id != null) { try { canv._leaflet_id = null; } catch (_e) {} canv.innerHTML = ""; }
-            var map = window.L.map(canv, { zoomControl: true, scrollWheelZoom: false });
+            // zoomAnimation:false is the key fix: when the object-page Map section re-renders
+            // (FE lazy-render + the host MutationObserver + hashchange can each trigger a rebuild),
+            // a previous map's pending zoom animation would fire L._animateZoom on a layer whose DOM
+            // node was just wiped by canv.innerHTML="" — throwing "Cannot read properties of undefined
+            // (reading 'style')" and leaving the map with tiles but no feature marker. Disabling the
+            // animations removes that race entirely; fit/centre below also use {animate:false}.
+            var map = window.L.map(canv, { zoomControl: true, scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false });
+            // PRIMARY FIX: Leaflet needs an INITIAL view before any vector layer is added or
+            // fitBounds is called. Without it, circleMarker/geoJSON add no SVG path (the feature
+            // marker never appears) AND fitBounds throws "Cannot read properties of undefined
+            // (reading 'min')". Seed the view from the bridge point (or a wide Australia default
+            // for geometry-only records); the fit/centre block below then frames it precisely.
+            map.setView(hasPoint ? [lat, lng] : [-25.6, 134.4], hasPoint ? 13 : 4);
             window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
             var colour = STATUS_COLOR[bridgeLocation.postingStatus] || "#0a6ed1";
@@ -234,10 +246,10 @@
             // fit/centre inside a guard so a transient sizing issue never breaks the panel.
             try { map.invalidateSize(false); } catch (_e) {}
             try {
-                if (fitBounds && fitBounds.isValid()) { map.fitBounds(fitBounds.pad(0.25)); }
-                else if (hasPoint) { map.setView([lat, lng], 14); }
+                if (fitBounds && fitBounds.isValid()) { map.fitBounds(fitBounds.pad(0.25), { animate: false }); }
+                else if (hasPoint) { map.setView([lat, lng], 14, { animate: false }); }
             } catch (_e) {
-                if (hasPoint) { try { map.setView([lat, lng], 13); } catch (_e2) {} }
+                if (hasPoint) { try { map.setView([lat, lng], 13, { animate: false }); } catch (_e2) {} }
             }
             setTimeout(function () { try { if (_map === map && map._container) { map.invalidateSize(); } } catch (_e) {} }, 300);
         });
@@ -311,6 +323,16 @@
             });
     };
 
+    // ── Coalesced re-init ────────────────────────────────────────────────────
+    // Three triggers (self-call, host MutationObserver, hashchange) can each call init.
+    // Debounce them into a SINGLE _gisInit so the map is not built and torn down many times
+    // in a burst (that churn is what produced the L._animateZoom crash and a feature-less map).
+    var _gisInitTimer = null;
+    function scheduleGisInit() {
+        if (_gisInitTimer) { clearTimeout(_gisInitTimer); }
+        _gisInitTimer = setTimeout(function () { _gisInitTimer = null; window._gisInit(); }, 250);
+    }
+
     // ── Hash-change re-init ─────────────────────────────────────────────────
     // Re-draw ONLY when the bridge key actually changes — not on every hash change
     // (clicking object-page tabs mutates sap-iapp-state, which would otherwise trigger a
@@ -321,7 +343,8 @@
         if (key && key !== _lastBridgeKey) {
             _lastBridgeKey = key;
             var el = document.getElementById("gisMapCanvas");
-            if (el) { el._gisReady = false; setTimeout(window._gisInit, 600); }
+            if (el) { el._gisReady = false; }
+            scheduleGisInit();
         }
     });
 
@@ -338,12 +361,12 @@
             // observer would launch many concurrent _gisInit calls before the canvas exists.
             if (!_gisTriggered && document.getElementById("gisMapHostEl") && !document.getElementById("gisMapCanvas")) {
                 _gisTriggered = true;
-                window._gisInit();
+                scheduleGisInit();
                 setTimeout(function () { _gisTriggered = false; }, 1500); // allow re-trigger on later reveals
             }
         });
         _gisHostObserver.observe(document.body, { childList: true, subtree: true });
     } catch (_e) { /* MutationObserver unavailable — rely on self-call + hashchange */ }
 
-    window._gisInit();
+    scheduleGisInit();
 }());

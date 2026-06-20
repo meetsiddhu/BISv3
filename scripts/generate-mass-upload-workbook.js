@@ -90,17 +90,45 @@ function buildBridgeRows() {
   const src = path.join(DATA_DIR, 'mass-upload-bridges-australia.csv')
 
   if (!fs.existsSync(src)) {
-    // Source CSV removed — carry the Bridges sheet over from the existing
-    // workbook so regeneration never loses the curated example rows.
-    if (fs.existsSync(OUT_FILE)) {
-      const existing = XLSX.readFile(OUT_FILE, { type: 'file', raw: true })
-      const sheet = existing.Sheets['Bridges']
-      if (sheet) {
-        const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
-        return aoa.slice(1) // drop the header row — BRIDGE_HEADERS is re-emitted
-      }
-    }
-    return []
+    // Source CSV removed — build the Bridges sheet from the fictional demo
+    // dataset so regeneration is reproducible and carries no real asset data.
+    const { DEMO_BRIDGES } = require('../srv/demo-handler')
+    const { legacyToBand } = require('../srv/lib/condition-rating')
+    return DEMO_BRIDGES.map((b) => {
+      const band = legacyToBand(b.conditionRating) ?? ''
+      return [
+        '',                                  // ID (empty = insert)
+        '',                                  // title
+        '',                                  // descr
+        b.bridgeId, b.bridgeName, b.assetClass, b.route, b.routeNumber,
+        b.state, b.region, b.lga, b.latitude, b.longitude, b.location,
+        b.assetOwner, b.managingAuthority, b.structureType, b.yearBuilt,
+        b.designLoad, b.designStandard, b.clearanceHeight, b.spanLength,
+        b.material, b.spanCount, b.totalLength, b.deckWidth, b.numberOfLanes,
+        String(band), band, b.structuralAdequacyRating ?? '', b.postingStatus,
+        b.conditionStandard ?? '', b.seismicZone ?? '',
+        '',                                  // asBuiltDrawingReference
+        '',                                  // floodImmunityAriYears
+        mapBool(b.floodImpacted), mapBool(b.highPriorityAsset),
+        b.remarks ?? '', b.status ?? 'Active',
+        b.lastInspectionDate ?? '', mapBool(b.nhvrAssessed), b.nhvrAssessmentDate ?? '',
+        b.loadRating ?? '',
+        '',                                  // pbsApprovalClass
+        '',                                  // importanceLevel
+        mapInt(b.averageDailyTraffic), mapDec(b.heavyVehiclePercent),
+        '',                                  // gazetteReference
+        '',                                  // nhvrReferenceUrl
+        mapBool(b.freightRoute), mapBool(b.overMassRoute), mapBool(b.hmlApproved),
+        mapBool(b.bDoubleApproved),
+        'DEMO',                              // dataSource
+        '',                                  // sourceReferenceUrl
+        '',                                  // openDataReference
+        '',                                  // sourceRecordId
+        '',                                  // restriction_ID
+        b.geoJson ?? '',
+        '', '', ''                           // stock / price / currency_code
+      ]
+    })
   }
 
   // The file uses comma as separator but values contain quoted commas.
@@ -111,7 +139,7 @@ function buildBridgeRows() {
 
   return raw.map((r) => {
     const condCode = CONDITION_MAP[String(r.condition ?? '').toUpperCase()] ?? String(r.conditionRating ?? '')
-    const rating = mapInt(r.conditionRatingTfnsw || r.conditionRating)
+    const rating = mapInt(r.conditionRatingBand || r.conditionRating)
     const posting = POSTING_MAP[String(r.postingStatus ?? '').toUpperCase()] ?? r.postingStatus ?? ''
     const assetClass = r.assetClass || 'Road Bridge'
 
@@ -195,17 +223,17 @@ function buildRestrictionRows() {
   //  issuingAuthority, legalReference, remarks]
   const rows = [
     // BRG-NSW-003 Hampden Bridge — load and speed
-    ['RST-NSW-001', 'BRG-NSW-003', '', 'Permanent', 'Mass Limit', '5', 't', 'Active', 'Heavy Vehicles', 5, '', '', '', '', '', true, false, false, true, '2020-01-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW', '', '', '', '', 'Transport for NSW', '', 'Gross mass limit 5t. Heritage timber suspension bridge.'],
-    ['RST-NSW-002', 'BRG-NSW-003', '', 'Permanent', 'Speed Restriction', '30', 'km/h', 'Active', 'All Vehicles', '', '', '', '', '', 30, false, false, false, true, '2020-01-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW', '', '', '', '', 'Transport for NSW', '', 'Speed limit 30 km/h. One lane, traffic lights.'],
+    ['RST-NSW-001', 'BRG-NSW-003', '', 'Permanent', 'Mass Limit', '5', 't', 'Active', 'Heavy Vehicles', 5, '', '', '', '', '', true, false, false, true, '2020-01-01', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority', '', '', '', '', 'State Roads Authority', '', 'Gross mass limit 5t. Heritage timber suspension bridge.'],
+    ['RST-NSW-002', 'BRG-NSW-003', '', 'Permanent', 'Speed Restriction', '30', 'km/h', 'Active', 'All Vehicles', '', '', '', '', '', 30, false, false, false, true, '2020-01-01', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority', '', '', '', '', 'State Roads Authority', '', 'Speed limit 30 km/h. One lane, traffic lights.'],
     // BRG-NSW-016 Nepean River Railway Bridge
-    ['RST-NSW-003', 'BRG-NSW-016', '', 'Permanent', 'Mass Limit', '10', 't', 'Active', 'All Vehicles', 10, '', '', '', '', '', true, false, false, true, '2019-06-01', '', 'Sydney Trains', 'Both Directions', 'Sydney Trains', '', '', '', '', 'Sydney Trains', '', 'Gross mass limit 10t. Heritage wrought iron railway bridge.'],
+    ['RST-NSW-003', 'BRG-NSW-016', '', 'Permanent', 'Mass Limit', '10', 't', 'Active', 'All Vehicles', 10, '', '', '', '', '', true, false, false, true, '2019-06-01', '', 'Metropolitan Rail Operator', 'Both Directions', 'Metropolitan Rail Operator', '', '', '', '', 'Metropolitan Rail Operator', '', 'Gross mass limit 10t. Heritage wrought iron railway bridge.'],
     // BRG-NSW-017 Prince Alfred Bridge
-    ['RST-NSW-004', 'BRG-NSW-017', '', 'Permanent', 'Mass Limit', '8', 't', 'Active', 'Heavy Vehicles', 8, '', '', '', '', '', true, false, false, true, '2018-03-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW', '', '', '', '', 'Transport for NSW', '', 'Gross mass limit 8t. Heritage timber truss bridge 44 spans.'],
+    ['RST-NSW-004', 'BRG-NSW-017', '', 'Permanent', 'Mass Limit', '8', 't', 'Active', 'Heavy Vehicles', 8, '', '', '', '', '', true, false, false, true, '2018-03-01', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority', '', '', '', '', 'State Roads Authority', '', 'Gross mass limit 8t. Heritage timber truss bridge 44 spans.'],
     // BRG-NSW-021 Maitland Swing Bridge
-    ['RST-NSW-005', 'BRG-NSW-021', '', 'Permanent', 'Mass Limit', '5', 't', 'Active', 'All Vehicles', 5, '', '', '', '', '', true, false, false, true, '2021-01-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW', '', '', '', '', 'Transport for NSW', '', 'Gross mass limit 5t. Scour monitoring ongoing.'],
-    ['RST-NSW-006', 'BRG-NSW-021', '', 'Permanent', 'Speed Restriction', '20', 'km/h', 'Active', 'All Vehicles', '', '', '', '', '', 20, false, false, false, true, '2021-01-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW', '', '', '', '', 'Transport for NSW', '', 'Speed limit 20 km/h. Single-lane bridge.'],
+    ['RST-NSW-005', 'BRG-NSW-021', '', 'Permanent', 'Mass Limit', '5', 't', 'Active', 'All Vehicles', 5, '', '', '', '', '', true, false, false, true, '2021-01-01', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority', '', '', '', '', 'State Roads Authority', '', 'Gross mass limit 5t. Scour monitoring ongoing.'],
+    ['RST-NSW-006', 'BRG-NSW-021', '', 'Permanent', 'Speed Restriction', '20', 'km/h', 'Active', 'All Vehicles', '', '', '', '', '', 20, false, false, false, true, '2021-01-01', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority', '', '', '', '', 'State Roads Authority', '', 'Speed limit 20 km/h. Single-lane bridge.'],
     // BRG-NSW-024 Darling River Bridge Wilcannia
-    ['RST-NSW-007', 'BRG-NSW-024', '', 'Permanent', 'Access Restriction', '', 'approval', 'Active', 'Heavy Vehicles', '', '', '', '', '', '', true, false, false, true, '2022-01-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW', '', '', '', '', 'Transport for NSW', '', 'Heavy vehicles prohibited. Heritage steel truss bridge.'],
+    ['RST-NSW-007', 'BRG-NSW-024', '', 'Permanent', 'Access Restriction', '', 'approval', 'Active', 'Heavy Vehicles', '', '', '', '', '', '', true, false, false, true, '2022-01-01', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority', '', '', '', '', 'State Roads Authority', '', 'Heavy vehicles prohibited. Heritage steel truss bridge.'],
     // BRG-VIC-004 McKillops Bridge
     ['RST-VIC-001', 'BRG-VIC-004', '', 'Permanent', 'Mass Limit', '5', 't', 'Active', 'Heavy Vehicles', 5, '', '', '', '', '', true, false, false, true, '2019-01-01', '', 'VicDoTP', 'Both Directions', 'Department of Transport and Planning VIC', '', '', '', '', 'Department of Transport and Planning VIC', '', 'Gross mass limit 5t. Remote heritage bridge over Snowy River.'],
     // BRG-QLD-001 Story Bridge
@@ -266,22 +294,22 @@ function buildRestrictionRows() {
   const newTypeExamples = [
     // Full Closure with gazette + detour (drives postingStatus = CLOSED)
     ['', '', 'RST-NSW-008', 'BRG-NSW-003', '', 'Full closure for emergency repairs', '', 'Temporary', 'Full Closure', 'Closed', 'n/a', 'Active', 'All Vehicles',
-      '', '', '', '', '', '', false, false, true, true, '2026-02-01', '2026-06-30', 'TfNSW', 'Both Directions', 'Transport for NSW',
-      '2026-02-01', '2026-06-30', 'Emergency deck repairs after flood damage', 'APR-NSW-2026-02', 'Transport for NSW', 'NSW Gazette 2026/05',
+      '', '', '', '', '', '', false, false, true, true, '2026-02-01', '2026-06-30', 'State Roads Authority', 'Both Directions', 'State Roads Authority',
+      '2026-02-01', '2026-06-30', 'Emergency deck repairs after flood damage', 'APR-NSW-2026-02', 'State Roads Authority', 'NSW Gazette 2026/05',
       'Bridge fully closed. Use signed detour.',
       'NSW Gazette 2026/05', '2026-01-28', '2026-06-30', '2026-05-31', '2026-01-27', 'Flood damage — deck repairs', 'Detour via Moss Vale Rd (add 12 km)', '', '',
       '', '', '', '', '', true, 'Critical', 'CLOSED', 0, 2, ''],
     // Gross Combination Mass limit with PBS applicability
     ['', '', 'RST-NSW-009', 'BRG-NSW-016', '', 'GCM limit 62.5t', '', 'Permanent', 'Gross Combination Mass', '62.5', 't', 'Active', 'Road Train',
-      '', '', '', '', '', '', true, false, false, true, '2025-09-01', '', 'Chief Bridge Engineer', 'Both Directions', 'Transport for NSW',
-      '', '', '', 'APR-NSW-2025-31', 'Transport for NSW', 'NSW Gazette 2025/44',
+      '', '', '', '', '', '', true, false, false, true, '2025-09-01', '', 'Chief Bridge Engineer', 'Both Directions', 'State Roads Authority',
+      '', '', '', 'APR-NSW-2025-31', 'State Roads Authority', 'NSW Gazette 2025/44',
       'Gross combination mass limited to 62.5t for road trains.',
       'NSW Gazette 2025/44', '2025-08-20', '', '2027-08-31', '2025-08-15', 'Load rating assessment AS 5100.7', '', '', 'Level 3',
       62.5, '', '', '', '', false, 'Major', '', '', '', ''],
     // Lane Restriction — single-lane operation
     ['', '', 'RST-NSW-010', 'BRG-NSW-021', '', 'Single-lane operation', '', 'Permanent', 'Lane Restriction', '1', 'lanes', 'Active', 'All Vehicles',
-      '', '', '', '', '', '', false, false, false, true, '2025-11-15', '', 'TfNSW', 'Both Directions', 'Transport for NSW',
-      '', '', '', '', 'Transport for NSW', '',
+      '', '', '', '', '', '', false, false, false, true, '2025-11-15', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority',
+      '', '', '', '', 'State Roads Authority', '',
       'One lane operating under alternating signals.',
       '', '', '', '2026-11-15', '', 'Deck width insufficient for two heavy lanes', '', '', '',
       '', '', '', '', '', true, 'Major', 'SINGLE', 1, 2, 3.2],
@@ -294,8 +322,8 @@ function buildRestrictionRows() {
       '', 14, 19, 6, '', false, 'Minor', '', '', '', ''],
     // Environmental / flood-trigger restriction
     ['', '', 'RST-NSW-011', 'BRG-NSW-024', '', 'Flood closure trigger', '', 'Conditional', 'Environmental Restriction', '', 'n/a', 'Active', 'All Vehicles',
-      '', '', '', '', '', '', false, false, false, true, '2025-10-01', '', 'TfNSW', 'Both Directions', 'Transport for NSW',
-      '', '', '', '', 'Transport for NSW', '',
+      '', '', '', '', '', '', false, false, false, true, '2025-10-01', '', 'State Roads Authority', 'Both Directions', 'State Roads Authority',
+      '', '', '', '', 'State Roads Authority', '',
       'Bridge closes when the Darling River exceeds the trigger level.',
       '', '', '', '2026-10-01', '', 'Scour vulnerability at pier 3', 'Detour via Barrier Hwy (add 40 km)', 'Flood level > 6.2 m AHD at Wilcannia gauge', '',
       '', '', '', '', '', true, 'Critical', '', '', '', '']

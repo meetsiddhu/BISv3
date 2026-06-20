@@ -3,6 +3,9 @@ using { BridgeManagementService } from '../service';
 
 extend service BridgeManagementService with {
 
+    // Facade consolidation (Option C): read-only here — AdminService/Express own restriction writes.
+    // The bound actions below + massUploadRestrictions write the raw db entity, not this projection.
+    @readonly
     @cds.redirection.target: true
     @cds.query.limit: { max: 5000, default: 200 }
     @restrict: [

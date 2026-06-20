@@ -1,6 +1,6 @@
 _schema-version: 3.3.0
 ID: BridgeManagement
-version: 3.14.0
+version: 3.33.0
 description: "Bridge Management System — NSW standalone"
 parameters:
   enable-parallel-deployments: true
@@ -96,10 +96,6 @@ modules:
           artifacts:
             - restrictions.zip
           target-path: app/
-        - name: BridgeManagementattributesadmin
-          artifacts:
-            - attributes-admin.zip
-          target-path: app/
         - name: BridgeManagementbmsadmin
           artifacts:
             - bms-admin.zip
@@ -140,7 +136,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -151,7 +148,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -162,7 +160,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -173,7 +172,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -184,7 +184,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -195,7 +196,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -206,18 +208,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
-        - npm run build
-      supported-platforms: []
-
-  - name: BridgeManagementattributesadmin
-    type: html5
-    path: app/attributes-admin
-    build-parameters:
-      build-result: dist
-      builder: custom
-      commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -228,7 +220,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -239,7 +232,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 
@@ -250,7 +244,8 @@ modules:
       build-result: dist
       builder: custom
       commands:
-        - npm ci
+        # P2 build-cost: workspace deps are installed once by the root before-all `npm ci`
+        # (hoisted), so this html5 module only builds — no redundant per-module install.
         - npm run build
       supported-platforms: []
 

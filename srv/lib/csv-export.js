@@ -3,11 +3,14 @@
 // ARCH-T4: CSV export builders extracted from the server.js god-file. Pure functions —
 // independently unit-testable, with RFC-4180-style quoting (escape commas/quotes).
 
-// Quote a single CSV cell when it contains a comma or a double-quote.
+// Quote a single CSV cell when it contains a comma or a double-quote, and neutralise
+// spreadsheet formula injection (OWASP CSV injection): a cell beginning with = + - @ (or
+// tab/CR) is prefixed with a single quote so Excel/Sheets treat it as text, not a formula.
 function csvCell (value) {
   if (value == null) return ''
-  const text = String(value)
-  return (text.includes(',') || text.includes('"')) ? '"' + text.replace(/"/g, '""') + '"' : text
+  let text = String(value)
+  if (/^[=+\-@\t\r]/.test(text)) text = "'" + text
+  return (text.includes(',') || text.includes('"') || text.includes('\n')) ? '"' + text.replace(/"/g, '""') + '"' : text
 }
 
 // Generic builder: fixed export fields + appended custom-attribute columns.

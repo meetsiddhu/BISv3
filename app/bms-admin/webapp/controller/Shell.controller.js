@@ -5,15 +5,14 @@ sap.ui.define([
   "use strict";
 
   const ROUTE_TO_KEY = {
-    home:             "changeDocuments",
-    changeDocuments:  "changeDocuments",
+    home:             "systemConfig",
     systemConfig:     "systemConfig",
     bnacConfig:       "bnacConfig",
     gisConfig:        "gisConfig",
-    attributeConfig:  "attributeConfig",
     riskBands:        "riskBands",
     riskFactors:      "riskFactors",
     assetStrategy:    "assetStrategy",
+    bhiConfig:        "bhiConfig",
     demoMode:         "demoMode"
   };
 
@@ -27,7 +26,7 @@ sap.ui.define([
     // ── Route matching ──────────────────────────────────────────────────────
     _onRouteMatched: function (oEvent) {
       const sName = oEvent.getParameter("name");
-      const sKey  = ROUTE_TO_KEY[sName] || "changeDocuments";
+      const sKey  = ROUTE_TO_KEY[sName] || "systemConfig";
       const oNavList = this.byId("navList");
       const aItems   = oNavList.getItems();
       const target   = aItems.find(item => item.getKey() === sKey);
@@ -40,18 +39,9 @@ sap.ui.define([
     },
 
     onNavSelect: function (oEvent) {
+      // Change Documents + Attribute Classes are now standalone Fiori Elements tiles
+      // (#ChangeDocuments-display, #AttributeClasses-manage) — removed from this admin shell.
       const sKey = oEvent.getParameter("item").getKey();
-      if (sKey === "attributeConfig") {
-        // Class & characteristics definition now lives in the Fiori Elements
-        // 'Attribute Classes' app (draft CRUD). Redirect there instead of the
-        // legacy custom page (whose direct writes are incompatible with drafts).
-        sap.ushell.Container.getServiceAsync("CrossApplicationNavigation").then(function (oNav) {
-          oNav.toExternal({ target: { semanticObject: "AttributeClasses", action: "manage" } });
-        }).catch(function () {
-          this.getOwnerComponent().getRouter().navTo(sKey);
-        }.bind(this));
-        return;
-      }
       this.getOwnerComponent().getRouter().navTo(sKey);
     }
   });

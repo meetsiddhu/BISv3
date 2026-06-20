@@ -41,7 +41,7 @@ entity Bridge : cuid, managed {
     isActive            : Boolean default true;
     isDeleted           : Boolean default false;
 
-    conditionRatingTfnsw    : Integer;
+    conditionRatingBand     : Integer;
     conditionRatingDate     : Date;
     importanceLevel         : String(20);
     designLife              : Integer;

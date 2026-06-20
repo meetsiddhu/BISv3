@@ -7,7 +7,7 @@
 //
 // PURE: no I/O. The caller passes a `context` bundle (bridge row + child rows + attribute map +
 // manual judgement values). Same model + same context ⇒ identical result incl. weightSetHash —
-// the reproducibility contract of the approved design.
+// the reproducibility contract of the documented design.
 //
 // BACKWARD COMPATIBILITY (Phase 0 Q1): aggregationMethod 'RiskCritBlend-v1' DELEGATES to the
 // approved engine srv/lib/prioritisation.js derivePriority — byte-identical, zero regression.
@@ -192,7 +192,7 @@ function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters 
   const conf = base.resolveConfig(cfg || {})
   const ladder = conf.bandThresholds
 
-  // Backward-compat delegation: the approved formula, byte-identical (Phase 0 Q1).
+  // Backward-compat delegation: the baseline formula, byte-identical (Phase 0 Q1).
   if (model.aggregationMethod === 'RiskCritBlend-v1') {
     const m = context.manual || {}
     const out = base.derivePriority({
@@ -203,13 +203,13 @@ function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters 
     const resolved = resolveModelCriteria(model, assetClass, transportMode)
     const breakdown = resolved.map(r => ({
       code: r.criterion.code, category: r.criterion.category, raw: m[(r.criterion.bindings || [])[0]?.sourceRef] ?? null,
-      source: 'Manual (approved design)', score: null, weight: r.weight, confidence: 1,
+      source: 'Manual (baseline design)', score: null, weight: r.weight, confidence: 1,
       contribution: null, note: 'delegated: RiskCritBlend-v1'
     }))
     return Object.assign({}, out, {
       modelCode: model.code, modelVersion: model.version, delegated: true,
       criterionBreakdown: breakdown, flags: [], forceReview: false,
-      // B4: coverage disclosure does not apply to the delegated approved formula (the engineer
+      // B4: coverage disclosure does not apply to the delegated baseline formula (the engineer
       // supplies every dimension; there is no configurable denominator) — honest nulls, not 100%.
       includedWeight: null, totalWeight: null,
       weightSetHash: weightSetHash(model, resolved, { preFilters })
@@ -284,7 +284,7 @@ function evaluate ({ model, assetClass, transportMode, context, cfg, preFilters 
 }
 
 
-// ── G1/G2: customer user-type axis (TfNSW PS224353). Which user types are present at the asset,
+// ── G1/G2: customer user-type axis (approved prioritisation specification). Which user types are present at the asset,
 // derived from register facts + attributes (config data, no hardcoded asset logic beyond mapping).
 function bridgeUserTypes (ctx) {
   const b = ctx.bridge || {}; const a = ctx.attributes || {}
@@ -298,7 +298,7 @@ function bridgeUserTypes (ctx) {
   if (modes.includes('rail') || modes.includes('lightrail')) { out.add('RAIL_PASS'); if (b.freightRoute) out.add('RAIL_FREIGHT') }
   if (modes.includes('pedestrian') || modes.includes('active') || num(a.ACTIVE_TRANSPORT_EXPOSURE, 0) > 0) { out.add('AT_PED'); out.add('AT_CYCLE') }
   if (modes.includes('marine') || String(a.NAVIGABLE_WATER).toLowerCase() === 'true') { out.add('WATER_PASS'); out.add('WATER_FREIGHT') }
-  if (!out.size) out.add('ROAD_PASS') // conservative default reference user type (per TfNSW note)
+  if (!out.size) out.add('ROAD_PASS') // conservative default reference user type (per specification note)
   return out
 }
 // G2/B7: derive the Over/Under-bridge axis for the CONTEXT — which side of the structure the
@@ -331,7 +331,7 @@ const axisMatch = (rowAxis, ctxAxis) => {
 //   factor = 1 + Σ over present applicable rows of ( typeWeighting × (rowWeight − 1) ) / 10
 //   clamped to [0.5, 2]
 //
-// Properties (the TfNSW PS224353 intent — more relevant customer types can only maintain or
+// Properties (the specification intent — more relevant customer types can only maintain or
 // RAISE a structure's priority, never lower it):
 //   • no rows configured for the criterion ⇒ factor 1 (criterion is user-type-agnostic);
 //   • a present type with rowWeight 1 is neutral (adds 0) — presence alone never penalises;

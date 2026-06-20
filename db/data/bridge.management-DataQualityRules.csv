@@ -1,0 +1,9 @@
+id,name,category,severity,ruleType,field,config,message,enabled,sortOrder
+0a000000-0000-4000-8000-0000000000a1,Latitude present,Geometry,critical,required_field,latitude,,Geometry incomplete: latitude (coordinate) is missing,true,1
+0a000000-0000-4000-8000-0000000000a2,Longitude present,Geometry,critical,required_field,longitude,,Geometry incomplete: longitude (coordinate) is missing,true,2
+0a000000-0000-4000-8000-0000000000a3,Spatial geometry present,Geometry,warning,required_field,geoJson,,Geometry incomplete: no GeoJSON spatial geometry on record,true,3
+0a000000-0000-4000-8000-0000000000a4,Condition rating recorded,Condition,warning,required_field,conditionRating,,Condition rating not recorded - asset condition unknown,true,4
+0a000000-0000-4000-8000-0000000000a5,Inspection date recorded,Inspection,warning,required_field,lastInspectionDate,,No inspection on record - condition/inspection data unavailable,true,5
+0a000000-0000-4000-8000-0000000000a6,Structure type classified,Identity,info,required_field,structureType,,Structure type not classified,true,6
+0a000000-0000-4000-8000-0000000000a7,Asset owner confirmed,Ownership,warning,required_field,assetOwner,,Asset owner not confirmed (inferred from open data),true,7
+0a000000-0000-4000-8000-0000000000a8,Region assigned,Location,info,required_field,region,,Region/district not assigned,true,8

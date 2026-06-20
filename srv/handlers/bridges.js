@@ -1,5 +1,5 @@
 const cds = require('@sap/cds')
-const { CONDITION_LABELS, deriveCondition, labelToTfNSW, labelToLegacy } = require('../lib/condition-rating')
+const { CONDITION_LABELS, deriveCondition, labelToBand, labelToLegacy } = require('../lib/condition-rating')
 
 function registerBridgeHandlers (srv, { logAudit }) {
 
@@ -24,7 +24,7 @@ function registerBridgeHandlers (srv, { logAudit }) {
         const { conditionValue, score } = req.data
         const { ID } = req.params[0]
         // ARCH-R2: validate the label.
-        if (labelToTfNSW(conditionValue) == null) {
+        if (labelToBand(conditionValue) == null) {
             return req.error(400, 'conditionValue must be one of: ' + Object.values(CONDITION_LABELS).join(', '))
         }
         // ARCH-R1: a supplied legacy score (1-10) wins; otherwise synthesise the legacy

@@ -1,6 +1,6 @@
 const cds = require('@sap/cds')
 const { SELECT } = cds.ql
-const { writeChangeLogs } = require('./audit-log')
+const { writeChangeLogs, diffRecords, fetchCurrentRecord } = require('./audit-log')
 const { getConfig, getConfigInt } = require('./system-config')
 const engine = require('./lib/prioritisation')
 const ruleEngine = require('./lib/prioritisation-rule-engine')
@@ -38,8 +38,8 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
 
     // B8: BSI/BHI mode weights + environmental coefficients are GOVERNED CONFIG (SystemConfig
     // row 'bhiWeights', JSON) — refreshed at every computing entry point (60s-cached read).
-    // The documented defaults (the approved calculator's values) live in srv/lib/bhi.js; a
-    // missing/invalid row resolves to those defaults, so calculator parity holds untouched.
+    // The documented defaults (representative published-practice values) live in srv/lib/bhi.js; a
+    // missing/invalid row resolves to those defaults, so default-parity holds untouched.
     const refreshBhiConfig = async () => bhiLib.configure(await getConfig('bhiWeights'))
 
     // Active config row -> resolved numeric params (engine handles null/non-finite -> defaults).
@@ -70,12 +70,17 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       }
       return models
     }
-    // Most-specific class/mode match wins; ties → highest version; ('*','*') is the legacy fallback.
+    // Most-specific class/mode match wins; ties → highest version, then most recently
+    // modified (deterministic — a same-version tie was previously database order, which made
+    // two equally-specific Active models resolve arbitrarily); ('*','*') is the legacy fallback.
     const resolveModelFor = (models, assetClass, transportMode) => {
       const PRE = [[assetClass || '*', transportMode || '*'], [assetClass || '*', '*'], ['*', transportMode || '*'], ['*', '*']]
       for (const [ac, tm] of PRE) {
         const hits = models.filter(m => (m.classWeights || []).some(w => (w.assetClass || '*') === ac && (w.transportMode || '*') === tm))
-        if (hits.length) return hits.sort((a, b) => (b.version || 0) - (a.version || 0))[0]
+        if (hits.length) {
+          return hits.sort((a, b) => ((b.version || 0) - (a.version || 0)) ||
+            String(b.modifiedAt || '').localeCompare(String(a.modifiedAt || '')))[0]
+        }
       }
       return null
     }
@@ -155,7 +160,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         await db.run(cds.ql.INSERT.into('bridge.management.SystemConfig').entries({
           configKey: 'bhiWeights', category: 'Prioritisation', label: 'BSI/BHI weights & coefficients (JSON)',
           value: null, defaultValue: JSON.stringify(bhiLib.DEFAULT_BHI_CONFIG), dataType: 'string',
-          description: 'Per-transport-mode element weights, environmental/age/importance coefficients and the calibrated-mode list for the BSI/BHI engine. JSON; partial overrides merge over the documented defaults in srv/lib/bhi.js (the approved calculator values). Non-road modes stay road-derived until calibrated and are labelled accordingly in bhiDetail.',
+          description: 'Per-transport-mode element weights, environmental/age/importance coefficients and the calibrated-mode list for the BSI/BHI engine. JSON; partial overrides merge over the documented defaults in srv/lib/bhi.js (representative published-practice values). Non-road modes stay road-derived until calibrated and are labelled accordingly in bhiDetail.',
           isReadOnly: false, sortOrder: 95, modifiedAt: new Date().toISOString(), modifiedBy: 'system'
         }))
         log.info('SystemConfig bhiWeights ensured (defaults documented in srv/lib/bhi.js)')
@@ -509,7 +514,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       return { updated }
     })
 
-    // ── BHI/BSI explorer: full calculation transparency for one bridge (calculator parity) ──
+    // ── BHI/BSI explorer: full calculation transparency for one bridge (default parity) ──
     this.on('bhiDetail', async (req) => {
       const bhiCfg = await refreshBhiConfig() // B8: governed weights/coefficients
       const E = bhiCfg.env
@@ -531,7 +536,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         if (Number.isFinite(r) && (bk in w)) buckets[bk] = buckets[bk] === undefined ? r : Math.min(buckets[bk], r)
       }
       const elementBreakdown = Object.entries(w).map(([k, wt]) => ({ bucket: k, weight: wt, rating: buckets[k] ?? null }))
-      // B8 calibration honesty: the source calculator's weight sets are ROAD (NHVR/RMS)
+      // B8 calibration honesty: the default weight sets encode ROAD practice (NHVR-aligned)
       // methodology — non-calibrated modes carry an explicit label until a defensible
       // rail/pedestrian weight set is sourced (governed via bhiWeights.calibrated).
       const CALIBRATION_NOTE = 'road-derived weights (calibrate)'
@@ -640,7 +645,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
     const owningModelOf = async (en, id) => {
       if (!id) return null
       if (en === 'Models') return db.run(SELECT.one.from(NS + 'PrioritisationModel').where({ ID: id }))
-      let modelId = null
+      let modelId
       if (en === 'ModelBindings' || en === 'ModelValueBands') {
         const row = await db.run(SELECT.one.from(NS + MODEL_TABLE[en]).columns('criterion_ID').where({ ID: id }))
         if (!row || !row.criterion_ID) return null
@@ -669,6 +674,15 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         'Editing its scoring parameters in place would silently re-write the stated basis of those runs. ' +
         'Use cloneModel to create a new Draft version, adjust it, and activate it after review.'))
     }
+    // ChangeLog old→new fidelity (council CD-1): the DB table behind each model-builder
+    // projection, so the before-hook can fetch the BEFORE-image on UPDATE (the same
+    // pattern Bridges/MassEdit already use). Without it, edits logged oldValue:'' and the
+    // Change Documents tile could not show what a weight/rule actually changed FROM.
+    const EN_TO_DB = {
+      Models: 'PrioritisationModel', ModelCriteria: 'ModelCriterion',
+      ModelClassWeights: 'AssetClassCriterionWeight', ModelRules: 'AggregationRule',
+      ModelBindings: 'CriterionSourceBinding', ModelValueBands: 'CriterionValueBand'
+    }
     for (const en of MODEL_ENTITIES) {
       const target = this.entities[en]
       if (!target) continue
@@ -684,16 +698,31 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
           // activating a model retires other Active versions of the SAME code (mirror config behaviour)
           req._activateCode = d.code
         }
-        if (req.event === 'UPDATE') return guardActiveModelEdit(en, req)
+        if (req.event === 'UPDATE') {
+          // capture the before-image for an honest old→new ChangeLog
+          const id = (req.params && req.params[0] && req.params[0].ID) || d.ID
+          if (id && EN_TO_DB[en]) req._auditOld = await fetchCurrentRecord(db, NS + EN_TO_DB[en], { ID: id })
+          return guardActiveModelEdit(en, req)
+        }
       })
       this.after(['CREATE', 'UPDATE'], target, async (data, req) => {
         try {
-          await writeChangeLogs(db, {
-            objectType: 'Prioritisation' + en, objectId: String(data.ID || (req.params && req.params[0] && req.params[0].ID) || ''),
-            objectName: data.code || data.name || en, source: 'PrioritisationModelBuilder',
-            changedBy: req.user?.id || 'system',
-            changes: Object.keys(req.data || {}).filter(k => k !== 'ID').slice(0, 12)
+          const id = String(data.ID || (req.params && req.params[0] && req.params[0].ID) || '')
+          let changes
+          if (req.event === 'UPDATE' && req._auditOld && EN_TO_DB[en]) {
+            // diff the real BEFORE-image against the fresh AFTER-image → both old & new values
+            const fresh = await fetchCurrentRecord(db, NS + EN_TO_DB[en], { ID: id })
+            changes = diffRecords(req._auditOld, fresh || {})
+          } else {
+            // CREATE: there is no prior value — oldValue is genuinely empty
+            changes = Object.keys(req.data || {}).filter(k => k !== 'ID').slice(0, 12)
               .map(k => ({ fieldName: k, oldValue: '', newValue: String(req.data[k]).slice(0, 120) }))
+          }
+          if (!changes.length) return
+          await writeChangeLogs(db, {
+            objectType: 'Prioritisation' + en, objectId: id,
+            objectName: data.code || data.name || en, source: 'PrioritisationModelBuilder',
+            changedBy: req.user?.id || 'system', changes
           })
         } catch (e) { log.warn('ModelBuilder ChangeLog skipped:', e.message) }
       })
@@ -767,6 +796,86 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       return Object.assign({ modelID: newModelID, code: src.code, version: newVersion, status: 'Draft' }, counts)
     })
 
+    // ── Template library: instantiateTemplate — create a working model FROM a template ───────
+    // Deep-copies the full bundle of an isTemplate model to a NEW code at version 1, status
+    // 'Draft', isTemplate=false. Template provenance (sector/scope/standards) is carried onto
+    // the new model and the source template code is stamped into reviewSource. The template
+    // itself is never mutated. Admin-gated in CDS; ChangeLogged.
+    this.on('instantiateTemplate', async (req) => {
+      const { templateID } = req.data
+      const newCode = String(req.data.code || '').trim()
+      const newName = String(req.data.name || '').trim()
+      const targetClass = String(req.data.assetClass || '').trim() || null
+      const targetMode = String(req.data.transportMode || '').trim() || null
+      if (!newCode) return req.reject(400, 'A code for the new model is required.')
+      const src = templateID && await db.run(SELECT.one.from(NS + 'PrioritisationModel').where({ ID: templateID }))
+      if (!src) return req.reject(404, i18nText('modelNotFound', [String(templateID)], 'Template not found.'))
+      if (!src.isTemplate) return req.reject(400, 'Source model is not a template — use cloneModel for working models.')
+      const clash = await db.run(SELECT.one.from(NS + 'PrioritisationModel').columns('ID').where({ code: newCode }))
+      if (clash) return req.reject(409, `A model with code '${newCode}' already exists — choose a different code.`)
+      const strip = (row) => {
+        const c = Object.assign({}, row)
+        for (const k of FRAMEWORK_FIELDS) delete c[k]
+        return c
+      }
+      const newModelID = cds.utils.uuid()
+      await db.run(cds.ql.INSERT.into(NS + 'PrioritisationModel').entries(Object.assign(strip(src), {
+        ID: newModelID, code: newCode, name: newName || (src.name + ' (working model)'),
+        version: 1, status: 'Draft', isTemplate: false,
+        // a new instance is NOT signed off — review restarts; provenance kept in reviewSource
+        reviewedBy: null, reviewedAt: null,
+        reviewSource: 'Instantiated from template ' + src.code
+      })))
+      const criteria = await db.run(SELECT.from(NS + 'ModelCriterion').where({ model_ID: templateID }))
+      const critMap = new Map()
+      for (const c of criteria) critMap.set(c.ID, cds.utils.uuid())
+      if (criteria.length) {
+        await db.run(cds.ql.INSERT.into(NS + 'ModelCriterion').entries(criteria.map(c =>
+          Object.assign(strip(c), { ID: critMap.get(c.ID), model_ID: newModelID }))))
+      }
+      const srcCritIds = criteria.map(c => c.ID)
+      const remapCrit = (id) => (id && critMap.get(id)) || null
+      const copyChildren = async (table, rows, patch) => {
+        if (!rows.length) return 0
+        await db.run(cds.ql.INSERT.into(NS + table).entries(rows.map(r =>
+          Object.assign(strip(r), { ID: cds.utils.uuid() }, patch(r)))))
+        return rows.length
+      }
+      const bindings = srcCritIds.length ? await db.run(SELECT.from(NS + 'CriterionSourceBinding').where({ criterion_ID: { in: srcCritIds } })) : []
+      const bands = srcCritIds.length ? await db.run(SELECT.from(NS + 'CriterionValueBand').where({ criterion_ID: { in: srcCritIds } })) : []
+      const classWeights = await db.run(SELECT.from(NS + 'AssetClassCriterionWeight').where({ model_ID: templateID }))
+      const rules = await db.run(SELECT.from(NS + 'AggregationRule').where({ model_ID: templateID }))
+      const counts = {
+        criteria: criteria.length,
+        bindings: await copyChildren('CriterionSourceBinding', bindings, (r) => ({ criterion_ID: remapCrit(r.criterion_ID) })),
+        bands: await copyChildren('CriterionValueBand', bands, (r) => ({ criterion_ID: remapCrit(r.criterion_ID) })),
+        classWeights: await copyChildren('AssetClassCriterionWeight', classWeights, (r) => ({
+          model_ID: newModelID, criterion_ID: remapCrit(r.criterion_ID),
+          // optional target stamp: '*' template rows become class/mode-specific so the
+          // new model is the most-specific resolution match for its portfolio
+          assetClass: targetClass || r.assetClass, transportMode: targetMode || r.transportMode
+        })),
+        rules: await copyChildren('AggregationRule', rules, (r) => ({ model_ID: newModelID, criterion_ID: remapCrit(r.criterion_ID) }))
+      }
+      try {
+        await writeChangeLogs(db, {
+          objectType: 'PrioritisationModels', objectId: String(newModelID),
+          objectName: newCode + ' v1 (from template)', source: 'PrioritisationModelBuilder',
+          changedBy: req.user?.id || 'system',
+          changes: [
+            { fieldName: 'instantiatedFrom', oldValue: '', newValue: String(src.code) },
+            { fieldName: 'templateID', oldValue: '', newValue: String(templateID) },
+            { fieldName: 'code', oldValue: '', newValue: newCode },
+            { fieldName: 'status', oldValue: '', newValue: 'Draft' },
+            { fieldName: 'targetClass', oldValue: '', newValue: (targetClass || '*') + ' / ' + (targetMode || '*') },
+            { fieldName: 'bundle', oldValue: '', newValue: JSON.stringify(counts) }
+          ]
+        })
+      } catch (e) { log.warn('instantiateTemplate ChangeLog skipped:', e.message) }
+      log.info('Template instantiated as working model', { template: src.code, code: newCode, modelID: newModelID, counts })
+      return Object.assign({ modelID: newModelID, code: newCode, version: 1, status: 'Draft' }, counts)
+    })
+
     // ── reportPdf: server-rendered, branded, paginated A4 exec one-pager ──
     // Figures are computed HERE from the immutable runs (not the client's view) so the document is
     // reproducible and reconciles exactly to the stored figures. Returns base64 PDF bytes.
@@ -834,7 +943,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       // branches on each stored run's formulaVersion instead of printing one static text.
       // rule-engine-v1 runs (modelCode stamped) get the configurable-engine methodology; legacy
       // v1-normalised runs keep the approved-formula text; a mixed portfolio prints BOTH with
-      // per-method run counts. An empty portfolio documents the approved formula (the default).
+      // per-method run counts. An empty portfolio documents the baseline formula (the default).
       const isRuleRun = (r) => String(r.formulaVersion || '').startsWith('rule-engine')
       const ruleRuns = runs.filter(isRuleRun)
       const legacyRuns = runs.filter(r => !isRuleRun(r))
@@ -847,7 +956,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       }
       if (legacyRuns.length || !ruleRuns.length) {
         const legacyVersions = Array.from(new Set(legacyRuns.map(r => r.formulaVersion || formulaVersion)))
-        doc.kv('Approved formula', (ruleRuns.length ? legacyRuns.length + ' run(s) · ' : '') +
+        doc.kv('Baseline formula', (ruleRuns.length ? legacyRuns.length + ' run(s) · ' : '') +
           (legacyVersions.length ? legacyVersions.join(', ') : formulaVersion))
         doc.paragraph('criticality = sum(dimension x weight), weights ' + w.join(' / ') + ' (safety/network/financial/environmental/reputational) normalised to 1. ' +
           'tier = round(criticality) clamped 1..5. residual = likelihood x tier (an active restriction is a treatment FLAG, never a score input). ' +
@@ -1145,6 +1254,99 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
         await db.run(cds.ql.UPDATE('bridge.management.PrioritisationConfig')
           .set({ active: false }).where({ active: true, ID: { '!=': data.ID } }))
       }
+    })
+
+    // ── HV-1: assess a heavy vehicle against a bridge ────────────────────────────
+    this.on('assessHeavyVehicle', async (req) => {
+      const hv = require('./lib/hv-assessment')
+      const { bridgeID, vehicleCode, axleGroupsJson } = req.data
+      const bridge = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: bridgeID }))
+      if (!bridge) return req.error(404, i18nText('bridgeNotFound', [String(bridgeID)], 'Bridge not found.'))
+      const capacity = await db.run(SELECT.one.from('bridge.management.BridgeCapacities')
+        .where({ bridge_ID: bridgeID }).orderBy({ ratingDate: 'desc' }))
+      let vehicle = null
+      if (vehicleCode) vehicle = await db.run(SELECT.one.from(NS + 'AssessmentVehicles').where({ code: vehicleCode, active: true }))
+      if (!vehicle && axleGroupsJson) vehicle = { code: 'custom', axleGroups: axleGroupsJson }
+      if (!vehicle) return req.reject(400, 'Provide a known vehicleCode or a custom axleGroupsJson.')
+      let params
+      try { params = JSON.parse(await getConfig('hvAssessment') || '{}') } catch (_e) { params = {} }
+      const result = hv.assessVehicle({ bridge, capacity, vehicle, params })
+      return { result: JSON.stringify(result) }
+    })
+
+    // ── HV-1: assess a route (comma-separated bridge IDs) ────────────────────────
+    this.on('assessRoute', async (req) => {
+      const hv = require('./lib/hv-assessment')
+      const MAX_ROUTE_BRIDGES = 100 // UAT P2-005: bound per-call work (each id = 2 DB reads)
+      const allIds = String(req.data.bridgeIds || '').split(',').map(s => Number(s.trim())).filter(Number.isFinite)
+      if (!allIds.length) return req.reject(400, 'Provide comma-separated bridge IDs.')
+      const ids = allIds.slice(0, MAX_ROUTE_BRIDGES)
+      if (allIds.length > MAX_ROUTE_BRIDGES) cds.log('bms').warn('assessRoute: route truncated', { requested: allIds.length, limit: MAX_ROUTE_BRIDGES })
+      const vehicle = req.data.vehicleCode
+        ? await db.run(SELECT.one.from(NS + 'AssessmentVehicles').where({ code: req.data.vehicleCode, active: true })) : null
+      if (!vehicle) return req.reject(400, 'Provide a known vehicleCode.')
+      let params
+      try { params = JSON.parse(await getConfig('hvAssessment') || '{}') } catch (_e) { params = {} }
+      const assessments = []
+      for (const id of ids) {
+        const bridge = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: id }))
+        if (!bridge) continue
+        const capacity = await db.run(SELECT.one.from('bridge.management.BridgeCapacities')
+          .where({ bridge_ID: id }).orderBy({ ratingDate: 'desc' }))
+        assessments.push(hv.assessVehicle({ bridge, capacity, vehicle, params }))
+      }
+      return { result: JSON.stringify(hv.assessRoute(assessments)) }
+    })
+
+    // ── DET-2/3: forecast condition + RUL under the bridge's strategy model ──────
+    this.on('forecastCondition', async (req) => {
+      const det = require('./lib/deterioration')
+      const { bridgeID } = req.data
+      const years = num(req.data.years) || 10
+      // UAT P2-005: bound the forecast horizon — an unbounded `years` builds an O(years) curve.
+      if (!Number.isFinite(years) || years < 0 || years > 100) return req.reject(400, 'years must be between 0 and 100.')
+      const bridge = await db.run(SELECT.one.from('bridge.management.Bridges').where({ ID: bridgeID }))
+      if (!bridge) return req.error(404, i18nText('bridgeNotFound', [String(bridgeID)], 'Bridge not found.'))
+      const strategy = bridge.assetClassStrategy_ID
+        ? await db.run(SELECT.one.from('bridge.management.AssetClassStrategy').where({ ID: bridge.assetClassStrategy_ID })) : {}
+      const ageYears = bridge.yearBuilt ? (new Date().getFullYear() - Number(bridge.yearBuilt)) : null
+      const ctx = { conditionRating: bridge.conditionRating, ageYears }
+      const curve = []
+      for (let y = 0; y <= years; y++) curve.push({ year: y, condition: det.forecast({ strategy: strategy || {}, ctx, years: y }) })
+      const rul = det.remainingServiceLife({ strategy: strategy || {}, ctx })
+      return { result: JSON.stringify({
+        bridgeId: bridge.bridgeId, model: (strategy && strategy.deteriorationModel) || 'Linear',
+        currentCondition: bridge.conditionRating, interventionThreshold: strategy && strategy.interventionThreshold,
+        remainingServiceLifeYears: rul, curve
+      }) }
+    })
+
+    // ── CAPEX-1: optimise the scored fleet against an annual budget ──────────────
+    this.on('optimiseCapitalProgram', async (req) => {
+      const opt = require('./lib/capital-optimiser')
+      const budgetAud = num(req.data.budgetAud)
+      if (budgetAud === null || budgetAud < 0) return req.reject(400, 'budgetAud must be a non-negative number.')
+      const strategy = req.data.strategy === 'knapsack' ? 'knapsack' : 'greedy-bcr'
+      // effective active runs (review-held excluded, manual wins) → join bridge economics
+      const allActive = await db.run(SELECT.from('bridge.management.PrioritisationAssessment').where({ active: true }))
+      const runs = effectiveRuns(allActive)
+      const bridgeIds = [...new Set(runs.map(r => r.bridge_ID).filter(v => v != null))]
+      const bridges = bridgeIds.length
+        ? await db.run(SELECT.from('bridge.management.Bridges').columns('ID', 'bridgeId', 'bridgeName', 'mitigationCostAud', 'expectedValueAud', 'benefitCostRatio').where({ ID: { in: bridgeIds } })) : []
+      const byId = new Map(bridges.map(b => [b.ID, b]))
+      const candidates = runs.map(r => {
+        const b = byId.get(r.bridge_ID) || {}
+        return {
+          id: r.bridge_ID, name: b.bridgeName || b.bridgeId || String(r.bridge_ID), band: r.band,
+          priorityScore: num(r.priorityScore), costAud: num(b.mitigationCostAud),
+          expectedValueAud: num(b.expectedValueAud), benefitCostRatio: num(b.benefitCostRatio)
+        }
+      }).filter(c => c.costAud !== null && c.costAud > 0)
+      const result = opt.optimise({ candidates, budget: budgetAud, strategy })
+      result.fundingYear = req.data.fundingYear || null
+      result.candidatesConsidered = candidates.length
+      result.candidatesWithoutCost = runs.length - candidates.length
+      return { result: JSON.stringify(result) }
     })
 
     await super.init()

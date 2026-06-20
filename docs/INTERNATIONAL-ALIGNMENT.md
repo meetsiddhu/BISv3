@@ -1,18 +1,18 @@
 # International Bridge-Management Alignment (AASHTO / FHWA NBI / PIARC / Eurocode)
 
 > Addresses 4th-audit findings **AASHTO-1**, **COND-1**, **CAPA-1**, **DET-1**, **PIARC-1**.
-> BIS is built in the **NSW/TfNSW + Austroads + AS 5100** context and **complements SAP
+> BIS is built in the **NSW + Austroads + AS 5100** context and **complements SAP
 > S/4HANA EAM**. This doc maps BIS concepts to the major international BMS standards, states
 > what aligns by capability, and is explicit about deliberate gaps (no false precision).
 
 ## 1. Condition-scale mapping (COND-1)
 
-BIS stores the legacy BMS **1–10** condition rating (10 = best), labels it on the **TfNSW
-1–5** band, and can be expressed on the **AASHTO/FHWA 0–9 NBI** and **AASHTO MBE element
+BIS stores the legacy BMS **1–10** condition rating (10 = best), labels it on the **1–5
+condition band**, and can be expressed on the **AASHTO/FHWA 0–9 NBI** and **AASHTO MBE element
 0–5 (CS1–CS4)** scales for international reporting. The canonical mapping lives in
 `srv/lib/condition-rating.js` (single source of truth — never re-defined inline).
 
-| BIS 1–10 | TfNSW 1–5 band | NBI 0–9 (approx) | AASHTO element state | Meaning |
+| BIS 1–10 | 1–5 condition band | NBI 0–9 (approx) | AASHTO element state | Meaning |
 |:--:|:--:|:--:|:--:|---|
 | 9–10 | 1 (Good) | 8–9 | CS1 Good | As-new / no significant defects |
 | 7–8 | 2 (Fair) | 6–7 | CS1–CS2 | Minor deterioration |

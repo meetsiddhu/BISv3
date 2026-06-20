@@ -45,8 +45,8 @@ scalar. Bands (`RiskBand`, with an auditable `rationale` per row):
 | Low | 0–15 | 1–3 | Within tolerance |
 
 These thresholds are an **engineering-judgement starting point**, recorded in
-`RiskBand.rationale` and changeable by admins; they should be calibrated against NSW/TfNSW
-Bridge Inspection Manual outcomes and historical defect data before formal capital sign-off.
+`RiskBand.rationale` and changeable by admins; they should be calibrated against the bridge
+inspection manual (AS 5100-aligned) outcomes and historical defect data before formal capital sign-off.
 
 ## 2. Engineer override
 Any bridge may be overridden (`riskOverride`) with a mandatory `riskOverrideReason`,
@@ -82,7 +82,7 @@ The `LIKELIHOOD_TO_ANNUAL_PROB` map `{1:0.01, 2:0.03, 3:0.08, 4:0.18, 5:0.35}` i
 **deliberately conservative, monotonic geometric-ish progression** chosen so each
 likelihood band roughly ~doubles the annual failure probability of the one below it,
 anchored at a 1% floor (band 1) and a 35% ceiling (band 5). It is a **planning proxy, not
-an actuarial hazard rate** — calibrate against NSW/TfNSW historical defect-to-failure data
+an actuarial hazard rate** — calibrate against NSW historical defect-to-failure data
 before any funding decision.
 
 **Sensitivity:** expected value scales linearly with both the probability proxy and

@@ -83,8 +83,8 @@
     "rootView": {
       "viewName": "BridgeManagement.mapview.view.Main",
       "type": "XML",
-      "async": true,
-      "id": "Main"
+      "id": "Main",
+      "async": true
     },
     "contentDensities": {
       "compact": true,

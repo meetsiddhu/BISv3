@@ -3,7 +3,7 @@ const { SELECT } = cds.ql
 const engine = require('../srv/lib/prioritisation')
 
 // Phase 1 gate: the rule-engine schema is ADDITIVE and the seeded default model NSW-RISK-V1
-// faithfully mirrors the approved design — so existing behaviour cannot change.
+// faithfully mirrors the documented design — so existing behaviour cannot change.
 // B9 (council v3.12): the rows asserted below are no longer CSV-deployed (hdbtabledata
 // with include_filter:[] truncated admin edits on redeploy). They are RUNTIME-ENSURED at
 // startup by srv/lib/model-builder-seed.js (insert-if-missing on fixed seed UUIDs, wired

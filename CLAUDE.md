@@ -54,8 +54,13 @@
 
 - **Condition rating** has one source of truth: `srv/lib/condition-rating.js`. Stored
   `conditionRating` is the legacy BMS **1–10** scale (10 = best); the label uses the
-  **TfNSW 1–5** band (1 = Good … 5 = Critical). High-priority = TfNSW ≥ 4. Never
+  **1–5 condition band** (1 = Good … 5 = Critical). High-priority = band ≥ 4. Never
   re-define the mapping inline — import the module.
+- **Recorded decision (2026-06-13, product owner):** as part of the store-readiness
+  scrub, the condition-band schema field and the module's helpers were renamed from
+  their original client-named forms to `conditionRatingBand` / `*Band` — an approved
+  exception to the additive-only rule (§2.1). The field had no service/UI consumers
+  at the time. (Pre-rename sources are archived outside the repo.)
 - **Complement SAP EAM, do not replicate it.** SAP EAM is the system of record for the
   maintenance-execution + asset-master layer (functional locations, equipment, work/
   maintenance orders, notifications, maintenance plans, costs/valuation). This app owns

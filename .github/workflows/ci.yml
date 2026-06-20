@@ -38,5 +38,26 @@ jobs:
       - name: Build (MTA-equivalent cds build)
         run: npx cds build --production
 
-      - name: Test (jest)
-        run: npm test
+      - name: UI5 lint (automated UI quality gate — deprecations, a11y, manifest)
+        # Council P1-4 / cert: automated UI checks in CI. Manifest-v2 is done; the remaining
+        # findings are the UI5 1.x→2.x readiness debt (global sap.* access + deprecated Core
+        # APIs in the custom controllers) — a tracked migration. Informational until that
+        # lands; then ratchet to a hard gate.
+        run: npm run lint:ui5
+        continue-on-error: true
+
+      - name: Test + coverage gate (jest)
+        # Council P3-3: CI now ENFORCES the coverageThreshold (was plain `npm test`, so the
+        # declared 50/38/52/50 gate could silently regress).
+        run: npm run test:coverage
+
+      - name: OPA5 smoke (Fiori Elements config screens — headless)
+        # Council P1-4 / cert D4/D17: runs the admin-bridges OPA5 journey (RiskBand/RiskConfig/
+        # AssetClassStrategy/SystemConfig List Reports load) via karma-ui5 + headless Chrome
+        # (pre-installed on ubuntu runners). The karma config now launches Chrome + loads UI5
+        # from the CDN (basePath/url/no-sandbox fixed). Still SOFT: the FE JourneyRunner starts
+        # the real app, which needs an OData backend — a mockserver (or a started cds server)
+        # is the remaining step before this can be promoted to a hard gate. Tracked as a
+        # follow-up; the coverage gate above is the enforced quality bar today.
+        run: npm run test:opa
+        continue-on-error: true

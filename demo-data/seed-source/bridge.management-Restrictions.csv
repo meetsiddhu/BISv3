@@ -1,0 +1,7 @@
+ID,restrictionRef,name,bridgeRef,bridge_ID,restrictionCategory,restrictionType,restrictionValue,restrictionUnit,restrictionStatus,active,restrictionReason,restrictionSeverity
+res-001,RES-1001,Hartley Creek load limit,BR-1002,1002,Load,Load Limit,42,t,Active,true,Aged arch — reduced live-load capacity,Major
+res-002,RES-1002,Derwent crossing speed limit,BR-1007,1007,Speed,Speed Restriction,40,km/h,Active,true,Poor deck condition,Moderate
+res-003,RES-1003,Murray River height limit,BR-1010,1010,Height,Height Limit,4.3,m,Active,true,Low truss clearance,Moderate
+res-004,RES-1004,Old Town Bridge load limit,BR-1012,1012,Load,Load Limit,15,t,Active,true,Very poor condition — structural review pending,Severe
+res-005,RES-1005,Coral Coast width limit,BR-1011,1011,Width,Width Limit,3.5,m,Active,true,Corrosion to outer girders,Moderate
+res-006,RES-1006,Goldfields viaduct axle limit,BR-1004,1004,Load,Axle Mass Limit,20,t,Active,true,Fatigue on steel members,Major

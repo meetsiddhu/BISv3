@@ -1,6 +1,6 @@
 const cds = require('@sap/cds')
-const LOG  = cds.log('bms-common')
 const { derivePostingStatus } = require('../lib/restriction-codelists')
+const { auditChange } = require('../lib/plugins/changelog')
 
 module.exports = function registerCommonHelpers (_srv) {
 
@@ -13,26 +13,15 @@ module.exports = function registerCommonHelpers (_srv) {
     const getRestriction = async (restrictionID, db) =>
         db.run(SELECT.one.from('bridge.management.Restrictions').where({ ID: restrictionID }))
 
+    // Delegates to the reusable changelog plugin (action form). Behaviour preserved:
+    // single summary row, source 'OData', tolerates write failure for interactive edits.
     const logAudit = async (db, req, action, entityType, entityId, entityName, changes, description) => {
-        try {
-            await (db || await cds.connect.to('db')).run(
-                INSERT.into('bridge.management.ChangeLog').entries({
-                    ID:           cds.utils.uuid(),
-                    changedAt:    new Date().toISOString(),
-                    changedBy:    req?.user?.id || 'system',
-                    objectType:   entityType,
-                    objectId:     String(entityId),
-                    objectName:   entityName || String(entityId),
-                    fieldName:    action,
-                    oldValue:     null,
-                    newValue:     description || (typeof changes === 'object' ? JSON.stringify(changes) : changes),
-                    changeSource: 'OData',
-                    batchId:      null
-                })
-            )
-        } catch (error) {
-            LOG.warn('Audit log failed', error.message)
-        }
+        const conn = db || await cds.connect.to('db')
+        return auditChange(conn, {
+            objectType: entityType, objectId: entityId, objectName: entityName,
+            source: 'OData', changedBy: req?.user?.id,
+            action, description: description || (typeof changes === 'object' ? JSON.stringify(changes) : changes)
+        })
     }
 
     const updateBridgePostingStatus = async (bridgeID, db, _req) => {
@@ -56,25 +45,13 @@ module.exports = function registerCommonHelpers (_srv) {
             return req.error(400, `Invalid ${fieldName}: ${value}. Allowed: ${allowedValues.join(', ')}`)
     }
 
-    const logRestrictionChange = async (db, restrictionID, changedBy, changeType, oldStatus, newStatus, reason) => {
-        try {
-            await db.run(INSERT.into('bridge.management.ChangeLog').entries({
-                ID:           cds.utils.uuid(),
-                changedAt:    new Date().toISOString(),
-                changedBy:    changedBy || 'system',
-                objectType:   'Restriction',
-                objectId:     String(restrictionID),
-                objectName:   restrictionID,
-                fieldName:    changeType,
-                oldValue:     oldStatus || null,
-                newValue:     newStatus || null,
-                changeSource: 'OData',
-                batchId:      reason || null
-            }))
-        } catch (error) {
-            LOG.warn('Restriction change log failed', error.message)
-        }
-    }
+    // Delegates to the reusable changelog plugin (structured form, one field row).
+    const logRestrictionChange = async (db, restrictionID, changedBy, changeType, oldStatus, newStatus, reason) =>
+        auditChange(db, {
+            objectType: 'Restriction', objectId: restrictionID, objectName: restrictionID,
+            source: 'OData', changedBy, batchId: reason || null,
+            changes: [{ fieldName: changeType, oldValue: oldStatus || null, newValue: newStatus || null }]
+        })
 
     return { getBridge, getBridgeByKey, getRestriction, logAudit,
              updateBridgePostingStatus, validateEnum, logRestrictionChange }

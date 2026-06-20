@@ -11,6 +11,7 @@ builder:
     excludes:
       - "/test/**"
       - "/localService/**"
+      - "/index.html"
   customTasks:
     - name: ui5-task-zipper
       afterTask: generateVersionInfo

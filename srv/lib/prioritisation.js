@@ -1,6 +1,7 @@
 'use strict'
 
-// Bridge Prioritisation engine (approved design — docs/prioritisation/).
+// Bridge Prioritisation engine — baseline five-dimension design: ISO 31000
+// consequence x likelihood with criticality/strategy blend (docs/prioritisation/).
 // Pure + config-driven (rule 4). Mirrors the approved wireframe math EXACTLY:
 //   criticality = Σ(dimension × weight)        weights normalised to sum 1
 //   tier        = round(criticality) clamped 1..5         (half-up)

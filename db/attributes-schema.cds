@@ -13,6 +13,10 @@ entity AttributeGroups : cuid, managed {
   internalKey  : String(80)  not null;
   displayOrder : Integer     default 0;
   status       : String(20)  default 'Active';
+  // Additive (ATTR-EAM): maps this attribute class to the SAP EAM (S/4) class code it
+  // mirrors — free-text code, same lightweight pattern as EAMCodeMapping.eamValue /
+  // EAMFieldMapping.eamField. null = unmapped. Complements EAM, does not replicate it.
+  eamClass     : String(40);
   definitions  : Composition of many AttributeDefinitions
                    on definitions.group = $self;
 }
@@ -24,7 +28,10 @@ entity AttributeGroups : cuid, managed {
  */
 entity AttributeDefinitions : cuid, managed {
   group        : Association to AttributeGroups not null;
-  objectType   : String(40)  not null;
+  // default 'bridge' so a Fiori Elements draft-create (which never sets this technical
+  // field) cannot fail the NOT NULL constraint (ATTR-2); the before('CREATE') handler
+  // still corrects it to the parent group's objectType at activation when they differ.
+  objectType   : String(40)  not null  default 'bridge';
   name         : String(111) not null;
   internalKey  : String(80)  not null;
   dataType     : String(20)  not null; // Text|Integer|Decimal|Date|Boolean|SingleSelect|MultiSelect
@@ -35,6 +42,9 @@ entity AttributeDefinitions : cuid, managed {
   maxValue     : Decimal(15,4);
   regexPattern : String(255);
   status       : String(20)  default 'Active';
+  // Additive (ATTR-EAM): maps this characteristic to the SAP EAM (S/4) characteristic
+  // code it mirrors — free-text code. null = unmapped. Complements EAM, does not replicate it.
+  eamCharacteristic : String(40);
   allowedValues     : Composition of many AttributeAllowedValues
                         on allowedValues.attribute = $self;
   objectTypeConfigs : Composition of many AttributeObjectTypeConfig
@@ -57,10 +67,18 @@ entity AttributeAllowedValues : cuid {
  * Per-object-type configuration for each attribute.
  * Enabled, required, and display-order override are set independently per object type.
  * Disabling does NOT delete stored values — re-enabling restores them.
+ *
+ * Class-aware scoping (council ATTR-1, additive): assetClass scopes a config row to
+ * a single asset class (-> AssetClasses.code); assetClass = null means "all classes"
+ * (the original, backward-compatible behaviour). This lets an admin configure which
+ * characteristics apply per class — e.g. IRI on Sealed Pavement, scour on Road Bridge
+ * — on a per-(objectType, assetClass) basis. Resolution precedence: a class-specific
+ * row overrides the all-classes row for that class.
  */
 entity AttributeObjectTypeConfig : cuid, managed {
   attribute    : Association to AttributeDefinitions not null;
   objectType   : String(40) not null;
+  assetClass   : String(40);              // null = all classes; else -> AssetClasses.code
   enabled      : Boolean    default true;
   required     : Boolean    default false;
   displayOrder : Integer;

@@ -184,6 +184,56 @@
           "title": "Bridge Elements",
           "subTitle": "NSW Level-2 elements",
           "icon": "sap-icon://tree"
+        },
+        "RiskBands-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "RiskBands",
+          "action": "manage",
+          "title": "Risk Bands",
+          "icon": "sap-icon://measurement-document"
+        },
+        "ClassTypes-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "ClassTypes",
+          "action": "manage",
+          "title": "Class Types",
+          "icon": "sap-icon://tag"
+        },
+        "RiskFactors-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "RiskFactors",
+          "action": "manage",
+          "title": "Risk Factors",
+          "icon": "sap-icon://settings"
+        },
+        "AssetClassStrategyCfg-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "AssetClassStrategyCfg",
+          "action": "manage",
+          "title": "Asset Class Strategy",
+          "icon": "sap-icon://example"
+        },
+        "SystemSettings-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "SystemSettings",
+          "action": "manage",
+          "title": "System Settings",
+          "icon": "sap-icon://settings"
         }
       }
     }
@@ -366,6 +416,56 @@
           "name": "BridgeElementsPage",
           "pattern": "BridgeElements({key}):?query:",
           "target": "BridgeElementsPage"
+        },
+        {
+          "name": "RiskBandList",
+          "pattern": "RiskBand:?query:",
+          "target": "RiskBandList"
+        },
+        {
+          "name": "RiskBandPage",
+          "pattern": "RiskBand({key}):?query:",
+          "target": "RiskBandPage"
+        },
+        {
+          "name": "ClassTypeList",
+          "pattern": "ClassTypes:?query:",
+          "target": "ClassTypeList"
+        },
+        {
+          "name": "ClassTypePage",
+          "pattern": "ClassTypes({key}):?query:",
+          "target": "ClassTypePage"
+        },
+        {
+          "name": "RiskConfigList",
+          "pattern": "RiskConfig:?query:",
+          "target": "RiskConfigList"
+        },
+        {
+          "name": "RiskConfigPage",
+          "pattern": "RiskConfig({key}):?query:",
+          "target": "RiskConfigPage"
+        },
+        {
+          "name": "AssetClassStrategyList",
+          "pattern": "AssetClassStrategy:?query:",
+          "target": "AssetClassStrategyList"
+        },
+        {
+          "name": "AssetClassStrategyPage",
+          "pattern": "AssetClassStrategy({key}):?query:",
+          "target": "AssetClassStrategyPage"
+        },
+        {
+          "name": "SystemConfigList",
+          "pattern": "SystemConfig:?query:",
+          "target": "SystemConfigList"
+        },
+        {
+          "name": "SystemConfigPage",
+          "pattern": "SystemConfig({key}):?query:",
+          "target": "SystemConfigPage"
         }
       ],
       "targets": {
@@ -849,6 +949,156 @@
           "options": {
             "settings": {
               "entitySet": "BridgeElements",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "RiskBandList": {
+          "type": "Component",
+          "id": "RiskBandList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "RiskBand",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "RiskBand": {
+                  "detail": {
+                    "route": "RiskBandPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "RiskBandPage": {
+          "type": "Component",
+          "id": "RiskBandPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "RiskBand",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "ClassTypeList": {
+          "type": "Component",
+          "id": "ClassTypeList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "ClassTypes",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "ClassTypes": {
+                  "detail": {
+                    "route": "ClassTypePage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ClassTypePage": {
+          "type": "Component",
+          "id": "ClassTypePage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "ClassTypes",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "RiskConfigList": {
+          "type": "Component",
+          "id": "RiskConfigList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "RiskConfig",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "RiskConfig": {
+                  "detail": {
+                    "route": "RiskConfigPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "RiskConfigPage": {
+          "type": "Component",
+          "id": "RiskConfigPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "RiskConfig",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "AssetClassStrategyList": {
+          "type": "Component",
+          "id": "AssetClassStrategyList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "AssetClassStrategy",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "AssetClassStrategy": {
+                  "detail": {
+                    "route": "AssetClassStrategyPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "AssetClassStrategyPage": {
+          "type": "Component",
+          "id": "AssetClassStrategyPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "AssetClassStrategy",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "SystemConfigList": {
+          "type": "Component",
+          "id": "SystemConfigList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "SystemConfig",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "SystemConfig": {
+                  "detail": {
+                    "route": "SystemConfigPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "SystemConfigPage": {
+          "type": "Component",
+          "id": "SystemConfigPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "SystemConfig",
               "editableHeaderContent": false
             }
           }

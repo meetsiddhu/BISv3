@@ -3,6 +3,12 @@ using { BridgeManagementService } from '../service';
 
 extend service BridgeManagementService with {
 
+    // Facade consolidation (Option C, 2026-06-19): this BMS projection of Bridges has NO OData-CRUD
+    // consumer — every UI binds to AdminService/Express, and the only programmatic writes are the
+    // bound actions below + mass-edit, which write the raw `bridge.management.Bridges` via the db
+    // layer (not this projection). @readonly therefore makes AdminService the single OData WRITER of
+    // Bridges (kills the dual-facade write overlap) with zero effect on the action write-paths.
+    @readonly
     @cds.redirection.target: true
     @cds.query.limit: { max: 5000, default: 200 }
     @restrict: [
@@ -30,6 +36,7 @@ extend service BridgeManagementService with {
         ) returns { status: String; message: String; ID: UUID };
     };
 
+    @readonly
     @restrict: [
         { grant: ['READ'],            to: ['view','manage','admin'] },
         { grant: ['CREATE','UPDATE'], to: ['manage','admin'] },

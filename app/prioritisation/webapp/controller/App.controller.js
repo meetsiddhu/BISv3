@@ -34,6 +34,12 @@ sap.ui.define([
 
   return Controller.extend("BridgeManagement.prioritisation.controller.App", {
 
+    // HV per-check margin: render "<n>%" or blank. (Was an inline expression binding that the
+    // UI5 parser rejected for the named-model embedded form ${hv>marginPct}; use a formatter.)
+    formatMarginPct: function (v) {
+      return (v === null || v === undefined || v === "") ? "" : v + "%";
+    },
+
     onInit: function () {
       this._svc = "/odata/v4/prioritisation";
       this._cfg = DEFAULT_CFG;
@@ -50,6 +56,10 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({ rows: [], segment: "current" }), "wl");
       this.getView().setModel(new JSONModel({ rows: [] }), "br");
       this.getView().setModel(new JSONModel({ mode: "exec", bands: [], assessed: 0, p1: 0, stale: 0, topScore: 0, headline: "" }), "rep");
+      // HV-1 / CAPEX-1 tabs
+      this.getView().setModel(new JSONModel({ bridgeID: null, vehicleCode: null, vehicles: [], checks: [], verdictText: "—", verdictState: "None", governing: "" }), "hv");
+      this.getView().setModel(new JSONModel({ budget: null, strategy: "greedy-bcr", fundingYear: "", selected: [], spentText: "—", remainingText: "—", unfundedText: "—", unfundedCount: 0, noDataText: this._t("capex.noData") }), "capex");
+      this._loadVehicles();
 
       this._DIMS = [["dimSafety", "Safety"], ["dimNetwork", "Network service"], ["dimFinancial", "Financial"], ["dimEnvironmental", "Environmental"], ["dimReputational", "Reputational"]];
       this._buildDimControls();
@@ -60,6 +70,68 @@ sap.ui.define([
       this._loadBridges();
       this._loadWorklist();
       this._recompute();
+    },
+
+    // ── In-app help: plain-English explanation an exec or engineer can read in 30s.
+    // Mirrors docs/prioritisation/HOW-TO-USE-PRIORITISATION.md (the full guide).
+    onShowHelp: function () {
+      if (!this._helpDialog) {
+        var Dialog = sap.ui.require("sap/m/Dialog"), Button = sap.ui.require("sap/m/Button"),
+            FormattedText = sap.ui.require("sap/m/FormattedText");
+        var build = function (Dialog, Button, FormattedText) {
+          // sap.m.FormattedText only honours <strong>/<em> (it strips <b>/<i> and their text).
+          var html =
+            "<h3>What this does</h3>" +
+            "<p>Every asset gets a <strong>priority band P1 (do first) to P5 (watch)</strong>, computed from its " +
+            "<strong>condition</strong> (how deteriorated it is) and its <strong>consequence</strong> (who/what is affected if it fails). " +
+            "The method follows public standards (AS&nbsp;5100, AASHTO, Austroads&hellip;).</p>" +
+            "<h3>What the bands mean</h3>" +
+            "<ul>" +
+            "<li><strong>P1</strong> — act now; highest risk. Candidate for immediate intervention.</li>" +
+            "<li><strong>P2</strong> — high; schedule within the planning cycle.</li>" +
+            "<li><strong>P3</strong> — medium; address at next planned cycle.</li>" +
+            "<li><strong>P4</strong> — low; normal monitoring.</li>" +
+            "<li><strong>P5</strong> — watch; routine surveillance only.</li>" +
+            "</ul>" +
+            "<h3>How the score is calculated</h3>" +
+            "<ol>" +
+            "<li><strong>Rate the consequences</strong> (1–5): Safety, Network, Financial, Environmental, Reputational. A weighted sum (Safety counts most) gives a <strong>seriousness tier</strong> 1–5.</li>" +
+            "<li><strong>Add likelihood of failure</strong> (1–5, derived from condition): <strong>Risk = likelihood × tier</strong>.</li>" +
+            "<li><strong>Blend</strong> into a 0–100 score: <strong>40% Risk + 40% seriousness + 20% strategy</strong> (Renew / Maintain / Monitor).</li>" +
+            "<li>The score lands in a band: <strong>P1 ≥ 80, P2 ≥ 60, P3 ≥ 40, P4 ≥ 20, P5 ≥ 0</strong>.</li>" +
+            "</ol>" +
+            "<p><em>Example: Safety 5, Network 4, condition 3/10, Renew → seriousness 3.9 → tier 4 → Risk 16 → score 72 → band P2.</em></p>" +
+            "<h3>Why it can be trusted</h3>" +
+            "<ul>" +
+            "<li><strong>Safety floors</strong> — a Critical-condition asset is forced to the top band; good scores cannot buy down a structural risk.</li>" +
+            "<li><strong>No silent zeros</strong> — missing data is flagged with an explicit policy, never quietly scored 0.</li>" +
+            "<li><strong>Reproducible</strong> — every run is frozen with its exact parameters; the number can be re-derived for audit.</li>" +
+            "<li><strong>Held for review</strong> — a yellow flag means a safety rule fired and an engineer must sign off before it drives spend.</li>" +
+            "</ul>" +
+            "<h3>How to use it</h3>" +
+            "<ol>" +
+            "<li><strong>Assess</strong> one asset (pre-fills register facts; add judgement; save), or</li>" +
+            "<li><strong>Score Fleet</strong> to rank the whole portfolio into P1&ndash;P5, then work the list top-down.</li>" +
+            "<li>Release held runs after engineering review; export the one-page <strong>Report</strong> for exec sign-off.</li>" +
+            "</ol>" +
+            "<h3>How to configure it</h3>" +
+            "<p>Open <strong>BMS Administration → Prioritisation Models</strong> to change the weights (per asset class too), the band cut-offs, and which model is active. Two models ship: the 5-factor <strong>NSW-RISK-V1</strong> (engineer judgement) and the 37-factor <strong>NSW-PACK-V1</strong> (auto-scores the whole fleet from data).</p>" +
+            "<p><em>To explain any single result: condition + consequence + which rule fired + which model. " +
+            "The run detail shows all four.</em></p>";
+          this._helpDialog = new Dialog({
+            title: "How bridge prioritisation works", contentWidth: "34rem", contentHeight: "30rem",
+            resizable: true, draggable: true, verticalScrolling: true,
+            content: [new FormattedText({ htmlText: html }).addStyleClass("sapUiSmallMargin")],
+            endButton: new Button({ text: "Close", press: function () { this._helpDialog.close(); }.bind(this) })
+          });
+          this.getView().addDependent(this._helpDialog);
+          this._helpDialog.open();
+        }.bind(this);
+        if (Dialog && Button && FormattedText) { build(Dialog, Button, FormattedText); }
+        else { sap.ui.require(["sap/m/Dialog", "sap/m/Button", "sap/m/FormattedText"], build); }
+      } else {
+        this._helpDialog.open();
+      }
     },
 
     // ── data loads (fetch; OData V4 model handles auth/session) ──
@@ -162,6 +234,62 @@ sap.ui.define([
           self._loadWorklist();
         })
         .catch(function (e) { MessageBox.error(rb.getText("worklist.releaseFailed", [e.message])); });
+    },
+
+    // ── HV-1: heavy-vehicle assessment tab ──────────────────────────────────────
+    _loadVehicles: function () {
+      var hv = this.getView().getModel("hv");
+      fetch("/odata/v4/admin/AssessmentVehicles?$filter=active eq true&$orderby=name", { headers: { Accept: "application/json" }, credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : { value: [] }; })
+        .then(function (d) { hv.setProperty("/vehicles", (d && d.value) || []); })
+        .catch(function () { /* vehicles optional */ });
+    },
+    onAssessVehicle: function () {
+      var self = this, hv = this.getView().getModel("hv");
+      var bridgeID = hv.getProperty("/bridgeID"), vehicleCode = hv.getProperty("/vehicleCode");
+      if (!bridgeID || !vehicleCode) { MessageToast.show(this._t("hv.pick")); return; }
+      fetch(this._svc + "/assessHeavyVehicle", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ bridgeID: Number(bridgeID), vehicleCode: vehicleCode })
+      })
+        .then(function (r) { return r.ok ? r.json() : r.json().then(function (b) { throw new Error((b.error && b.error.message) || r.statusText); }); })
+        .then(function (resp) {
+          var res = JSON.parse(resp.result);
+          var stateMap = { pass: "Success", conditional: "Warning", fail: "Error", "not-assessable": "None" };
+          hv.setProperty("/verdictText", String(res.verdict || "—").toUpperCase());
+          hv.setProperty("/verdictState", stateMap[res.verdict] || "None");
+          hv.setProperty("/governing", res.governingDetail ? (self._t("hv.governingPrefix") + " " + res.governingDetail) : "");
+          hv.setProperty("/checks", res.checks || []);
+        })
+        .catch(function (e) { MessageBox.error(e.message); });
+    },
+
+    // ── CAPEX-1: capital-program optimiser tab ──────────────────────────────────
+    onOptimiseCapital: function () {
+      var self = this, cx = this.getView().getModel("capex");
+      var budget = Number(cx.getProperty("/budget"));
+      if (!Number.isFinite(budget) || budget < 0) { MessageToast.show(this._t("capex.badBudget")); return; }
+      fetch(this._svc + "/optimiseCapitalProgram", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ budgetAud: budget, strategy: cx.getProperty("/strategy") || "greedy-bcr", fundingYear: cx.getProperty("/fundingYear") || null })
+      })
+        .then(function (r) { return r.ok ? r.json() : r.json().then(function (b) { throw new Error((b.error && b.error.message) || r.statusText); }); })
+        .then(function (resp) {
+          var res = JSON.parse(resp.result);
+          var fmt = function (n) { return "$" + Number(n || 0).toLocaleString(); };
+          cx.setProperty("/selected", res.selected || []);
+          // UAT P3-011: after running, distinguish "nothing funded" from the initial prompt.
+          cx.setProperty("/noDataText", (res.selected && res.selected.length) ? self._t("capex.noData") : self._t("capex.noneFunded"));
+          cx.setProperty("/spentText", fmt(res.spentAud) + " (" + (res.selectedCount || 0) + ")");
+          cx.setProperty("/remainingText", fmt(res.remainingAud));
+          cx.setProperty("/unfundedCount", (res.unfundedHighPriority || []).length);
+          cx.setProperty("/unfundedText", (res.unfundedHighPriority || []).length + " " + self._t("capex.p1p2"));
+        })
+        .catch(function (e) { MessageBox.error(e.message); });
+    },
+
+    _t: function (key) {
+      var rb = this.getView().getModel("i18n"); return rb ? rb.getResourceBundle().getText(key) : key;
     },
 
     // ── live client preview engine (mirrors srv/lib/prioritisation.js with the loaded config) ──
@@ -423,7 +551,7 @@ sap.ui.define([
           items.push(new sap.m.ObjectStatus({ text: fl, state: "Warning" }));
         });
       } else if (bd && bd.delegated) {
-        items.push(new sap.m.Text({ text: "Model: " + (r.modelCode || "NSW-RISK-V1") + " v" + (r.modelVersion || 1) + " (approved formula, delegated)", wrapping: true }).addStyleClass("sapUiTinyMarginTop sapUiContentLabelColor"));
+        items.push(new sap.m.Text({ text: "Model: " + (r.modelCode || "NSW-RISK-V1") + " v" + (r.modelVersion || 1) + " (baseline formula, delegated)", wrapping: true }).addStyleClass("sapUiTinyMarginTop sapUiContentLabelColor"));
       }
       items.push(new sap.m.Text({ text: methodology, wrapping: true }).addStyleClass("sapUiSmallMarginTop sapUiContentLabelColor"));
       var dlg = new sap.m.Dialog({

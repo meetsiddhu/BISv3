@@ -34,7 +34,7 @@
         <Panel headerText="About Demo Mode" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <VBox class="sapUiSmallMargin">
             <Text wrapping="true" class="sapUiSmallMarginBottom"
-              text="Demo Mode loads a curated dataset of real NSW bridge assets sourced from Transport for NSW public records. Use this when demonstrating BMS capabilities to stakeholders: the data reflects actual bridge locations, condition ratings, restriction classifications, and structural attributes across the NSW road network." />
+              text="Demo Mode loads a curated dataset of fictional, representative bridge assets. Use this when demonstrating BMS capabilities to stakeholders: the data illustrates typical bridge locations, condition ratings, restriction classifications, and structural attributes across a state road network. All names and locations are invented." />
             <Text wrapping="true" class="sapUiSmallMarginBottom"
               text="Loading demo data replaces the current bridge dataset. Clearing demo data removes all bridges and returns the system to an empty state ready for a production data load." />
             <MessageStrip
@@ -44,18 +44,18 @@
         </Panel>
 
         <!-- Demo Dataset Summary -->
-        <Panel headerText="NSW Demo Dataset" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+        <Panel headerText="Demo Dataset" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <VBox class="sapUiSmallMargin">
-            <Text text="The demo dataset includes 30 real NSW bridges across all geographic regions:" wrapping="true" class="sapUiSmallMarginBottom" />
+            <Text text="The demo dataset includes 30 fictional bridges across all geographic regions:" wrapping="true" class="sapUiSmallMarginBottom" />
             <f:SimpleForm layout="ColumnLayout" columnsM="2" columnsL="3" editable="false">
               <f:content>
-                <Label text="Sydney Metro" />       <Text text="7 bridges: Harbour Bridge, Anzac, Gladesville, Iron Cove, Mooney Mooney, Windsor, Ryde" />
-                <Label text="Hunter" />             <Text text="3 bridges: Hexham, Maitland Rail, Karuah River" />
-                <Label text="Northern NSW" />       <Text text="5 bridges: Grafton (Clarence), Manning River, Hastings River, Macleay River, Bellinger River" />
-                <Label text="New England / Western NSW" />  <Text text="3 bridges: Macquarie River (Dubbo), Namoi River, Peel River (Tamworth)" />
-                <Label text="Southern NSW / Illawarra" />   <Text text="4 bridges: Shoalhaven (Nowra), Clyde River, Moruya River, Bega River" />
-                <Label text="Far West / Riverina" />        <Text text="4 bridges: Darling River (Bourke), Lachlan River, Murrumbidgee (Wagga), Murray River (Albury)" />
-                <Label text="Central West / Other" />       <Text text="4 bridges: Fish River (Bathurst), Cox River, Murrumbidgee (Gundagai), Tumut River" />
+                <Label text="Sydney Metropolitan" />       <Text text="7 bridges: Harbour Gate, Blackwattle, Riverview Arch, Coxley Cove, Marlow Creek, Westbrook, Tarlington" />
+                <Label text="Hunter" />             <Text text="3 bridges: Heaton Bascule, Milfield Truss, Carwell River" />
+                <Label text="Northern NSW" />       <Text text="5 bridges: Clarendon, Tallowood River, Westhaven River, Greenbank River, Fernleigh River" />
+                <Label text="New England / Western NSW" />  <Text text="3 bridges: Stonebrook River, Cooradah River, Pendleton River" />
+                <Label text="Southern NSW / Illawarra" />   <Text text="4 bridges: Saltwater River, Oyster Bay, Merrindale River, Silverwood River" />
+                <Label text="Far West / Riverina" />        <Text text="4 bridges: Dryfield River, Wheatfield River, Bindaree River, Borderton" />
+                <Label text="Central West / Other" />       <Text text="4 bridges: Millbrook, Hartley Gorge, Riverford, Alpine Creek" />
               </f:content>
             </f:SimpleForm>
             <HBox class="sapUiSmallMarginTop" wrap="Wrap">
@@ -74,10 +74,10 @@
               <VBox class="sapUiMediumMarginEnd" width="18rem">
                 <Title text="Load Demo Data" level="H5" />
                 <Text wrapping="true" class="sapUiTinyMarginTop sapUiSmallMarginBottom"
-                  text="Clears current bridge data and loads 30 real NSW bridges from the Transport for NSW public asset dataset." />
+                  text="Clears current bridge data and loads 30 fictional demonstration bridges." />
                 <Button
                   id="btnLoadDemo"
-                  text="Load NSW Demo Data"
+                  text="Load Demo Data"
                   icon="sap-icon://begin"
                   type="Emphasized"
                   press=".onLoadDemoData"

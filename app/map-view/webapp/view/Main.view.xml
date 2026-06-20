@@ -52,7 +52,7 @@
                       <Text text="{i18n>bmOpenStreetMap}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
-                      selected="{= ${view>/basemap} === 'osm' || ${view>/basemap} === 'street' }">
+                      selected="{= ${view>/basemap} === 'osm' || ${view>/basemap} === 'street' }" tooltip="{i18n>bmOpenStreetMap}">
                       <customData><core:CustomData key="basemap" value="osm" /></customData>
                     </RadioButton>
                   </HBox>
@@ -62,7 +62,7 @@
                       <Text text="{i18n>bmEsriStreet}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
-                      selected="{= ${view>/basemap} === 'esriStreet' }">
+                      selected="{= ${view>/basemap} === 'esriStreet' }" tooltip="{i18n>bmEsriStreet}">
                       <customData><core:CustomData key="basemap" value="esriStreet" /></customData>
                     </RadioButton>
                   </HBox>
@@ -72,7 +72,7 @@
                       <Text text="{i18n>bmGoogleMaps}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
-                      selected="{= ${view>/basemap} === 'google' }">
+                      selected="{= ${view>/basemap} === 'google' }" tooltip="{i18n>bmGoogleMaps}">
                       <customData><core:CustomData key="basemap" value="google" /></customData>
                     </RadioButton>
                   </HBox>
@@ -84,7 +84,7 @@
                       <Text text="{i18n>bmEsriSatellite}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
-                      selected="{= ${view>/basemap} === 'esriSatellite' || ${view>/basemap} === 'satellite' }">
+                      selected="{= ${view>/basemap} === 'esriSatellite' || ${view>/basemap} === 'satellite' }" tooltip="{i18n>bmEsriSatellite}">
                       <customData><core:CustomData key="basemap" value="esriSatellite" /></customData>
                     </RadioButton>
                   </HBox>
@@ -94,7 +94,7 @@
                       <Text text="{i18n>bmGoogleSatellite}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
-                      selected="{= ${view>/basemap} === 'googleSat' }">
+                      selected="{= ${view>/basemap} === 'googleSat' }" tooltip="{i18n>bmGoogleSatellite}">
                       <customData><core:CustomData key="basemap" value="googleSat" /></customData>
                     </RadioButton>
                   </HBox>
@@ -106,7 +106,7 @@
                       <Text text="{i18n>bmEsriTopo}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
-                      selected="{= ${view>/basemap} === 'esriTopo' }">
+                      selected="{= ${view>/basemap} === 'esriTopo' }" tooltip="{i18n>bmEsriTopo}">
                       <customData><core:CustomData key="basemap" value="esriTopo" /></customData>
                     </RadioButton>
                   </HBox>
@@ -116,7 +116,7 @@
                       <Text text="{i18n>bmHereMaps}" class="nhvrLayerLabel" />
                     </HBox>
                     <RadioButton groupName="basemapGroup" select=".onBasemapChange"
-                      selected="{= ${view>/basemap} === 'here' }">
+                      selected="{= ${view>/basemap} === 'here' }" tooltip="{i18n>bmHereMaps}">
                       <customData><core:CustomData key="basemap" value="here" /></customData>
                     </RadioButton>
                   </HBox>
@@ -133,7 +133,7 @@
                       <core:Icon src="sap-icon://world" size="0.875rem" class="nhvrLayerIcon" />
                       <Text text="{i18n>refStateBoundaries}" class="nhvrLayerLabel" />
                     </HBox>
-                    <Switch state="{view>/layers/refLayers/stateBoundaries}" change=".onToggleRefLayer">
+                    <Switch state="{view>/layers/refLayers/stateBoundaries}" change=".onToggleRefLayer" tooltip="{i18n>refStateBoundaries}">
                       <customData><core:CustomData key="layerKey" value="stateBoundaries" /></customData>
                     </Switch>
                   </HBox>
@@ -143,7 +143,7 @@
                       <core:Icon src="sap-icon://geographic-bubble-chart" size="0.875rem" class="nhvrLayerIcon" />
                       <Text text="{i18n>refLgaBoundaries}" class="nhvrLayerLabel" />
                     </HBox>
-                    <Switch state="{view>/layers/refLayers/lgaBoundaries}" change=".onToggleRefLayer">
+                    <Switch state="{view>/layers/refLayers/lgaBoundaries}" change=".onToggleRefLayer" tooltip="{i18n>refLgaBoundaries}">
                       <customData><core:CustomData key="layerKey" value="lgaBoundaries" /></customData>
                     </Switch>
                   </HBox>
@@ -166,7 +166,7 @@
                                       <Text text="{view>name}" class="nhvrLayerLabel" />
                                       <Text text="{view>description}" class="nhvrGisToolHint" maxLines="2" />
                                     </VBox>
-                                    <Switch state="{view>sessionActive}" change=".onToggleDynamicRefLayer">
+                                    <Switch state="{view>sessionActive}" change=".onToggleDynamicRefLayer" tooltip="{view>name}">
                                       <customData><core:CustomData key="layerId" value="{view>ID}" /></customData>
                                     </Switch>
                                   </HBox>
@@ -189,7 +189,7 @@
                   <VBox class="nhvrLayerGroup">
                     <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerGroupHeader">
                       <HBox alignItems="Center">
-                        <CheckBox selected="{view>/layers/bridges/visible}" select=".onToggleBridgeLayer" />
+                        <CheckBox selected="{view>/layers/bridges/visible}" select=".onToggleBridgeLayer" tooltip="{i18n>layerBridges}" />
                         <core:Icon src="sap-icon://map-2" size="1rem" class="nhvrLayerIcon" />
                         <Title text="{i18n>layerBridges}" level="H6" class="nhvrLayerGroupTitle" />
                       </HBox>
@@ -201,8 +201,8 @@
                         <CheckBox text="{i18n>clusterMarkers}" selected="{view>/layers/bridges/cluster}" select=".onToggleBridgeCluster" class="nhvrLayerSubOption" />
                         <CheckBox text="{i18n>showLabels}" selected="{view>/layers/bridges/showLabels}" select=".onToggleBridgeLabels" class="nhvrLayerSubOption" />
                         <HBox alignItems="Center" class="nhvrLayerSubOption nhvrColorByRow">
-                          <Label text="{i18n>colorByLabel}" class="nhvrLayerSubLabel" />
-                          <SegmentedButton selectedKey="{view>/layers/bridges/colorBy}" selectionChange=".onBridgeColorByChange" class="nhvrLayerColorBy">
+                          <Label id="nhvrColorByLabel" text="{i18n>colorByLabel}" class="nhvrLayerSubLabel" />
+                          <SegmentedButton selectedKey="{view>/layers/bridges/colorBy}" selectionChange=".onBridgeColorByChange" ariaLabelledBy="nhvrColorByLabel" class="nhvrLayerColorBy">
                             <items>
                               <SegmentedButtonItem key="condition" text="{i18n>segCondition}" />
                               <SegmentedButtonItem key="status" text="{i18n>segStatus}" />
@@ -217,7 +217,7 @@
                   <VBox class="nhvrLayerGroup">
                     <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerGroupHeader">
                       <HBox alignItems="Center">
-                        <CheckBox selected="{view>/layers/restrictions/visible}" select=".onToggleRestrictionLayer" />
+                        <CheckBox selected="{view>/layers/restrictions/visible}" select=".onToggleRestrictionLayer" tooltip="{i18n>layerRestrictions}" />
                         <core:Icon src="sap-icon://warning" size="1rem" class="nhvrLayerIcon nhvrLayerIconWarning" />
                         <Title text="{i18n>layerRestrictions}" level="H6" class="nhvrLayerGroupTitle" />
                       </HBox>
@@ -235,7 +235,7 @@
                         <core:Icon src="sap-icon://map-3" size="1rem" class="nhvrLayerIcon" />
                         <Title text="{i18n>layerTerrainHillshade}" level="H6" class="nhvrLayerGroupTitle" />
                       </HBox>
-                      <Switch state="{view>/layers/showHillshade}" change=".onToggleHillshadeLayer" />
+                      <Switch state="{view>/layers/showHillshade}" change=".onToggleHillshadeLayer" tooltip="{i18n>layerTerrainHillshade}" />
                     </HBox>
                   </VBox>
                 </VBox>
@@ -282,8 +282,8 @@
             <Panel class="nhvrSidebarPanel" expandable="true" expanded="false" headerText="{i18n>legendSymbology}">
               <content>
                 <VBox class="nhvrFilterSection">
-                  <Label text="{i18n>featureColorBy}" class="nhvrFilterLabel" />
-                  <SegmentedButton selectedKey="{view>/colorBy}" selectionChange=".onSymbologyChange" width="100%" class="nhvrSymbologyButton">
+                  <Label id="nhvrFeatureColorBy" text="{i18n>featureColorBy}" class="nhvrFilterLabel" />
+                  <SegmentedButton selectedKey="{view>/colorBy}" selectionChange=".onSymbologyChange" width="100%" ariaLabelledBy="nhvrFeatureColorBy" class="nhvrSymbologyButton">
                     <items>
                       <SegmentedButtonItem key="status" text="{i18n>colorByStatus}" icon="sap-icon://status-positive" />
                       <SegmentedButtonItem key="condition" text="{i18n>colorByCondition}" icon="sap-icon://quality-issue" />
@@ -344,7 +344,7 @@
                       </HBox>
                       <Text text="{i18n>heatmapHint}" class="nhvrGisToolHint" />
                     </VBox>
-                    <Switch state="{view>/heatmapActive}" change=".onToggleHeatmap" />
+                    <Switch state="{view>/heatmapActive}" change=".onToggleHeatmap" tooltip="{i18n>heatmap}" />
                   </HBox>
                   <!-- Condition Alerts -->
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrGisToolRow" visible="{view>/features/conditionAlerts}">
@@ -355,7 +355,7 @@
                       </HBox>
                       <Text text="{i18n>conditionAlertsHint}" class="nhvrGisToolHint" />
                     </VBox>
-                    <Switch state="{view>/conditionAlertsActive}" change=".onToggleConditionAlerts" />
+                    <Switch state="{view>/conditionAlertsActive}" change=".onToggleConditionAlerts" tooltip="{i18n>conditionAlerts}" />
                   </HBox>
                   <!-- Minimap -->
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrGisToolRow" visible="{view>/features/minimap}">
@@ -366,7 +366,7 @@
                       </HBox>
                       <Text text="{i18n>minimapHint}" class="nhvrGisToolHint" />
                     </VBox>
-                    <Switch state="{view>/minimapActive}" change=".onToggleMinimap" />
+                    <Switch state="{view>/minimapActive}" change=".onToggleMinimap" tooltip="{i18n>minimapLabel}" />
                   </HBox>
                   <!-- Viewport loading -->
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrLayerRow nhvrGisToolRow">
@@ -377,7 +377,7 @@
                       </HBox>
                       <Text text="{i18n>viewportHint}" class="nhvrGisToolHint" />
                     </VBox>
-                    <Switch state="{view>/viewportMode}" change=".onToggleViewportMode" />
+                    <Switch state="{view>/viewportMode}" change=".onToggleViewportMode" tooltip="{i18n>viewportLoading}" />
                   </HBox>
                 </VBox>
               </content>
@@ -389,9 +389,9 @@
               <content>
                 <VBox class="nhvrFilterSection">
                   <Text text="{i18n>proximityIntro}" class="nhvrLayerHint sapUiSmallMarginBottom" />
-                  <Label text="{i18n>latitude}" class="nhvrFilterLabel" />
+                  <Label text="{i18n>latitude}" labelFor="proxLat" class="nhvrFilterLabel" />
                   <Input id="proxLat" value="{view>/proximity/lat}" placeholder="-33.8688" width="100%" />
-                  <Label text="{i18n>longitude}" class="nhvrFilterLabel nhvrFilterLabelTop" />
+                  <Label text="{i18n>longitude}" labelFor="proxLng" class="nhvrFilterLabel nhvrFilterLabelTop" />
                   <Input id="proxLng" value="{view>/proximity/lng}" placeholder="151.2093" width="100%" />
                   <Label text="{i18n>radiusKm}" class="nhvrFilterLabel nhvrFilterLabelTop" />
                   <StepInput id="proxRadius" value="{view>/proximity/radius}" min="1" max="500" step="5" width="100%" />
@@ -552,8 +552,8 @@
 
             <VBox visible="{view>/showList}" class="nhvrListPanel">
               <Toolbar class="nhvrVariantBar">
-                <Text text="{i18n>viewLabel}" class="nhvrVariantLabel" />
-                <Select width="10rem" selectedKey="standard">
+                <Text id="nhvrViewLabel" text="{i18n>viewLabel}" class="nhvrVariantLabel" />
+                <Select width="10rem" selectedKey="standard" ariaLabelledBy="nhvrViewLabel">
                   <items>
                     <core:Item key="standard" text="{i18n>standardView}" />
                   </items>
@@ -563,7 +563,7 @@
               </Toolbar>
 
               <Toolbar design="Solid" class="nhvrListToolbar">
-                <SearchField width="14rem" placeholder="{i18n>bridgeName}" search=".onListSearch" liveChange=".onListSearchLive" />
+                <SearchField width="14rem" placeholder="{i18n>bridgeName}" tooltip="{i18n>bridgeName}" search=".onListSearch" liveChange=".onListSearchLive" />
                 <ToolbarSpacer />
                 <Button icon="sap-icon://full-screen" tooltip="{i18n>centerMap}" press=".onZoomAll" type="Transparent" />
               </Toolbar>

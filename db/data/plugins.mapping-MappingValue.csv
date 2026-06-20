@@ -1,0 +1,12 @@
+ID,domain_ID,sourceKey,targetKey,description,transformRule,active
+e0000001-0000-4000-8000-000000000001,d0000001-0000-4000-8000-000000000001,BridgeInspections:inspectionType:Routine,ILART:PM01,Routine inspection to EAM activity type PM01,,true
+e0000001-0000-4000-8000-000000000002,d0000001-0000-4000-8000-000000000001,BridgeInspections:inspectionType:Principal,ILART:PM02,Principal inspection to EAM activity type PM02,,true
+e0000001-0000-4000-8000-000000000003,d0000001-0000-4000-8000-000000000001,BridgeInspections:inspectionType:Detailed,ILART:PM03,Detailed inspection to EAM activity type PM03,,true
+e0000001-0000-4000-8000-000000000004,d0000001-0000-4000-8000-000000000001,BridgeDefects:defectType:Cracking,QMART:M2,Structural cracking to EAM notification type M2,,true
+e0000001-0000-4000-8000-000000000005,d0000001-0000-4000-8000-000000000001,BridgeDefects:defectType:Corrosion,QMART:M2,Corrosion defect to EAM notification type M2,,true
+e0000001-0000-4000-8000-000000000006,d0000001-0000-4000-8000-000000000001,Bridges:postingStatus:Closed,TPLNR:INACT,Closed bridge to EAM functional location status INACT,,true
+e0000001-0000-4000-8000-000000000011,d0000001-0000-4000-8000-000000000002,Bridges:bridgeName,FunctionalLocation:PLTXT,Bridge name to EAM functional location description,,true
+e0000001-0000-4000-8000-000000000012,d0000001-0000-4000-8000-000000000002,Bridges:eamFlocId,FunctionalLocation:TPLNR,Functional location key link,,true
+e0000001-0000-4000-8000-000000000013,d0000001-0000-4000-8000-000000000002,Bridges:conditionRating,Equipment:EQART,Condition synced from EAM equipment classification,,true
+e0000001-0000-4000-8000-000000000014,d0000001-0000-4000-8000-000000000002,BridgeInspections:inspectionDate,MaintenanceOrder:GSTRP,Inspection date to EAM order basic start,,true
+e0000001-0000-4000-8000-000000000015,d0000001-0000-4000-8000-000000000002,BridgeDefects:defectType,Notification:QMART,Defect type to EAM notification type,,true

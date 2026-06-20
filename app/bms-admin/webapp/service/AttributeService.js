@@ -66,6 +66,11 @@ sap.ui.define([], function () {
       createConfig: function (data) { return post(A + "/AttributeObjectTypeConfig", data); },
       updateConfig: function (id, data) { return patch(A + "/AttributeObjectTypeConfig('" + id + "')", data); },
 
+      // Asset classes for the class-scope selector (ATTR-1). Read-only lookup.
+      listAssetClasses: function () {
+        return get(A + "/AssetClasses?$orderby=code").then(function (d) { return d.value || []; });
+      },
+
       // ── Bulk template + import (mass create / maintain values) ─────────────
       templateUrl: function (objectType) {
         return X + "/template?objectType=" + encodeURIComponent(objectType) + "&format=xlsx";

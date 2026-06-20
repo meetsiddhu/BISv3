@@ -46,7 +46,7 @@ The architecture lens confirms clean-core is **genuinely intact and server-enfor
 **Decision:** The two DEFECTs are blocking and must be fixed before any top-1% claim. The four debts are acceptable *only if each is explicitly recorded and test-guarded* — the danger is that the launchpad and supersededBy items were *believed done* (PREMORTEM asserts both), which is worse than known debt.
 
 ### (d) Domain completeness vs MVP scope — rail / scenario / deterioration / outbound deferrals
-**Mostly defensible deferrals, with one hole.** Deferring EAM-outbound (queued local `EamWorkRequest`), XSUAA scope, scenario modelling and deterioration curves is **defensible MVP scope** and the architecture preserves the seam to add them. The domain lens treats the absent TfNSW inspection-level / BHI / NHVR-scheme structure as *advisory metadata* (improvement, not blocking) — acceptable. 
+**Mostly defensible deferrals, with one hole.** Deferring EAM-outbound (queued local `EamWorkRequest`), XSUAA scope, scenario modelling and deterioration curves is **defensible MVP scope** and the architecture preserves the seam to add them. The domain lens treats the absent inspection-level / BHI / NHVR-scheme structure as *advisory metadata* (improvement, not blocking) — acceptable. 
 **The hole:** the C-level lens shows the **$8.4m budget line was an *approved, board-facing requirement* that was dropped *without a recorded decision*** — it is absent from the PREMORTEM "Deferred (per approved spec)" list. 
 **Decision:** Deferrals are fine *when recorded*. The budget line is **not a defensible deferral** because (i) it was approved, (ii) it answers the single most important C-level question, and (iii) its omission was invisible. Restore it, or record an explicit product-owner decision with rationale. 
 **Named trade-off:** Silent deviation from an approved design is itself a governance defect, independent of the merits of the feature.
@@ -110,7 +110,7 @@ All gaps deduped and ordered. Lens key: **D**=Domain, **A**=Architecture, **U**=
 | 15 | Client re-implements scoring engine (drift risk) | Expose a server `computePreview` action **or** share `srv/lib/prioritisation.js` as a module; add a client≡server contract test | A |
 | 16 | `paramSnapshot` stored but never replayed; no code↔`formulaVersion` guard | Add replay-from-snapshot test + frozen golden-vector test keyed to `FORMULA_VERSION` | A |
 | 17 | Strategy-urgency inverts line-of-sight (Decommission 30 > Monitor 20) | Document the urgency-ladder rationale or re-order (Monitor ≥ Decommission); state the objective each strategy serves | D |
-| 18 | No TfNSW inspection-level / BHI / NHVR-scheme structure | Add config-driven `inspectionLevel` codelist tied to condition; replace `nhvrAssessed` boolean with a scheme codelist (advisory) | D |
+| 18 | No inspection-level / BHI / NHVR-scheme structure | Add config-driven `inspectionLevel` codelist tied to condition; replace `nhvrAssessed` boolean with a scheme codelist (advisory) | D |
 | 19 | "Assessed" KPI undercounts — no denominator | Show "Assessed N of M bridges (X% of portfolio)"; flag un-assessed remainder | C |
 | 20 | Export is browser print-to-PDF, not branded/archivable | Server-side branded paginated PDF (doc id, logo, A4); track current as MVP-only | C |
 | 21 | Budget-line drop was undocumented deviation | Record explicit product-owner decision in deferred list (if not restoring) | C |
@@ -207,6 +207,6 @@ All 13 roadmap "blocks-top-1%" items resolved (#1 was empirically false — the 
 | 13 | No loading/error states | busy + error MessageStrip on worklist load | code |
 | 14 | Override needs no reason | server rejects override w/o reason + client block | test |
 
-Improvements/polish from the roadmap remain as a tracked backlog (TfNSW inspection-level codelist,
+Improvements/polish from the roadmap remain as a tracked backlog (inspection-level codelist,
 as-of-date list reproduction, server-rendered branded PDF, client≡server contract test,
 strategy-urgency ladder rationale). Verify: 17 suites / 163 tests; eslint 0/0; deployed v3.9.30.

@@ -4,7 +4,7 @@
  *
  * Generates a realistic mass-upload CSV for NSW (and optionally other states)
  * at scale matching real asset register volumes:
- *   NSW  ~5,400 bridges (TfNSW state roads + local roads)
+ *   NSW  ~5,400 bridges (state roads + local roads)
  *   VIC  ~2,800 bridges
  *   QLD  ~2,200 bridges
  *   SA   ~1,100 bridges
@@ -21,9 +21,9 @@
  *
  * Source basis:
  *   - Geographic distribution: ABS Statistical Areas Level 3 (SA3) for NSW
- *   - Bridge counts per LGA: TfNSW Bridge Asset Register (2023 annual report)
+ *   - Bridge counts per LGA: representative figures modelled on published state asset statistics
  *   - Structure type distribution: Austroads Bridge Condition Report 2022
- *   - Age distribution: TfNSW Infrastructure Condition Report 2023
+ *   - Age distribution: modelled on published infrastructure condition statistics
  *   - All synthetic records are clearly marked dataSource=Generated/Synthetic
  */
 
@@ -38,104 +38,104 @@ const OUT    = argVal('--out', null)
 const COUNT_OVERRIDE = argVal('--count', null)
 
 // ─── Geographic data ──────────────────────────────────────────────────────────
-// Real NSW LGAs with approximate bridge counts from TfNSW asset data
+// NSW LGAs with representative (synthetic) bridge counts
 // lat/lng centroids are approximate LGA centres (GDA2020)
 const NSW_LGAS = [
-    { lga: 'Albury City',          region: 'Murray',          lat: -36.080, lng: 146.916, bridges: 85,  assetOwner: 'Transport for NSW' },
-    { lga: 'Armidale Regional',    region: 'Northern Tablelands', lat: -30.512, lng: 151.667, bridges: 72,  assetOwner: 'Transport for NSW' },
-    { lga: 'Ballina',              region: 'Northern NSW',    lat: -28.866, lng: 153.560, bridges: 45,  assetOwner: 'Transport for NSW' },
-    { lga: 'Bathurst Regional',    region: 'Central West',    lat: -33.420, lng: 149.578, bridges: 68,  assetOwner: 'Transport for NSW' },
-    { lga: 'Bega Valley',          region: 'South East NSW',  lat: -36.674, lng: 149.843, bridges: 55,  assetOwner: 'Transport for NSW' },
-    { lga: 'Bellingen',            region: 'Mid North Coast', lat: -30.456, lng: 152.899, bridges: 38,  assetOwner: 'Transport for NSW' },
-    { lga: 'Berrigan',             region: 'Murray',          lat: -35.658, lng: 145.017, bridges: 42,  assetOwner: 'Transport for NSW' },
-    { lga: 'Blacktown City',       region: 'Sydney Metro',    lat: -33.770, lng: 150.906, bridges: 120, assetOwner: 'Transport for NSW' },
-    { lga: 'Blue Mountains City',  region: 'Blue Mountains',  lat: -33.718, lng: 150.312, bridges: 65,  assetOwner: 'Transport for NSW' },
-    { lga: 'Broken Hill City',     region: 'Far West NSW',    lat: -31.958, lng: 141.453, bridges: 18,  assetOwner: 'Transport for NSW' },
-    { lga: 'Byron',                region: 'Northern NSW',    lat: -28.648, lng: 153.608, bridges: 30,  assetOwner: 'Transport for NSW' },
-    { lga: 'Camden',               region: 'South West Sydney', lat: -34.063, lng: 150.700, bridges: 90,  assetOwner: 'Transport for NSW' },
-    { lga: 'Canada Bay',           region: 'Sydney Metro',    lat: -33.852, lng: 151.150, bridges: 15,  assetOwner: 'Transport for NSW' },
-    { lga: 'Canterbury-Bankstown', region: 'South West Sydney', lat: -33.920, lng: 151.034, bridges: 70,  assetOwner: 'Transport for NSW' },
-    { lga: 'Central Coast',        region: 'Central Coast',   lat: -33.428, lng: 151.342, bridges: 150, assetOwner: 'Transport for NSW' },
-    { lga: 'Cessnock City',        region: 'Hunter',          lat: -32.833, lng: 151.354, bridges: 60,  assetOwner: 'Transport for NSW' },
-    { lga: 'City of Sydney',       region: 'Sydney Metro',    lat: -33.869, lng: 151.209, bridges: 55,  assetOwner: 'City of Sydney Council' },
-    { lga: 'Clarence Valley',      region: 'Northern NSW',    lat: -29.458, lng: 152.933, bridges: 95,  assetOwner: 'Transport for NSW' },
-    { lga: 'Cooma-Monaro',         region: 'South East NSW',  lat: -36.236, lng: 149.124, bridges: 48,  assetOwner: 'Transport for NSW' },
-    { lga: 'Cootamundra-Gundagai', region: 'South West NSW',  lat: -34.649, lng: 148.039, bridges: 65,  assetOwner: 'Transport for NSW' },
-    { lga: 'Cowra',                region: 'Central West',    lat: -33.826, lng: 148.691, bridges: 40,  assetOwner: 'Transport for NSW' },
-    { lga: 'Dubbo Regional',       region: 'Western NSW',     lat: -32.240, lng: 148.601, bridges: 75,  assetOwner: 'Transport for NSW' },
-    { lga: 'Edward River',         region: 'Murrumbidgee',    lat: -35.536, lng: 144.758, bridges: 35,  assetOwner: 'Transport for NSW' },
-    { lga: 'Eurobodalla',          region: 'South East NSW',  lat: -35.972, lng: 150.129, bridges: 58,  assetOwner: 'Transport for NSW' },
-    { lga: 'Forbes',               region: 'Central West',    lat: -33.386, lng: 147.966, bridges: 30,  assetOwner: 'Transport for NSW' },
-    { lga: 'Georges River',        region: 'South Sydney',    lat: -33.968, lng: 151.096, bridges: 40,  assetOwner: 'Transport for NSW' },
-    { lga: 'Glen Innes Severn',    region: 'Northern Tablelands', lat: -29.736, lng: 151.732, bridges: 44,  assetOwner: 'Transport for NSW' },
-    { lga: 'Goulburn Mulwaree',    region: 'South West NSW',  lat: -34.751, lng: 149.719, bridges: 55,  assetOwner: 'Transport for NSW' },
-    { lga: 'Greater Hume',         region: 'Murray',          lat: -35.836, lng: 147.074, bridges: 62,  assetOwner: 'Transport for NSW' },
-    { lga: 'Griffith City',        region: 'Murrumbidgee',    lat: -34.288, lng: 146.052, bridges: 45,  assetOwner: 'Transport for NSW' },
-    { lga: 'Hawkesbury City',      region: 'Sydney Metro',    lat: -33.554, lng: 150.753, bridges: 75,  assetOwner: 'Transport for NSW' },
-    { lga: 'Hilltops',             region: 'South West NSW',  lat: -34.293, lng: 148.451, bridges: 55,  assetOwner: 'Transport for NSW' },
-    { lga: 'Hunter Valley',        region: 'Hunter',          lat: -32.508, lng: 151.046, bridges: 80,  assetOwner: 'Transport for NSW' },
-    { lga: 'Inverell',             region: 'Northern Tablelands', lat: -29.771, lng: 151.112, bridges: 48,  assetOwner: 'Transport for NSW' },
-    { lga: 'Kempsey',              region: 'Mid North Coast', lat: -30.921, lng: 152.838, bridges: 60,  assetOwner: 'Transport for NSW' },
-    { lga: 'Kiama',                region: 'Illawarra',       lat: -34.671, lng: 150.855, bridges: 28,  assetOwner: 'Transport for NSW' },
-    { lga: 'Kyogle',               region: 'Northern NSW',    lat: -28.621, lng: 153.001, bridges: 50,  assetOwner: 'Transport for NSW' },
-    { lga: 'Lachlan',              region: 'Central West',    lat: -33.424, lng: 147.371, bridges: 42,  assetOwner: 'Transport for NSW' },
-    { lga: 'Lake Macquarie City',  region: 'Hunter',          lat: -33.075, lng: 151.594, bridges: 80,  assetOwner: 'Transport for NSW' },
-    { lga: 'Leeton',               region: 'Murrumbidgee',    lat: -34.553, lng: 146.410, bridges: 22,  assetOwner: 'Transport for NSW' },
-    { lga: 'Lismore City',         region: 'Northern NSW',    lat: -28.814, lng: 153.275, bridges: 55,  assetOwner: 'Transport for NSW' },
-    { lga: 'Lithgow City',         region: 'Central West',    lat: -33.483, lng: 150.157, bridges: 52,  assetOwner: 'Transport for NSW' },
-    { lga: 'Liverpool City',       region: 'South West Sydney', lat: -33.921, lng: 150.924, bridges: 100, assetOwner: 'Transport for NSW' },
-    { lga: 'Liverpool Plains',     region: 'North West NSW',  lat: -31.462, lng: 150.359, bridges: 45,  assetOwner: 'Transport for NSW' },
-    { lga: 'MidCoast',             region: 'Mid North Coast', lat: -32.148, lng: 152.347, bridges: 85,  assetOwner: 'Transport for NSW' },
-    { lga: 'Maitland City',        region: 'Hunter',          lat: -32.733, lng: 151.558, bridges: 65,  assetOwner: 'Transport for NSW' },
-    { lga: 'Mid-Western Regional', region: 'Central West',    lat: -32.567, lng: 149.600, bridges: 60,  assetOwner: 'Transport for NSW' },
-    { lga: 'Moree Plains',         region: 'North West NSW',  lat: -29.463, lng: 149.843, bridges: 50,  assetOwner: 'Transport for NSW' },
-    { lga: 'Murray River',         region: 'Murray',          lat: -35.325, lng: 143.918, bridges: 45,  assetOwner: 'Transport for NSW' },
-    { lga: 'Murrumbidgee',         region: 'Murrumbidgee',    lat: -34.674, lng: 145.618, bridges: 38,  assetOwner: 'Transport for NSW' },
-    { lga: 'Muswellbrook',         region: 'Hunter',          lat: -32.269, lng: 150.889, bridges: 35,  assetOwner: 'Transport for NSW' },
-    { lga: 'Nambucca Valley',      region: 'Mid North Coast', lat: -30.641, lng: 152.977, bridges: 42,  assetOwner: 'Transport for NSW' },
-    { lga: 'Narrabri',             region: 'North West NSW',  lat: -30.323, lng: 149.786, bridges: 48,  assetOwner: 'Transport for NSW' },
-    { lga: 'Narromine',            region: 'Western NSW',     lat: -32.232, lng: 148.238, bridges: 28,  assetOwner: 'Transport for NSW' },
-    { lga: 'Newcastle City',       region: 'Hunter',          lat: -32.927, lng: 151.776, bridges: 90,  assetOwner: 'Transport for NSW' },
-    { lga: 'Northern Beaches',     region: 'Sydney Metro',    lat: -33.739, lng: 151.281, bridges: 85,  assetOwner: 'Transport for NSW' },
-    { lga: 'Oberon',               region: 'Central West',    lat: -33.702, lng: 149.858, bridges: 35,  assetOwner: 'Transport for NSW' },
-    { lga: 'Orange City',          region: 'Central West',    lat: -33.283, lng: 149.099, bridges: 55,  assetOwner: 'Transport for NSW' },
-    { lga: 'Parkes',               region: 'Central West',    lat: -33.133, lng: 148.174, bridges: 38,  assetOwner: 'Transport for NSW' },
-    { lga: 'Penrith City',         region: 'Western Sydney',  lat: -33.751, lng: 150.694, bridges: 110, assetOwner: 'Transport for NSW' },
-    { lga: 'Port Macquarie-Hastings', region: 'Mid North Coast', lat: -31.430, lng: 152.908, bridges: 90, assetOwner: 'Transport for NSW' },
-    { lga: 'Port Stephens',        region: 'Hunter',          lat: -32.725, lng: 152.152, bridges: 55,  assetOwner: 'Transport for NSW' },
-    { lga: 'Queanbeyan-Palerang',  region: 'Capital Region',  lat: -35.353, lng: 149.234, bridges: 68,  assetOwner: 'Transport for NSW' },
-    { lga: 'Randwick City',        region: 'Sydney Metro',    lat: -33.918, lng: 151.239, bridges: 25,  assetOwner: 'Transport for NSW' },
-    { lga: 'Richmond Valley',      region: 'Northern NSW',    lat: -28.992, lng: 153.029, bridges: 52,  assetOwner: 'Transport for NSW' },
-    { lga: 'Shoalhaven City',      region: 'South East NSW',  lat: -34.905, lng: 150.580, bridges: 95,  assetOwner: 'Transport for NSW' },
-    { lga: 'Singleton',            region: 'Hunter',          lat: -32.565, lng: 151.170, bridges: 45,  assetOwner: 'Transport for NSW' },
-    { lga: 'Snowy Monaro',         region: 'Capital Region',  lat: -36.454, lng: 149.094, bridges: 62,  assetOwner: 'Transport for NSW' },
-    { lga: 'Snowy Valleys',        region: 'Murrumbidgee',    lat: -35.454, lng: 148.080, bridges: 58,  assetOwner: 'Transport for NSW' },
-    { lga: 'Strathfield',          region: 'Sydney Metro',    lat: -33.874, lng: 151.094, bridges: 12,  assetOwner: 'Transport for NSW' },
-    { lga: 'Sutherland Shire',     region: 'Sydney Metro',    lat: -34.032, lng: 151.058, bridges: 60,  assetOwner: 'Transport for NSW' },
-    { lga: 'Tamworth Regional',    region: 'North West NSW',  lat: -31.093, lng: 150.930, bridges: 78,  assetOwner: 'Transport for NSW' },
-    { lga: 'Temora',               region: 'Murrumbidgee',    lat: -34.449, lng: 147.535, bridges: 32,  assetOwner: 'Transport for NSW' },
-    { lga: 'Tenterfield',          region: 'Northern Tablelands', lat: -29.042, lng: 152.021, bridges: 44,  assetOwner: 'Transport for NSW' },
-    { lga: 'The Hills Shire',      region: 'Sydney Metro',    lat: -33.688, lng: 151.001, bridges: 95,  assetOwner: 'Transport for NSW' },
-    { lga: 'Tweed',                region: 'Northern NSW',    lat: -28.178, lng: 153.488, bridges: 65,  assetOwner: 'Transport for NSW' },
-    { lga: 'Unincorporated Far West', region: 'Far West NSW', lat: -30.858, lng: 142.756, bridges: 22, assetOwner: 'Transport for NSW' },
-    { lga: 'Upper Hunter',         region: 'Hunter',          lat: -32.100, lng: 150.546, bridges: 48,  assetOwner: 'Transport for NSW' },
-    { lga: 'Upper Lachlan',        region: 'South West NSW',  lat: -34.317, lng: 149.400, bridges: 42,  assetOwner: 'Transport for NSW' },
-    { lga: 'Uralla',               region: 'Northern Tablelands', lat: -30.639, lng: 151.498, bridges: 30,  assetOwner: 'Transport for NSW' },
-    { lga: 'Wagga Wagga City',     region: 'Murrumbidgee',    lat: -35.116, lng: 147.372, bridges: 72,  assetOwner: 'Transport for NSW' },
-    { lga: 'Walcha',               region: 'Northern Tablelands', lat: -30.989, lng: 151.601, bridges: 35,  assetOwner: 'Transport for NSW' },
-    { lga: 'Walgett',              region: 'Western NSW',     lat: -29.979, lng: 148.119, bridges: 28,  assetOwner: 'Transport for NSW' },
-    { lga: 'Warren',               region: 'Western NSW',     lat: -31.702, lng: 147.836, bridges: 22,  assetOwner: 'Transport for NSW' },
-    { lga: 'Weddin',               region: 'Central West',    lat: -33.965, lng: 148.115, bridges: 25,  assetOwner: 'Transport for NSW' },
-    { lga: 'Wentworth',            region: 'Far West NSW',    lat: -34.106, lng: 141.913, bridges: 30,  assetOwner: 'Transport for NSW' },
-    { lga: 'Willoughby City',      region: 'Sydney Metro',    lat: -33.793, lng: 151.203, bridges: 22,  assetOwner: 'Transport for NSW' },
-    { lga: 'Wingecarribee',        region: 'South West NSW',  lat: -34.551, lng: 150.399, bridges: 72,  assetOwner: 'Transport for NSW' },
-    { lga: 'Wollondilly',          region: 'South West NSW',  lat: -34.199, lng: 150.471, bridges: 62,  assetOwner: 'Transport for NSW' },
-    { lga: 'Wollongong City',      region: 'Illawarra',       lat: -34.424, lng: 150.894, bridges: 80,  assetOwner: 'Transport for NSW' },
-    { lga: 'Yass Valley',          region: 'Capital Region',  lat: -34.841, lng: 148.912, bridges: 48,  assetOwner: 'Transport for NSW' },
-    { lga: 'Young',                region: 'South West NSW',  lat: -34.312, lng: 148.301, bridges: 32,  assetOwner: 'Transport for NSW' },
+    { lga: 'Albury City',          region: 'Murray',          lat: -36.080, lng: 146.916, bridges: 85,  assetOwner: 'State Roads Authority' },
+    { lga: 'Armidale Regional',    region: 'Northern Tablelands', lat: -30.512, lng: 151.667, bridges: 72,  assetOwner: 'State Roads Authority' },
+    { lga: 'Ballina',              region: 'Northern NSW',    lat: -28.866, lng: 153.560, bridges: 45,  assetOwner: 'State Roads Authority' },
+    { lga: 'Bathurst Regional',    region: 'Central West',    lat: -33.420, lng: 149.578, bridges: 68,  assetOwner: 'State Roads Authority' },
+    { lga: 'Bega Valley',          region: 'South East NSW',  lat: -36.674, lng: 149.843, bridges: 55,  assetOwner: 'State Roads Authority' },
+    { lga: 'Bellingen',            region: 'Mid North Coast', lat: -30.456, lng: 152.899, bridges: 38,  assetOwner: 'State Roads Authority' },
+    { lga: 'Berrigan',             region: 'Murray',          lat: -35.658, lng: 145.017, bridges: 42,  assetOwner: 'State Roads Authority' },
+    { lga: 'Blacktown City',       region: 'Sydney Metropolitan',    lat: -33.770, lng: 150.906, bridges: 120, assetOwner: 'State Roads Authority' },
+    { lga: 'Blue Mountains City',  region: 'Blue Mountains',  lat: -33.718, lng: 150.312, bridges: 65,  assetOwner: 'State Roads Authority' },
+    { lga: 'Broken Hill City',     region: 'Far West NSW',    lat: -31.958, lng: 141.453, bridges: 18,  assetOwner: 'State Roads Authority' },
+    { lga: 'Byron',                region: 'Northern NSW',    lat: -28.648, lng: 153.608, bridges: 30,  assetOwner: 'State Roads Authority' },
+    { lga: 'Camden',               region: 'South West Sydney', lat: -34.063, lng: 150.700, bridges: 90,  assetOwner: 'State Roads Authority' },
+    { lga: 'Canada Bay',           region: 'Sydney Metropolitan',    lat: -33.852, lng: 151.150, bridges: 15,  assetOwner: 'State Roads Authority' },
+    { lga: 'Canterbury-Bankstown', region: 'South West Sydney', lat: -33.920, lng: 151.034, bridges: 70,  assetOwner: 'State Roads Authority' },
+    { lga: 'Central Coast',        region: 'Central Coast',   lat: -33.428, lng: 151.342, bridges: 150, assetOwner: 'State Roads Authority' },
+    { lga: 'Cessnock City',        region: 'Hunter',          lat: -32.833, lng: 151.354, bridges: 60,  assetOwner: 'State Roads Authority' },
+    { lga: 'City of Sydney',       region: 'Sydney Metropolitan',    lat: -33.869, lng: 151.209, bridges: 55,  assetOwner: 'City of Sydney Council' },
+    { lga: 'Clarence Valley',      region: 'Northern NSW',    lat: -29.458, lng: 152.933, bridges: 95,  assetOwner: 'State Roads Authority' },
+    { lga: 'Cooma-Monaro',         region: 'South East NSW',  lat: -36.236, lng: 149.124, bridges: 48,  assetOwner: 'State Roads Authority' },
+    { lga: 'Cootamundra-Gundagai', region: 'South West NSW',  lat: -34.649, lng: 148.039, bridges: 65,  assetOwner: 'State Roads Authority' },
+    { lga: 'Cowra',                region: 'Central West',    lat: -33.826, lng: 148.691, bridges: 40,  assetOwner: 'State Roads Authority' },
+    { lga: 'Dubbo Regional',       region: 'Western NSW',     lat: -32.240, lng: 148.601, bridges: 75,  assetOwner: 'State Roads Authority' },
+    { lga: 'Edward River',         region: 'Murrumbidgee',    lat: -35.536, lng: 144.758, bridges: 35,  assetOwner: 'State Roads Authority' },
+    { lga: 'Eurobodalla',          region: 'South East NSW',  lat: -35.972, lng: 150.129, bridges: 58,  assetOwner: 'State Roads Authority' },
+    { lga: 'Forbes',               region: 'Central West',    lat: -33.386, lng: 147.966, bridges: 30,  assetOwner: 'State Roads Authority' },
+    { lga: 'Georges River',        region: 'South Sydney',    lat: -33.968, lng: 151.096, bridges: 40,  assetOwner: 'State Roads Authority' },
+    { lga: 'Glen Innes Severn',    region: 'Northern Tablelands', lat: -29.736, lng: 151.732, bridges: 44,  assetOwner: 'State Roads Authority' },
+    { lga: 'Goulburn Mulwaree',    region: 'South West NSW',  lat: -34.751, lng: 149.719, bridges: 55,  assetOwner: 'State Roads Authority' },
+    { lga: 'Greater Hume',         region: 'Murray',          lat: -35.836, lng: 147.074, bridges: 62,  assetOwner: 'State Roads Authority' },
+    { lga: 'Griffith City',        region: 'Murrumbidgee',    lat: -34.288, lng: 146.052, bridges: 45,  assetOwner: 'State Roads Authority' },
+    { lga: 'Hawkesbury City',      region: 'Sydney Metropolitan',    lat: -33.554, lng: 150.753, bridges: 75,  assetOwner: 'State Roads Authority' },
+    { lga: 'Hilltops',             region: 'South West NSW',  lat: -34.293, lng: 148.451, bridges: 55,  assetOwner: 'State Roads Authority' },
+    { lga: 'Hunter Valley',        region: 'Hunter',          lat: -32.508, lng: 151.046, bridges: 80,  assetOwner: 'State Roads Authority' },
+    { lga: 'Inverell',             region: 'Northern Tablelands', lat: -29.771, lng: 151.112, bridges: 48,  assetOwner: 'State Roads Authority' },
+    { lga: 'Kempsey',              region: 'Mid North Coast', lat: -30.921, lng: 152.838, bridges: 60,  assetOwner: 'State Roads Authority' },
+    { lga: 'Kiama',                region: 'Illawarra',       lat: -34.671, lng: 150.855, bridges: 28,  assetOwner: 'State Roads Authority' },
+    { lga: 'Kyogle',               region: 'Northern NSW',    lat: -28.621, lng: 153.001, bridges: 50,  assetOwner: 'State Roads Authority' },
+    { lga: 'Lachlan',              region: 'Central West',    lat: -33.424, lng: 147.371, bridges: 42,  assetOwner: 'State Roads Authority' },
+    { lga: 'Lake Macquarie City',  region: 'Hunter',          lat: -33.075, lng: 151.594, bridges: 80,  assetOwner: 'State Roads Authority' },
+    { lga: 'Leeton',               region: 'Murrumbidgee',    lat: -34.553, lng: 146.410, bridges: 22,  assetOwner: 'State Roads Authority' },
+    { lga: 'Lismore City',         region: 'Northern NSW',    lat: -28.814, lng: 153.275, bridges: 55,  assetOwner: 'State Roads Authority' },
+    { lga: 'Lithgow City',         region: 'Central West',    lat: -33.483, lng: 150.157, bridges: 52,  assetOwner: 'State Roads Authority' },
+    { lga: 'Liverpool City',       region: 'South West Sydney', lat: -33.921, lng: 150.924, bridges: 100, assetOwner: 'State Roads Authority' },
+    { lga: 'Liverpool Plains',     region: 'North West NSW',  lat: -31.462, lng: 150.359, bridges: 45,  assetOwner: 'State Roads Authority' },
+    { lga: 'MidCoast',             region: 'Mid North Coast', lat: -32.148, lng: 152.347, bridges: 85,  assetOwner: 'State Roads Authority' },
+    { lga: 'Maitland City',        region: 'Hunter',          lat: -32.733, lng: 151.558, bridges: 65,  assetOwner: 'State Roads Authority' },
+    { lga: 'Mid-Western Regional', region: 'Central West',    lat: -32.567, lng: 149.600, bridges: 60,  assetOwner: 'State Roads Authority' },
+    { lga: 'Moree Plains',         region: 'North West NSW',  lat: -29.463, lng: 149.843, bridges: 50,  assetOwner: 'State Roads Authority' },
+    { lga: 'Murray River',         region: 'Murray',          lat: -35.325, lng: 143.918, bridges: 45,  assetOwner: 'State Roads Authority' },
+    { lga: 'Murrumbidgee',         region: 'Murrumbidgee',    lat: -34.674, lng: 145.618, bridges: 38,  assetOwner: 'State Roads Authority' },
+    { lga: 'Muswellbrook',         region: 'Hunter',          lat: -32.269, lng: 150.889, bridges: 35,  assetOwner: 'State Roads Authority' },
+    { lga: 'Nambucca Valley',      region: 'Mid North Coast', lat: -30.641, lng: 152.977, bridges: 42,  assetOwner: 'State Roads Authority' },
+    { lga: 'Narrabri',             region: 'North West NSW',  lat: -30.323, lng: 149.786, bridges: 48,  assetOwner: 'State Roads Authority' },
+    { lga: 'Narromine',            region: 'Western NSW',     lat: -32.232, lng: 148.238, bridges: 28,  assetOwner: 'State Roads Authority' },
+    { lga: 'Newcastle City',       region: 'Hunter',          lat: -32.927, lng: 151.776, bridges: 90,  assetOwner: 'State Roads Authority' },
+    { lga: 'Northern Beaches',     region: 'Sydney Metropolitan',    lat: -33.739, lng: 151.281, bridges: 85,  assetOwner: 'State Roads Authority' },
+    { lga: 'Oberon',               region: 'Central West',    lat: -33.702, lng: 149.858, bridges: 35,  assetOwner: 'State Roads Authority' },
+    { lga: 'Orange City',          region: 'Central West',    lat: -33.283, lng: 149.099, bridges: 55,  assetOwner: 'State Roads Authority' },
+    { lga: 'Parkes',               region: 'Central West',    lat: -33.133, lng: 148.174, bridges: 38,  assetOwner: 'State Roads Authority' },
+    { lga: 'Penrith City',         region: 'Western Sydney',  lat: -33.751, lng: 150.694, bridges: 110, assetOwner: 'State Roads Authority' },
+    { lga: 'Port Macquarie-Hastings', region: 'Mid North Coast', lat: -31.430, lng: 152.908, bridges: 90, assetOwner: 'State Roads Authority' },
+    { lga: 'Port Stephens',        region: 'Hunter',          lat: -32.725, lng: 152.152, bridges: 55,  assetOwner: 'State Roads Authority' },
+    { lga: 'Queanbeyan-Palerang',  region: 'Capital Region',  lat: -35.353, lng: 149.234, bridges: 68,  assetOwner: 'State Roads Authority' },
+    { lga: 'Randwick City',        region: 'Sydney Metropolitan',    lat: -33.918, lng: 151.239, bridges: 25,  assetOwner: 'State Roads Authority' },
+    { lga: 'Richmond Valley',      region: 'Northern NSW',    lat: -28.992, lng: 153.029, bridges: 52,  assetOwner: 'State Roads Authority' },
+    { lga: 'Shoalhaven City',      region: 'South East NSW',  lat: -34.905, lng: 150.580, bridges: 95,  assetOwner: 'State Roads Authority' },
+    { lga: 'Singleton',            region: 'Hunter',          lat: -32.565, lng: 151.170, bridges: 45,  assetOwner: 'State Roads Authority' },
+    { lga: 'Snowy Monaro',         region: 'Capital Region',  lat: -36.454, lng: 149.094, bridges: 62,  assetOwner: 'State Roads Authority' },
+    { lga: 'Snowy Valleys',        region: 'Murrumbidgee',    lat: -35.454, lng: 148.080, bridges: 58,  assetOwner: 'State Roads Authority' },
+    { lga: 'Strathfield',          region: 'Sydney Metropolitan',    lat: -33.874, lng: 151.094, bridges: 12,  assetOwner: 'State Roads Authority' },
+    { lga: 'Sutherland Shire',     region: 'Sydney Metropolitan',    lat: -34.032, lng: 151.058, bridges: 60,  assetOwner: 'State Roads Authority' },
+    { lga: 'Tamworth Regional',    region: 'North West NSW',  lat: -31.093, lng: 150.930, bridges: 78,  assetOwner: 'State Roads Authority' },
+    { lga: 'Temora',               region: 'Murrumbidgee',    lat: -34.449, lng: 147.535, bridges: 32,  assetOwner: 'State Roads Authority' },
+    { lga: 'Tenterfield',          region: 'Northern Tablelands', lat: -29.042, lng: 152.021, bridges: 44,  assetOwner: 'State Roads Authority' },
+    { lga: 'The Hills Shire',      region: 'Sydney Metropolitan',    lat: -33.688, lng: 151.001, bridges: 95,  assetOwner: 'State Roads Authority' },
+    { lga: 'Tweed',                region: 'Northern NSW',    lat: -28.178, lng: 153.488, bridges: 65,  assetOwner: 'State Roads Authority' },
+    { lga: 'Unincorporated Far West', region: 'Far West NSW', lat: -30.858, lng: 142.756, bridges: 22, assetOwner: 'State Roads Authority' },
+    { lga: 'Upper Hunter',         region: 'Hunter',          lat: -32.100, lng: 150.546, bridges: 48,  assetOwner: 'State Roads Authority' },
+    { lga: 'Upper Lachlan',        region: 'South West NSW',  lat: -34.317, lng: 149.400, bridges: 42,  assetOwner: 'State Roads Authority' },
+    { lga: 'Uralla',               region: 'Northern Tablelands', lat: -30.639, lng: 151.498, bridges: 30,  assetOwner: 'State Roads Authority' },
+    { lga: 'Wagga Wagga City',     region: 'Murrumbidgee',    lat: -35.116, lng: 147.372, bridges: 72,  assetOwner: 'State Roads Authority' },
+    { lga: 'Walcha',               region: 'Northern Tablelands', lat: -30.989, lng: 151.601, bridges: 35,  assetOwner: 'State Roads Authority' },
+    { lga: 'Walgett',              region: 'Western NSW',     lat: -29.979, lng: 148.119, bridges: 28,  assetOwner: 'State Roads Authority' },
+    { lga: 'Warren',               region: 'Western NSW',     lat: -31.702, lng: 147.836, bridges: 22,  assetOwner: 'State Roads Authority' },
+    { lga: 'Weddin',               region: 'Central West',    lat: -33.965, lng: 148.115, bridges: 25,  assetOwner: 'State Roads Authority' },
+    { lga: 'Wentworth',            region: 'Far West NSW',    lat: -34.106, lng: 141.913, bridges: 30,  assetOwner: 'State Roads Authority' },
+    { lga: 'Willoughby City',      region: 'Sydney Metropolitan',    lat: -33.793, lng: 151.203, bridges: 22,  assetOwner: 'State Roads Authority' },
+    { lga: 'Wingecarribee',        region: 'South West NSW',  lat: -34.551, lng: 150.399, bridges: 72,  assetOwner: 'State Roads Authority' },
+    { lga: 'Wollondilly',          region: 'South West NSW',  lat: -34.199, lng: 150.471, bridges: 62,  assetOwner: 'State Roads Authority' },
+    { lga: 'Wollongong City',      region: 'Illawarra',       lat: -34.424, lng: 150.894, bridges: 80,  assetOwner: 'State Roads Authority' },
+    { lga: 'Yass Valley',          region: 'Capital Region',  lat: -34.841, lng: 148.912, bridges: 48,  assetOwner: 'State Roads Authority' },
+    { lga: 'Young',                region: 'South West NSW',  lat: -34.312, lng: 148.301, bridges: 32,  assetOwner: 'State Roads Authority' },
 ]
 
-// ─── Statistical distributions (from Austroads / TfNSW reports) ──────────────
+// ─── Statistical distributions (modelled on published industry statistics) ──────────────
 // Structure type distribution for NSW road bridges
 const STRUCTURE_TYPES = [
     { type: 'Box Girder',       weight: 28, material: 'Prestressed Concrete' },
@@ -152,7 +152,7 @@ const STRUCTURE_TYPES = [
     { type: 'Trestle',          weight: 1,  material: 'Timber' },
 ]
 
-// TfNSW condition distribution (1-5 scale)
+// Condition band distribution (1-5 scale)
 const CONDITION_DIST = [
     { rating: 1, label: 'GOOD',      weight: 35 },
     { rating: 2, label: 'FAIR',      weight: 40 },
@@ -304,7 +304,7 @@ function generateBridge (bridgeId, lgaData, index) {
         numberOfLanes:    lanes,
         condition:        condObj.label,
         conditionRating:  cond,
-        conditionRatingTfnsw: cond,
+        conditionRatingBand: cond,
         postingStatus:    postingObj.status,
         assetOwner:       lgaData.assetOwner,
         maintenanceAuthority: lgaData.assetOwner,
@@ -324,9 +324,9 @@ function generateBridge (bridgeId, lgaData, index) {
         highPriorityAsset: highPriority,
         remarks:          `Crosses ${featureName}. ${structObj.type} structure built ${yearBuilt}. Managed by ${lgaData.assetOwner}.`,
         isActive:         true,
-        dataSource:       'Generated/Synthetic – based on TfNSW Bridge Asset Register distribution statistics',
-        sourceReferenceUrl: 'https://www.transport.nsw.gov.au/operations/roads-and-waterways/roads/bridge-maintenance',
-        openDataReference: 'https://opendata.transport.nsw.gov.au/dataset/nsw-state-roads-vertical-clearances',
+        dataSource:       'Generated/Synthetic – representative distribution statistics',
+        sourceReferenceUrl: '',
+        openDataReference: '',
         geoJson: geoJson.replace(/"/g, '""'),   // CSV-escape inner quotes
     }
 }
@@ -336,7 +336,7 @@ const HEADERS = [
     'bridgeId','name','state','region','lga','latitude','longitude',
     'structureType','material','yearBuilt','spanLengthM','totalLengthM',
     'deckWidthM','clearanceHeightM','numberOfSpans','numberOfLanes',
-    'condition','conditionRating','conditionRatingTfnsw',
+    'condition','conditionRating','conditionRatingBand',
     'postingStatus','assetOwner','maintenanceAuthority',
     'floodImpacted','floodImmunityAri',
     'hmlApproved','bdoubleApproved','freightRoute','overMassRoute',
@@ -381,7 +381,7 @@ fs.writeFileSync(outPath, csv, 'utf8')
 
 const hmlCount      = bridges.filter(b => b.hmlApproved).length
 const restrictedCount = bridges.filter(b => b.postingStatus !== 'UNRESTRICTED').length
-const criticalCount = bridges.filter(b => b.conditionRatingTfnsw >= 4).length
+const criticalCount = bridges.filter(b => b.conditionRatingBand >= 4).length
 
 console.log(`\n✓ Generated ${bridges.length.toLocaleString()} NSW bridge records`)
 console.log(`  → Output: ${outPath}`)

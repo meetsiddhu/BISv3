@@ -1,6 +1,8 @@
 'use strict'
-// BSI/BHI engine (from the approved NSW BSI/BHI calculator mockup — docs/prioritisation/
-// nsw_bridge_bsi_bhi_calculator_1.html). Pure functions.
+// BSI/BHI engine — element-weighted structure/health index per published bridge
+// health index practice (element condition x importance weights, cf. AASHTO
+// element-level condition states and DOT bridge-health-index implementations).
+// Pure functions.
 //   BSI_raw = Σ(elementRating × weight)/Σ(weight)        (ratings on the legacy 0-10 scale)
 //   BSI     = clamp 0..10 ( BSI_raw × ageFactor − envPenalty )
 //   BHI     = clamp 0..100 ( BSI×10 × (1−vulnerability) × importFactor )
@@ -8,13 +10,14 @@
 //
 // CONFIG (council B8 — zero hardcoding): the per-mode element weights AND every environmental
 // coefficient are governed via the SystemConfig row 'bhiWeights' (JSON, partial overrides merge
-// over the defaults below). The constants below are the DOCUMENTED DEFAULTS — the exact values
-// of the approved calculator, kept so the calculator-parity tests pin them byte-identically.
+// over the defaults below). The constants below are REPRESENTATIVE DEFAULTS aligned to
+// published practice — regression tests pin them byte-identically so they cannot drift
+// silently; every portfolio is expected to calibrate them via 'bhiWeights'.
 // Callers refresh via configure(await getConfig('bhiWeights')); the pure compute functions also
 // accept an explicit cfg argument.
 //
-// CALIBRATION HONESTY (council B8): the source calculator's four methodology tabs are
-// NHVR/RMS ROAD load-rating weight sets. Until rail/pedestrian weight sets are sourced and
+// CALIBRATION HONESTY (council B8): the default weight sets encode ROAD load-rating
+// practice (NHVR-aligned). Until rail/pedestrian weight sets are sourced and
 // calibrated, the non-road modes are labelled 'road-derived weights (calibrate)' (see
 // `calibrated` below + the bhiDetail action) instead of presenting them as rail/ped methodology.
 const DEFAULT_MODE_WEIGHTS = Object.freeze({
@@ -23,7 +26,7 @@ const DEFAULT_MODE_WEIGHTS = Object.freeze({
   Rail: Object.freeze({ deck: 0.20, superstructure: 0.35, substructure: 0.25, bearings: 0.12, drainage: 0.05, approach: 0.03 }),
   Pedestrian: Object.freeze({ deck: 0.30, superstructure: 0.30, substructure: 0.25, bearings: 0.08, drainage: 0.07 })
 })
-// Environmental / age / importance coefficients (calculator defaults, all overridable):
+// Environmental / age / importance coefficients (representative defaults, all overridable):
 //   ageFactor   = max(0, 1 − (age/ageSpanYears) × ageWearMax)
 //   envPenalty  = (floodExp−1)×floodStep + (corrZone−1)×corrStep + seismic×seismicStep
 //   vulnerability = min(vulnCap, (age/vulnAgeSpanYears)×vulnAgeShare + envPenalty)
@@ -39,8 +42,8 @@ const DEFAULT_ENV_COEFFICIENTS = Object.freeze({
 const DEFAULT_BHI_CONFIG = Object.freeze({
   modeWeights: DEFAULT_MODE_WEIGHTS,
   env: DEFAULT_ENV_COEFFICIENTS,
-  // Modes whose weight sets ARE the source methodology. Rail/Pedestrian stay out until a
-  // defensible weight set is sourced — bhiDetail labels them 'road-derived weights (calibrate)'.
+  // Modes whose weight sets are within the road-calibrated scope. Rail/Pedestrian stay out
+  // until a defensible weight set is sourced — bhiDetail labels them 'road-derived weights (calibrate)'.
   calibrated: Object.freeze(['Road', 'RoadOverWater'])
 })
 

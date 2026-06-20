@@ -349,7 +349,7 @@ annotate AdminService.Bridges with {
     }
   ) @title: 'Bridge Status';
   // GeoJSON is maintained on the object page, not in the create dialog
-  geoJson    @UI.Hidden  @title: 'Bridge Geometry (GeoJSON)';  // maintained via GIS map, not shown in form
+  geoJson    @UI.Hidden;  // maintained via GIS map, not shown in form (title set once on the object-page annotation below)
   // Bridge ID auto-generated on create; never user-entered.
   // The ValueList on Bridges itself powers the search-help in the filter bar.
   bridgeId @(
@@ -1459,21 +1459,62 @@ annotate AdminService.ChangeDocumentReport with @(
     { $Type: 'UI.DataField', Value: oldValue,     Label: 'Old Value' },
     { $Type: 'UI.DataField', Value: newValue,     Label: 'New Value' },
     { $Type: 'UI.DataField', Value: changeSource, Label: 'Source' }
-  ]
+  ],
+  // Default presentation: newest changes first, grouped by Object Type (ALV-style report).
+  // Users can re-sort / re-group / hide columns via the standard table personalisation.
+  UI.PresentationVariant: {
+    SortOrder      : [ { Property: changedAt, Descending: true } ],
+    GroupBy        : [ objectType ],
+    Visualizations : [ '@UI.LineItem' ]
+  }
 );
 annotate AdminService.ChangeDocumentReport with {
   ID           @UI.Hidden;
   objectId     @UI.Hidden;
   batchId      @UI.Hidden;
   changedAt    @title: 'Changed At';
-  changedBy    @title: 'Changed By';
-  objectType   @title: 'Object Type';
+  // Filter search-helps: dropdowns sourced from the dynamic DISTINCT value-help
+  // entities (served in admin-service.js) so they always reflect logged data.
+  changedBy    @title: 'Changed By'
+               @Common.ValueListWithFixedValues
+               @Common.ValueList: {
+                 CollectionPath: 'ChangeUserValues',
+                 Parameters    : [
+                   { $Type: 'Common.ValueListParameterInOut',       LocalDataProperty: changedBy, ValueListProperty: 'code' },
+                   { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+                 ]
+               };
+  objectType   @title: 'Object Type'
+               @Common.ValueListWithFixedValues
+               @Common.ValueList: {
+                 CollectionPath: 'ChangeObjectTypeValues',
+                 Parameters    : [
+                   { $Type: 'Common.ValueListParameterInOut',       LocalDataProperty: objectType, ValueListProperty: 'code' },
+                   { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+                 ]
+               };
   objectName   @title: 'Object';
-  changeKind   @title: 'Kind';
+  changeKind   @title: 'Kind'
+               @Common.ValueListWithFixedValues
+               @Common.ValueList: {
+                 CollectionPath: 'ChangeKindValues',
+                 Parameters    : [
+                   { $Type: 'Common.ValueListParameterInOut',       LocalDataProperty: changeKind, ValueListProperty: 'code' },
+                   { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+                 ]
+               };
   fieldName    @title: 'Field / Attribute';
   oldValue     @title: 'Old Value';
   newValue     @title: 'New Value';
-  changeSource @title: 'Source';
+  changeSource @title: 'Source'
+               @Common.ValueListWithFixedValues
+               @Common.ValueList: {
+                 CollectionPath: 'ChangeSourceValues',
+                 Parameters    : [
+                   { $Type: 'Common.ValueListParameterInOut',       LocalDataProperty: changeSource, ValueListProperty: 'code' },
+                   { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+                 ]
+               };
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1636,6 +1677,142 @@ annotate AdminService.BridgeElements with {
 annotate bridge.management.AttributeGroups with @fiori.draft.enabled;
 annotate AdminService.AttributeGroups with @odata.draft.enabled;
 
+// UAT P2-003: the AttributeGroups (Attribute Classes) List Report rendered an empty
+// "Add columns to see the content" placeholder — its UI.LineItem/HeaderInfo lived in the
+// now-deleted attributes-admin/fiori-service.cds and was never ported here. Restore them.
+annotate AdminService.AttributeGroups with @(
+  UI.HeaderInfo: { TypeName:'Attribute Class', TypeNamePlural:'Attribute Classes', Title:{Value:name}, Description:{Value:internalKey} },
+  UI.SelectionFields: [ objectType, status ],
+  UI.LineItem: [
+    { Value: name,         Label:'Name' },
+    { Value: objectType,   Label:'Class Type' },
+    { Value: internalKey,  Label:'Key' },
+    { Value: eamClass,     Label:'EAM Class' },
+    { Value: displayOrder, Label:'Order' },
+    { Value: status,       Label:'Status' }
+  ],
+  // P2: the class Object Page now exposes its Characteristics (AttributeDefinitions) as an
+  // editable table facet so an admin can create a class AND its characteristics in one draft
+  // (the composition tree AttributeGroups -> definitions -> allowedValues saves as one document).
+  UI.Facets: [
+    { $Type:'UI.ReferenceFacet', ID:'AGMain',  Label:'Class',           Target:'@UI.FieldGroup#AGMain' },
+    { $Type:'UI.ReferenceFacet', ID:'AGChars', Label:'Characteristics', Target:'definitions/@UI.LineItem' }
+  ],
+  UI.FieldGroup #AGMain: { Data: [ {Value:name},{Value:objectType},{Value:internalKey},{Value:eamClass},{Value:displayOrder},{Value:status} ] }
+);
+annotate AdminService.AttributeGroups with {
+  name @title:'Name'; objectType @title:'Class Type'; internalKey @title:'Key';
+  eamClass @title:'SAP EAM Class'; displayOrder @title:'Order'; status @title:'Status';
+};
+
+// Characteristics (AttributeDefinitions) — rendered as the editable table on the class
+// Object Page (definitions/@UI.LineItem) and as their own Object Page for the per-characteristic
+// detail + Allowed Values. Inline-creatable within the parent class draft.
+annotate AdminService.AttributeDefinitions with @(
+  UI.HeaderInfo: { TypeName:'Characteristic', TypeNamePlural:'Characteristics', Title:{Value:name}, Description:{Value:internalKey} },
+  UI.LineItem: [
+    { Value: name,             Label:'Name' },
+    { Value: internalKey,      Label:'Key' },
+    { Value: dataType,         Label:'Data Type' },
+    { Value: unit,             Label:'Unit' },
+    { Value: eamCharacteristic, Label:'EAM Characteristic' },
+    { Value: displayOrder,     Label:'Order' },
+    { Value: status,           Label:'Status' }
+  ],
+  UI.Facets: [
+    { $Type:'UI.ReferenceFacet', ID:'ADMain',    Label:'Characteristic',     Target:'@UI.FieldGroup#ADMain' },
+    { $Type:'UI.ReferenceFacet', ID:'ADAllowed', Label:'Allowed Values',      Target:'allowedValues/@UI.LineItem' },
+    { $Type:'UI.ReferenceFacet', ID:'ADScope',   Label:'Object-Type Scoping', Target:'objectTypeConfigs/@UI.LineItem' }
+  ],
+  UI.FieldGroup #ADMain: { Data: [
+    {Value:name},{Value:internalKey},{Value:dataType},{Value:unit},{Value:eamCharacteristic},
+    {Value:helpText},{Value:displayOrder},{Value:minValue},{Value:maxValue},{Value:regexPattern},{Value:status}
+  ] }
+);
+annotate AdminService.AttributeDefinitions with {
+  name @title:'Name'; internalKey @title:'Key'; dataType @title:'Data Type'; unit @title:'Unit';
+  eamCharacteristic @title:'SAP EAM Characteristic'; helpText @title:'Help Text'; displayOrder @title:'Order';
+  minValue @title:'Min Value'; maxValue @title:'Max Value'; regexPattern @title:'Validation Pattern'; status @title:'Status';
+};
+
+// Allowed Values — editable table on the characteristic Object Page (for SingleSelect / MultiSelect).
+annotate AdminService.AttributeAllowedValues with @(
+  UI.HeaderInfo: { TypeName:'Allowed Value', TypeNamePlural:'Allowed Values', Title:{Value:value}, Description:{Value:label} },
+  UI.LineItem: [
+    { Value: value,        Label:'Value' },
+    { Value: label,        Label:'Label' },
+    { Value: displayOrder, Label:'Order' },
+    { Value: status,       Label:'Status' }
+  ],
+  UI.Facets: [ { $Type:'UI.ReferenceFacet', ID:'AVMain', Label:'Allowed Value', Target:'@UI.FieldGroup#AVMain' } ],
+  UI.FieldGroup #AVMain: { Data: [ {Value:value},{Value:label},{Value:displayOrder},{Value:status} ] }
+);
+annotate AdminService.AttributeAllowedValues with {
+  value @title:'Value'; label @title:'Label'; displayOrder @title:'Order'; status @title:'Status';
+};
+
+// Object-Type Scoping (AttributeObjectTypeConfig) — editable table on the characteristic Object
+// Page: enable/require a characteristic per (objectType, assetClass); blank assetClass = all classes.
+// Inline-creatable within the parent class draft (composition) — this is what lets an admin "assign
+// a class/characteristic to other objects" in the FE tile, replacing the freestyle admin scoping editor.
+annotate AdminService.AttributeObjectTypeConfig with @(
+  UI.HeaderInfo: { TypeName:'Object-Type Scope', TypeNamePlural:'Object-Type Scoping', Title:{Value:objectType}, Description:{Value:assetClass} },
+  UI.LineItem: [
+    { Value: objectType,   Label:'Class Type' },
+    { Value: assetClass,   Label:'Asset Class (blank = all)' },
+    { Value: enabled,      Label:'Enabled' },
+    { Value: required,     Label:'Required' },
+    { Value: displayOrder, Label:'Order' }
+  ],
+  UI.Facets: [ { $Type:'UI.ReferenceFacet', ID:'OTCMain', Label:'Scope', Target:'@UI.FieldGroup#OTCMain' } ],
+  UI.FieldGroup #OTCMain: { Data: [ {Value:objectType},{Value:assetClass},{Value:enabled},{Value:required},{Value:displayOrder} ] }
+);
+annotate AdminService.AttributeObjectTypeConfig with {
+  objectType @title:'Class Type'; assetClass @title:'Asset Class'; enabled @title:'Enabled';
+  required @title:'Required'; displayOrder @title:'Order';
+};
+
+// ── Class Types config (standalone tile) — the maintainable list that drives the Class Type
+// value-help. Draft-enabled List Report so admins add/edit class types (seed: Bridge, Restriction).
+annotate bridge.management.ClassTypes with @fiori.draft.enabled;
+annotate AdminService.ClassTypes with @odata.draft.enabled;
+annotate AdminService.ClassTypes with @(
+  UI.HeaderInfo: { TypeName:'Class Type', TypeNamePlural:'Class Types', Title:{Value:name}, Description:{Value:code} },
+  UI.SelectionFields: [ isActive ],
+  UI.LineItem: [
+    { Value: code,      Label:'Code' },
+    { Value: name,      Label:'Name' },
+    { Value: descr,     Label:'Description' },
+    { Value: sortOrder, Label:'Order' },
+    { Value: isActive,  Label:'Active' }
+  ],
+  UI.Facets: [ { $Type:'UI.ReferenceFacet', ID:'CTMain', Label:'Class Type', Target:'@UI.FieldGroup#CTMain' } ],
+  UI.FieldGroup #CTMain: { Data: [ {Value:code},{Value:name},{Value:descr},{Value:sortOrder},{Value:isActive} ] }
+);
+annotate AdminService.ClassTypes with {
+  code @title:'Code'; name @title:'Name'; descr @title:'Description'; sortOrder @title:'Order'; isActive @title:'Active';
+};
+
+// Class Type value-help → the maintainable ClassTypes list (code stored, name shown).
+annotate AdminService.AttributeGroups with {
+  objectType @Common: {
+    ValueListWithFixedValues,
+    ValueList: { CollectionPath: 'ClassTypes', Parameters: [
+      { $Type: 'Common.ValueListParameterInOut',       LocalDataProperty: objectType, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly',                                ValueListProperty: 'name' }
+    ] }
+  };
+};
+annotate AdminService.AttributeObjectTypeConfig with {
+  objectType @Common: {
+    ValueListWithFixedValues,
+    ValueList: { CollectionPath: 'ClassTypes', Parameters: [
+      { $Type: 'Common.ValueListParameterInOut',       LocalDataProperty: objectType, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly',                                ValueListProperty: 'name' }
+    ] }
+  };
+};
+
 ////////////////////////////////////////////////////////////////////////////
 //  Bridge Risk Report — Fiori Elements List Report (ALV, read-only) — Phase 2
 ////////////////////////////////////////////////////////////////////////////
@@ -1785,7 +1962,18 @@ annotate AdminService.NetworkRestrictionReport with {
 //  (e.g. the Bridges object-page assetClassStrategy value list); the standalone FE
 //  List/ObjectPage routes were removed from manifest.json.
 ////////////////////////////////////////////////////////////////////////////
+// UAT P1-001 + COUNCIL/RESEARCH correction: these config entities are NOT @odata.draft.enabled,
+// so Fiori Elements shows no inline create/edit (non-draft) — they render as read-only viewers.
+// The ONLY unsafe affordance was the FE Delete button (delete-without-recreate hazard), so we
+// block DELETE only. We must NOT block Insert/Update here: in CAP Node @Capabilities.*Restrictions
+// are ENFORCED server-side (check_odata_constraints), and the freestyle BMS Admin editors write
+// these entities via the SAME AdminService OData projection (_svc.create/update) — blocking
+// Update/Insert silently broke those editors (regression v3.21.2). Integrity is instead enforced
+// at the service layer (RiskBand ladder guard in admin-service.js; @assert.range on weights/scores;
+// AssetClassStrategy bounds in before('SAVE')), so every write path is governed regardless of client.
+// (SystemConfig is edited via the /system/api Express route, not OData, so it keeps full OData read-only below.)
 annotate AdminService.AssetClassStrategy with @(
+  Capabilities.DeleteRestrictions: { Deletable: false },
   UI.HeaderInfo: { TypeName: 'Asset Class Strategy', TypeNamePlural: 'Asset Class Strategies', Title: { Value: name }, Description: { Value: assetClass } },
   UI.SelectionFields: [ assetClass, transportMode, active ],
   UI.LineItem: [
@@ -1824,6 +2012,7 @@ annotate AdminService.AssetClassStrategy with {
 //  Risk Config & Risk Bands — Fiori Elements list (admin-tunable) — Phase 4
 ////////////////////////////////////////////////////////////////////////////
 annotate AdminService.RiskConfig with @(
+  Capabilities.DeleteRestrictions: { Deletable: false },
   UI.HeaderInfo: { TypeName:'Risk Factor', TypeNamePlural:'Risk Factors', Title:{Value:name}, Description:{Value:factor} },
   UI.LineItem: [
     { Value: factor, Label:'Factor' }, { Value: name, Label:'Name' },
@@ -1835,6 +2024,7 @@ annotate AdminService.RiskConfig with @(
 annotate AdminService.RiskConfig with { factor @title:'Factor'; name @title:'Name'; weight @title:'Weight'; active @title:'Active'; };
 
 annotate AdminService.RiskBand with @(
+  Capabilities.DeleteRestrictions: { Deletable: false },
   UI.HeaderInfo: { TypeName:'Risk Band', TypeNamePlural:'Risk Bands', Title:{Value:name}, Description:{Value:code} },
   UI.LineItem: [
     { Value: sortOrder, Label:'Order' }, { Value: name, Label:'Band' },
@@ -1844,6 +2034,21 @@ annotate AdminService.RiskBand with @(
   UI.FieldGroup #RBMain: { Data: [ {Value:code},{Value:name},{Value:minScore},{Value:maxScore},{Value:colour},{Value:sortOrder} ] }
 );
 annotate AdminService.RiskBand with { code @title:'Code'; name @title:'Band'; minScore @title:'Min Score'; maxScore @title:'Max Score'; colour @title:'Colour'; sortOrder @title:'Order'; };
+
+annotate AdminService.SystemConfig with @(
+  Capabilities.InsertRestrictions: { Insertable: false },
+  Capabilities.UpdateRestrictions: { Updatable: false },
+  Capabilities.DeleteRestrictions: { Deletable: false },
+  UI.HeaderInfo: { TypeName:'System Setting', TypeNamePlural:'System Settings', Title:{Value:label}, Description:{Value:configKey} },
+  UI.SelectionFields: [ category, dataType ],
+  UI.LineItem: [
+    { Value: category, Label:'Category' }, { Value: configKey, Label:'Key' },
+    { Value: label, Label:'Label' }, { Value: value, Label:'Value' }, { Value: dataType, Label:'Type' }
+  ],
+  UI.Facets: [ { $Type:'UI.ReferenceFacet', ID:'SCMain', Label:'Setting', Target:'@UI.FieldGroup#SCMain' } ],
+  UI.FieldGroup #SCMain: { Data: [ {Value:configKey},{Value:category},{Value:label},{Value:value},{Value:defaultValue},{Value:dataType},{Value:description} ] }
+);
+annotate AdminService.SystemConfig with { configKey @title:'Key'; category @title:'Category'; label @title:'Label'; value @title:'Value'; defaultValue @title:'Default'; dataType @title:'Type'; description @title:'Description'; };
 
 // ── BNAC object-id links (External Systems tab on the Bridge object page) ──────
 // Read-only table of BNAC deep-links matched to the bridge by bridgeId. bnacUrl is the

@@ -50,7 +50,7 @@
         <mxCell id="70" value="Approuter + Fiori Launchpad ✅&#10;Operations · Bridge Sub-domains · BMS Admin · Reports &amp;amp; Analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF6B35;strokeColor=#C73E1D;fontColor=#FFFFFF;fontSize=10;fontStyle=1;arcSize=5;" vertex="1" parent="30">
           <mxGeometry x="20" y="40" width="500" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="40" value="BIS CAP Services (Node.js · OData V4) ✅&#10;register · restrictions (gold) · risk · prioritisation · config&#10;Engines: condition (TfNSW 1–5) · risk · prioritisation (immutable runs,&#10;rubric + param snapshots) · server-rendered PDF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#316CCA;strokeColor=#1a4a9e;fontColor=#FFFFFF;fontSize=10;fontStyle=1;arcSize=5;" vertex="1" parent="30">
+        <mxCell id="40" value="BIS CAP Services (Node.js · OData V4) ✅&#10;register · restrictions (gold) · risk · prioritisation · config&#10;Engines: condition (1–5 band) · risk · prioritisation (immutable runs,&#10;rubric + param snapshots) · server-rendered PDF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#316CCA;strokeColor=#1a4a9e;fontColor=#FFFFFF;fontSize=10;fontStyle=1;arcSize=5;" vertex="1" parent="30">
           <mxGeometry x="20" y="150" width="500" height="110" as="geometry" />
         </mxCell>
         <mxCell id="41" value="EAM Work-Request Outbound Queue ✅&#10;QUEUED → SENT → ACK · EAM never modified (clean core)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#316CCA;strokeColor=#1a4a9e;fontColor=#FFFFFF;fontSize=10;arcSize=5;" vertex="1" parent="30">

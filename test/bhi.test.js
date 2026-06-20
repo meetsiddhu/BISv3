@@ -1,5 +1,5 @@
 const b = require('../srv/lib/bhi')
-// Mirrors the approved calculator math (nsw_bridge_bsi_bhi_calculator_1.html)
+// Pins the documented BSI/BHI default math (element-weighted health index)
 describe('BSI/BHI engine', () => {
   const els = [
     { elementType: 'Deck slab', conditionRating: 8 }, { elementType: 'Girder', conditionRating: 7 },
@@ -30,15 +30,15 @@ describe('BSI/BHI engine', () => {
 })
 
 // Council B8 — weights/coefficients are GOVERNED CONFIG (SystemConfig 'bhiWeights' JSON) with
-// the approved calculator values as documented code defaults. Calculator parity = defaults
+// the representative published-practice values as documented code defaults. Default parity = defaults
 // unchanged (the suite above runs entirely on defaults and must stay green untouched).
 describe('BSI/BHI config governance (council B8)', () => {
   afterEach(() => b.configure(null)) // never leak an override into other tests
 
-  test('defaults: resolveBhiConfig(null/invalid) is the documented calculator config', () => {
+  test('defaults: resolveBhiConfig(null/invalid) is the documented default config', () => {
     expect(b.resolveBhiConfig(null)).toEqual(b.DEFAULT_BHI_CONFIG)
     expect(b.resolveBhiConfig('not json {{')).toEqual(b.DEFAULT_BHI_CONFIG)
-    expect(b.DEFAULT_MODE_WEIGHTS.Road.superstructure).toBe(0.30) // pinned calculator value
+    expect(b.DEFAULT_MODE_WEIGHTS.Road.superstructure).toBe(0.30) // pinned documented default
     expect(b.DEFAULT_ENV_COEFFICIENTS.floodStep).toBe(0.04)
     expect(b.MODE_WEIGHTS).toEqual(b.DEFAULT_MODE_WEIGHTS) // back-compat alias intact
     // only the road models are calibrated; rail/ped are road-derived until calibrated

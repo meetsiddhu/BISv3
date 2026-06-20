@@ -1,0 +1,3 @@
+ID,domainCode,name,description,sourceSystem,targetSystem,direction,active
+d0000001-0000-4000-8000-000000000001,EAM_CODE,EAM Code Mapping,BIS domain code value to SAP EAM code value,BIS,EAM,BIDIRECTIONAL,true
+d0000001-0000-4000-8000-000000000002,EAM_FIELD,EAM Field Mapping,BIS entity field to SAP EAM object and field,BIS,EAM,BIDIRECTIONAL,true

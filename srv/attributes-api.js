@@ -16,7 +16,10 @@ const cds = require('@sap/cds')
 const express = require('express')
 const XLSX = require('xlsx')
 
-const { SELECT, INSERT, UPDATE } = cds.ql
+const { SELECT, INSERT } = cds.ql
+// Single source of truth: the generic class/characteristic/value engine lives in the reusable
+// classification plugin. The functions below are thin delegators preserving the API used by the routes.
+const classification = require('./lib/plugins/classification')
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,197 +30,14 @@ function currentUser(req) {
   return req.user?.id || xUser || 'system'
 }
 
-function _getTypedValueColumn(dataType) {
-  switch (dataType) {
-    case 'Integer':     return 'valueInteger'
-    case 'Decimal':     return 'valueDecimal'
-    case 'Date':        return 'valueDate'
-    case 'Boolean':     return 'valueBoolean'
-    default:            return 'valueText'  // Text, SingleSelect, MultiSelect
-  }
-}
+// Delegator → classification plugin (single source). Other helpers (typedValueColumn,
+// buildValueEntry) are used internally by the plugin; the routes here only need coerceValue.
+const coerceValue = (dataType, raw) => classification.coerceValue(dataType, raw)
 
-function coerceValue(dataType, raw) {
-  if (raw === null || raw === undefined || raw === '') return null
-  switch (dataType) {
-    case 'Integer':
-      if (typeof raw === 'number' && Number.isInteger(raw)) return raw
-      if (/^-?\d+$/.test(String(raw).trim())) return parseInt(raw, 10)
-      throw new Error(`Expected a whole number`)
-    case 'Decimal':
-      if (typeof raw === 'number' && Number.isFinite(raw)) return raw
-      if (/^-?\d+(\.\d+)?$/.test(String(raw).trim())) return parseFloat(raw)
-      throw new Error(`Expected a number`)
-    case 'Date':
-      if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) return String(raw)
-      throw new Error(`Expected date in YYYY-MM-DD format`)
-    case 'Boolean':
-      if (typeof raw === 'boolean') return raw
-      if (raw === 'true' || raw === 'X' || raw === '1' || raw === 1) return true
-      if (raw === 'false' || raw === '0' || raw === 0) return false
-      throw new Error(`Expected true or false`)
-    default:
-      return String(raw).trim()
-  }
-}
-
-function buildValueEntry(objectType, objectId, attributeKey, dataType, coerced) {
-  return {
-    objectType,
-    objectId: String(objectId),
-    attributeKey,
-    valueText:    dataType === 'Text' || dataType === 'SingleSelect' || dataType === 'MultiSelect' ? coerced : null,
-    valueInteger: dataType === 'Integer' ? coerced : null,
-    valueDecimal: dataType === 'Decimal' ? coerced : null,
-    valueDate:    dataType === 'Date' ? coerced : null,
-    valueBoolean: dataType === 'Boolean' ? coerced : null,
-  }
-}
-
-async function loadActiveConfig(db, objectType) {
-  const groups = await db.run(
-    SELECT.from('bridge.management.AttributeGroups')
-      .where({ objectType, status: 'Active' })
-      .orderBy('displayOrder')
-  )
-  if (!groups.length) return []
-
-  const allDefs = await db.run(
-    SELECT.from('bridge.management.AttributeDefinitions')
-      .where({ objectType, status: 'Active' })
-      .orderBy('displayOrder')
-  )
-
-  const configs = await db.run(
-    SELECT.from('bridge.management.AttributeObjectTypeConfig')
-      .where({ objectType })
-  )
-  const configByKey = new Map(configs.map(c => [c.attribute_ID, c]))
-
-  const allowedValues = await db.run(
-    SELECT.from('bridge.management.AttributeAllowedValues')
-      .where({ status: 'Active' })
-      .orderBy('displayOrder')
-  )
-  const avByAttrId = new Map()
-  for (const av of allowedValues) {
-    if (!avByAttrId.has(av.attribute_ID)) avByAttrId.set(av.attribute_ID, [])
-    avByAttrId.get(av.attribute_ID).push({ value: av.value, label: av.label || av.value })
-  }
-
-  const groupMap = new Map(groups.map(g => [g.ID, { ...g, attributes: [] }]))
-
-  for (const def of allDefs) {
-    const cfg = configByKey.get(def.ID)
-    if (!cfg || !cfg.enabled) continue
-    const group = groupMap.get(def.group_ID)
-    if (!group) continue
-    const displayOrder = cfg.displayOrder != null ? cfg.displayOrder : def.displayOrder
-    group.attributes.push({
-      ...def,
-      required: cfg.required || false,
-      displayOrder,
-      allowedValues: avByAttrId.get(def.ID) || []
-    })
-  }
-
-  return groups
-    .map(group => groupMap.get(group.ID))
-    .filter(group => group.attributes.length > 0)
-    .map(group => ({
-      ...group,
-      attributes: group.attributes.sort((currentDefinition, nextDefinition) => currentDefinition.displayOrder - nextDefinition.displayOrder)
-    }))
-}
-
-async function loadValues(db, objectType, objectId) {
-  return db.run(
-    SELECT.from('bridge.management.AttributeValues')
-      .where({ objectType, objectId: String(objectId) })
-  )
-}
-
-async function writeValuesWithHistory(db, objectType, objectId, updates, changedBy, changeSource) {
-  const existing = await loadValues(db, objectType, objectId)
-  const existingByKey = new Map(existing.map(v => [v.attributeKey, v]))
-
-  for (const { attributeKey, dataType, coercedValue } of updates) {
-    const old = existingByKey.get(attributeKey)
-    const entry = buildValueEntry(objectType, objectId, attributeKey, dataType, coercedValue)
-
-    if (old) {
-      await db.run(
-        UPDATE('bridge.management.AttributeValues')
-          .set({
-            valueText:    entry.valueText,
-            valueInteger: entry.valueInteger,
-            valueDecimal: entry.valueDecimal,
-            valueDate:    entry.valueDate,
-            valueBoolean: entry.valueBoolean,
-            modifiedBy:   changedBy,
-            modifiedAt:   new Date().toISOString()
-          })
-          .where({ ID: old.ID })
-      )
-      await db.run(
-        INSERT.into('bridge.management.AttributeValueHistory').entries({
-          historyId:       cds.utils.uuid(),
-          objectType,
-          objectId:        String(objectId),
-          attributeKey,
-          oldValueText:    old.valueText,
-          oldValueInteger: old.valueInteger,
-          oldValueDecimal: old.valueDecimal,
-          oldValueDate:    old.valueDate,
-          oldValueBoolean: old.valueBoolean,
-          newValueText:    entry.valueText,
-          newValueInteger: entry.valueInteger,
-          newValueDecimal: entry.valueDecimal,
-          newValueDate:    entry.valueDate,
-          newValueBoolean: entry.valueBoolean,
-          changedBy,
-          changedAt:       new Date().toISOString(),
-          changeSource
-        })
-      )
-    } else {
-      const newId = cds.utils.uuid()
-      await db.run(
-        INSERT.into('bridge.management.AttributeValues').entries({
-          ID:           newId,
-          objectType,
-          objectId:     String(objectId),
-          attributeKey,
-          valueText:    entry.valueText,
-          valueInteger: entry.valueInteger,
-          valueDecimal: entry.valueDecimal,
-          valueDate:    entry.valueDate,
-          valueBoolean: entry.valueBoolean,
-          createdBy:    changedBy,
-          createdAt:    new Date().toISOString(),
-          modifiedBy:   changedBy,
-          modifiedAt:   new Date().toISOString()
-        })
-      )
-      await db.run(
-        INSERT.into('bridge.management.AttributeValueHistory').entries({
-          historyId:       cds.utils.uuid(),
-          objectType,
-          objectId:        String(objectId),
-          attributeKey,
-          newValueText:    entry.valueText,
-          newValueInteger: entry.valueInteger,
-          newValueDecimal: entry.valueDecimal,
-          newValueDate:    entry.valueDate,
-          newValueBoolean: entry.valueBoolean,
-          changedBy,
-          changedAt:       new Date().toISOString(),
-          changeSource
-        })
-      )
-    }
-  }
-}
+const loadActiveConfig = (db, objectType, assetClass) => classification.resolve(db, { objectType, assetClass })
+const loadValues = (db, objectType, objectId) => classification.loadValues(db, { objectType, objectId })
+const writeValuesWithHistory = (db, objectType, objectId, updates, changedBy, changeSource) =>
+  classification.writeValues(db, { objectType, objectId, updates, changedBy, changeSource })
 
 // Build a flat list of { label, key } attribute column headers for a template
 async function buildAttributeColumns(db, objectType) {
@@ -244,14 +64,14 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
   const router = express.Router()
   router.use(express.json({ limit: '10mb' }))
 
-  // GET /config?objectType=bridge
+  // GET /config?objectType=bridge[&assetClass=Road Bridge]
   router.get('/config', async (req, res) => {
-    const { objectType } = req.query
+    const { objectType, assetClass } = req.query
     if (!objectType) return res.status(400).json({ error: { message: 'objectType is required' } })
     try {
       const db = await cds.connect.to('db')
-      const config = await loadActiveConfig(db, objectType)
-      res.json({ objectType, groups: config })
+      const config = await loadActiveConfig(db, objectType, assetClass)
+      res.json({ objectType, assetClass: assetClass || null, groups: config })
     } catch (err) {
       res.status(500).json({ error: { message: err.message || 'Failed to load attribute config' } })
     }
@@ -280,7 +100,9 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
     const incoming = req.body?.values || {}
     try {
       const db = await cds.connect.to('db')
-      const config = await loadActiveConfig(db, objectType)
+      // class-aware: validate against the same scope the form was rendered with so
+      // class-specific characteristics are accepted (assetClass via query, optional).
+      const config = await loadActiveConfig(db, objectType, req.query.assetClass)
       const attrMap = new Map()
       for (const group of config) {
         for (const attr of group.attributes) {

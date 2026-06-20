@@ -148,6 +148,7 @@
                         <core:Icon src="{view>icon}" color="{view>color}" size="1rem" class="dashboardConditionIcon" />
                         <Text text="{view>label}" width="5.5rem" class="dashboardConditionLabel" />
                         <ProgressIndicator
+                          tooltip="{view>label}"
                           percentValue="{view>pct}"
                           displayValue="{view>pctText}"
                           state="{view>state}"

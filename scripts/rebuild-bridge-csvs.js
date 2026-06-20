@@ -55,8 +55,8 @@ function mapImportanceLevel(raw) {
 function mapRow(r) {
   const rawCondition = src(r, 'condition')
   const condKey = String(rawCondition).toUpperCase()
-  const condCode = CONDITION_MAP[condKey] || v(r.conditionRatingTfnsw) || v(r.conditionRating) || ''
-  const condRating = v(r.conditionRatingTfnsw) || v(r.conditionRating) || ''
+  const condCode = CONDITION_MAP[condKey] || v(r.conditionRatingBand) || v(r.conditionRating) || ''
+  const condRating = v(r.conditionRatingBand) || v(r.conditionRating) || ''
   const rawPosting = src(r, 'postingStatus')
   const postKey = String(rawPosting).toUpperCase()
   const posting = POSTING_MAP[postKey] || rawPosting
