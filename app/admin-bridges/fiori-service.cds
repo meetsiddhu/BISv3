@@ -514,7 +514,13 @@ annotate AdminService.Bridges with {
   route                  @title: 'Route';
   routeNumber            @title: 'Route Number';
   descr                  @title: 'Description'  @UI.MultiLineText;
-  material               @title: 'Material';
+  material @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'MaterialTypes', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: material, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Material';
   yearBuilt              @title: 'Year Built';
   designStandard         @title: 'Design Standard';
   clearanceHeight        @title: 'Clearance Height (m)';
@@ -535,7 +541,13 @@ annotate AdminService.Bridges with {
   loadRating             @title: 'Load Rating (t)';
   loadRatingBasis        @title: 'Load Rating Basis';
   ratingStandardType     @title: 'Rating Standard';
-  importanceLevel        @title: 'Importance Level (1–4)';
+  importanceLevel @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'ImportanceLevels', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: importanceLevel, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Importance Level (1–4)';
   averageDailyTraffic    @title: 'Average Daily Traffic (ADT)';
   heavyVehiclePercent    @title: 'Heavy Vehicle Percentage (%)';
   freightRoute           @title: 'Freight Route';
@@ -557,7 +569,13 @@ annotate AdminService.Bridges with {
   estimatedFatigueLifeYears @title: 'Est. Fatigue Life (yrs, advisory)';
   fatigueAssessmentDate     @title: 'Fatigue Assessment Date';
   bhiCalibrationStatus      @title: 'BHI Weight Calibration';
-  superstructureMaterial    @title: 'Superstructure Material';
+  superstructureMaterial @(
+    Common.ValueListWithFixedValues,
+    Common.ValueList: { SearchSupported: true, CollectionPath: 'MaterialTypes', Parameters: [
+      { $Type: 'Common.ValueListParameterOut', LocalDataProperty: superstructureMaterial, ValueListProperty: 'code' },
+      { $Type: 'Common.ValueListParameterDisplayOnly', ValueListProperty: 'name' }
+    ]}
+  ) @title: 'Superstructure Material';
   conditionSummary @(
     Common.ValueListWithFixedValues,
     Common.ValueList: { SearchSupported: true, CollectionPath: 'ConditionSummaries', Parameters: [

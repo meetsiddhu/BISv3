@@ -39,6 +39,14 @@ const ASSET_CLASSES = [
   { code: 'Major Culvert', name: 'Major Culvert', descr: 'Large multi-cell or long-span culvert (waterway opening >= 6 m2)', objectType: 'bridge', isActive: true }
 ]
 
+// Bridge material catalog — drives the material / superstructureMaterial search help. Common
+// structural materials; admin-extendable via the lookup (sap.common.CodeList).
+const MATERIAL_TYPES = [
+  'Reinforced Concrete', 'Prestressed Concrete', 'Steel', 'Steel/Concrete Composite',
+  'Wrought Iron', 'Cast Iron', 'Timber', 'Masonry', 'Stone', 'Brick',
+  'Aluminium', 'Fibre-Reinforced Polymer (FRP)'
+].map((code) => ({ code, name: code, isActive: true }))
+
 /*
  * One-time demo data load for the deployed (HANA) trial app.
  *
@@ -65,8 +73,13 @@ async function seedDemoData () {
         const ex = await tx.run(SELECT.one.from('bridge.management.AssetClasses').columns('code').where({ code: ac.code }))
         if (!ex) await tx.run(INSERT.into('bridge.management.AssetClasses').entries(ac))
       }
+      // Material catalog for the material / superstructureMaterial search help (insert-if-missing).
+      for (const m of MATERIAL_TYPES) {
+        const ex = await tx.run(SELECT.one.from('bridge.management.MaterialTypes').columns('code').where({ code: m.code }))
+        if (!ex) await tx.run(INSERT.into('bridge.management.MaterialTypes').entries(m))
+      }
     })
-  } catch (e) { LOG.warn('demo-seed: asset-class ensure skipped (' + e.message + ')') }
+  } catch (e) { LOG.warn('demo-seed: asset-class/material ensure skipped (' + e.message + ')') }
 
   if (process.env.BMS_SEED_DEMO === 'false') return
 

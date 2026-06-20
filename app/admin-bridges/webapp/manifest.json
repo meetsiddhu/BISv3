@@ -515,6 +515,21 @@
                     "route": "BridgesDetails"
                   }
                 }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
+                  }
+                }
               }
             }
           }
@@ -593,7 +608,16 @@
                     "enablePaste": false,
                     "creationMode": {
                       "name": "NewPage"
-                    }
+                    },
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -623,6 +647,21 @@
                 "BridgeRestrictions": {
                   "detail": {
                     "route": "BridgeRestrictionsPage"
+                  }
+                }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -666,7 +705,16 @@
                     "enablePaste": false,
                     "creationMode": {
                       "name": "NewPage"
-                    }
+                    },
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -710,7 +758,16 @@
                     "enablePaste": false,
                     "creationMode": {
                       "name": "NewPage"
-                    }
+                    },
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -741,7 +798,16 @@
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
-                    "enablePaste": false
+                    "enablePaste": false,
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -760,7 +826,14 @@
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
-                    "enablePaste": false
+                    "enablePaste": false,
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
                   }
                 }
               },
@@ -798,7 +871,14 @@
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
-                    "enablePaste": false
+                    "enablePaste": false,
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
                   }
                 }
               },
@@ -855,7 +935,16 @@
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
-                    "enablePaste": false
+                    "enablePaste": false,
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -874,7 +963,16 @@
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
-                    "enablePaste": false
+                    "enablePaste": false,
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -915,6 +1013,19 @@
                     "route": "EAMFieldMappingPage"
                   }
                 }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
+                  }
+                }
               }
             }
           }
@@ -939,7 +1050,20 @@
             "settings": {
               "entitySet": "EAMSyncLog",
               "liveMode": false,
-              "initialLoad": "Enabled"
+              "initialLoad": "Enabled",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
+                  }
+                }
+              }
             }
           }
         },
@@ -956,6 +1080,21 @@
                 "BridgeElements": {
                   "detail": {
                     "route": "BridgeElementsPage"
+                  }
+                }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true,
+                    "type": "GridTable",
+                    "selectionMode": "Multi"
                   }
                 }
               }
@@ -988,6 +1127,19 @@
                     "route": "RiskBandPage"
                   }
                 }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
+                  }
+                }
               }
             }
           }
@@ -1016,6 +1168,19 @@
                 "ClassTypes": {
                   "detail": {
                     "route": "ClassTypePage"
+                  }
+                }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
                   }
                 }
               }
@@ -1048,6 +1213,19 @@
                     "route": "AMObjectivesPage"
                   }
                 }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
+                  }
+                }
               }
             }
           }
@@ -1076,6 +1254,19 @@
                 "RiskConfig": {
                   "detail": {
                     "route": "RiskConfigPage"
+                  }
+                }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
                   }
                 }
               }
@@ -1108,6 +1299,19 @@
                     "route": "AssetClassStrategyPage"
                   }
                 }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
+                  }
+                }
               }
             }
           }
@@ -1136,6 +1340,19 @@
                 "SystemConfig": {
                   "detail": {
                     "route": "SystemConfigPage"
+                  }
+                }
+              },
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "tableSettings": {
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
                   }
                 }
               }

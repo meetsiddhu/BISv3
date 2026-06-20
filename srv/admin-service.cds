@@ -177,6 +177,12 @@ service AdminService {
     { grant: 'READ',                       to: 'view'  },
     { grant: ['CREATE','UPDATE','DELETE'],  to: 'admin' }
   ]
+  entity MaterialTypes as projection on my.MaterialTypes;
+
+  @restrict: [
+    { grant: 'READ',                       to: 'view'  },
+    { grant: ['CREATE','UPDATE','DELETE'],  to: 'admin' }
+  ]
   entity DesignLoads as projection on my.DesignLoads;
 
   @restrict: [

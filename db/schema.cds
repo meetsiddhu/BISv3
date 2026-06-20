@@ -773,6 +773,13 @@ entity RestrictionTypes : sap.common.CodeList {
   defaultUnit     : String(20);                   // suggested unit (t | m | km/h | RA | …)
 }
 
+// Bridge material catalog (additive) — drives the material / superstructureMaterial search help.
+// sap.common.CodeList gives name + descr; admin-maintainable + extendable.
+entity MaterialTypes : sap.common.CodeList {
+  key code : String(60);
+  isActive : Boolean default true;
+}
+
 entity RestrictionStatuses : sap.common.CodeList {
   key code : String(20);
   isActive : Boolean default true;

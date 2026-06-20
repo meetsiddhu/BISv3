@@ -16,6 +16,23 @@
 
 ---
 
+## 3.45.0 — Standardised ALV-style tables + completed search helps
+**What's new (registers, Fiori Elements):**
+- **Every list table is now ALV-capable** — column personalization (sort / filter / group /
+  choose & reorder columns) **and Excel export** are enabled on all 20 List Reports. The
+  data-dense registers (Bridges, Inspections, Defects, Capacities, Elements, Bridge-Restrictions,
+  and the risk/portfolio/change reports) render as a **GridTable** (ALV-style grid); the
+  Restrictions register keeps its hierarchy **TreeTable**; config-maintenance lists stay
+  responsive — all with the same personalization + export toolbar.
+- **Search helps completed on Bridges** — added value helps for **Material** & **Superstructure
+  Material** (new admin-maintainable Material catalog) and **Importance Level**. The Restrictions
+  register already had full search-help coverage on every coded field (type, unit, category,
+  status, vehicle class, direction, severity, mode, network, lane availability, PBS, bridge).
+
+> Remaining minor Bridges gaps (advisory free-text with sensible defaults): `lga`,
+> `loadRatingBasis`, `ratingStandardType`, `conditionStandard` — can be turned into config
+> lookups on request.
+
 ## 3.44.0 — Multi-modal restrictions: full taxonomy + downstream route-planning feed
 **What's new (restrictions):**
 - **Comprehensive, mode-aware restriction catalog** — the type list now covers **all modes**:

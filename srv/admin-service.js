@@ -13,7 +13,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     'PostingStatuses', 'CapacityStatuses', 'PbsApprovalClasses',
     'ConditionSummaries', 'StructuralAdequacyTypes', 'RestrictionTypes',
     'RestrictionStatuses', 'VehicleClasses', 'RestrictionCategories',
-    'RestrictionUnits', 'RestrictionDirections'
+    'RestrictionUnits', 'RestrictionDirections', 'MaterialTypes'
   ]
 
   // ── Risk prioritisation engine (Phase 2/4) — see srv/lib/risk.js (unit-tested) ──

@@ -45,7 +45,12 @@
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "uri": "i18n/i18n.properties",
-        "settings": { "supportedLocales": [""], "fallbackLocale": "" }
+        "settings": {
+          "supportedLocales": [
+            ""
+          ],
+          "fallbackLocale": ""
+        }
       },
       "": {
         "dataSource": "AdminService",
@@ -92,7 +97,14 @@
                   "tableSettings": {
                     "hierarchyQualifier": "RestrictionsHierarchy",
                     "type": "TreeTable",
-                    "enablePaste": false
+                    "enablePaste": false,
+                    "personalization": {
+                      "sort": true,
+                      "column": true,
+                      "filter": true,
+                      "group": true
+                    },
+                    "enableExport": true
                   }
                 }
               }
