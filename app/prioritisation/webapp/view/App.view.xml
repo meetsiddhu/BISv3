@@ -331,34 +331,71 @@
           </items>
         </IconTabBar>
       </content>
-      <!-- shared searchable bridge value help (ALV-style table + search) for the Assess & HV pickers -->
+      <!-- shared bridge value help for the Assess & HV pickers: register-style slice & dice
+           (free-text search + Transport Mode / State / Posting facets) over an ALV-style multi-
+           column grid; click a row to choose it. Mirrors the filters available in the register. -->
       <dependents>
-        <TableSelectDialog
-          id="bridgeSelectDialog"
-          title="{i18n>assess.pickBridgeTitle}"
-          searchPlaceholder="{i18n>assess.pickBridgeSearch}"
-          items="{path:'br>/rows', templateShareable:false}"
-          search=".onBridgeDialogSearch"
-          liveChange=".onBridgeDialogSearch"
-          confirm=".onBridgeDialogConfirm"
-          growing="true"
-          growingThreshold="40"
-          rememberSelections="false">
-          <columns>
-            <Column width="9rem"><Text text="{i18n>assess.col.bridgeId}" /></Column>
-            <Column><Text text="{i18n>assess.col.bridgeName}" /></Column>
-            <Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="{i18n>assess.col.mode}" /></Column>
-            <Column width="7rem" hAlign="End" minScreenWidth="Tablet" demandPopin="true"><Text text="{i18n>assess.col.condition}" /></Column>
-          </columns>
-          <ColumnListItem type="Active">
-            <cells>
-              <Text text="{br>bridgeId}" />
-              <Text text="{br>bridgeName}" />
-              <Text text="{= (${br>transportMode} || '') + (${br>network} ? ' · ' + ${br>network} : '') }" />
-              <Text text="{br>conditionRating}" />
-            </cells>
-          </ColumnListItem>
-        </TableSelectDialog>
+        <Dialog id="bridgeSelectDialog" title="{i18n>assess.pickBridgeTitle}"
+                contentWidth="54rem" contentHeight="34rem" resizable="true" draggable="true">
+          <subHeader>
+            <OverflowToolbar>
+              <SearchField id="bvhSearch" width="16rem" liveChange=".onBridgeDialogFilter"
+                           search=".onBridgeDialogFilter" placeholder="{i18n>assess.pickBridgeSearch}" />
+              <ToolbarSpacer />
+              <Select id="bvhMode" change=".onBridgeDialogFilter" autoAdjustWidth="true"
+                      items="{path:'bvh>/modes', templateShareable:false}" tooltip="{i18n>assess.col.mode}">
+                <core:Item key="{bvh>key}" text="{bvh>text}" />
+              </Select>
+              <Select id="bvhState" change=".onBridgeDialogFilter" autoAdjustWidth="true"
+                      items="{path:'bvh>/states', templateShareable:false}" tooltip="{i18n>assess.col.state}">
+                <core:Item key="{bvh>key}" text="{bvh>text}" />
+              </Select>
+              <Select id="bvhPosting" change=".onBridgeDialogFilter" autoAdjustWidth="true"
+                      items="{path:'bvh>/postings', templateShareable:false}" tooltip="{i18n>assess.col.posting}">
+                <core:Item key="{bvh>key}" text="{bvh>text}" />
+              </Select>
+            </OverflowToolbar>
+          </subHeader>
+          <content>
+            <Table id="bvhTable" items="{path:'br>/rows', templateShareable:false}"
+                   mode="SingleSelectMaster" growing="true" growingThreshold="50"
+                   itemPress=".onBridgeRowSelect" noDataText="{i18n>assess.pickBridgeNoData}">
+              <headerToolbar>
+                <OverflowToolbar>
+                  <Title text="{i18n>assess.pickBridgeMatches}: {bvh>/count}" level="H6" />
+                  <ToolbarSpacer />
+                  <Button icon="sap-icon://clear-filter" text="{i18n>assess.pickBridgeClear}"
+                          type="Transparent" press=".onBridgeDialogClearFilters" />
+                </OverflowToolbar>
+              </headerToolbar>
+              <columns>
+                <Column width="8rem"><Text text="{i18n>assess.col.bridgeId}" /></Column>
+                <Column><Text text="{i18n>assess.col.bridgeName}" /></Column>
+                <Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="{i18n>assess.col.mode}" /></Column>
+                <Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="{i18n>assess.col.network}" /></Column>
+                <Column width="6rem" minScreenWidth="Desktop" demandPopin="true"><Text text="{i18n>assess.col.state}" /></Column>
+                <Column width="6rem" hAlign="End" minScreenWidth="Desktop" demandPopin="true"><Text text="{i18n>assess.col.condition}" /></Column>
+                <Column width="8rem" minScreenWidth="Desktop" demandPopin="true"><Text text="{i18n>assess.col.posting}" /></Column>
+              </columns>
+              <items>
+                <ColumnListItem type="Active">
+                  <cells>
+                    <Text text="{br>bridgeId}" />
+                    <Text text="{br>bridgeName}" />
+                    <Text text="{br>transportMode}" />
+                    <Text text="{br>network}" />
+                    <Text text="{br>state}" />
+                    <Text text="{br>conditionRating}" />
+                    <Text text="{br>postingStatus}" />
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </content>
+          <endButton>
+            <Button text="{i18n>assess.pickBridgeCancel}" press=".onBridgeDialogClose" />
+          </endButton>
+        </Dialog>
       </dependents>
     </Page>
   </App>

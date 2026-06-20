@@ -65,6 +65,8 @@ sap.ui.define([
       // reviewStatus filter surfacing the held runs).
       this.getView().setModel(new JSONModel({ rows: [], segment: "current" }), "wl");
       this.getView().setModel(new JSONModel({ rows: [] }), "br");
+      // bridge value-help facets (distinct mode/state/posting derived from the loaded bridges)
+      this.getView().setModel(new JSONModel({ count: 0, modes: [], states: [], postings: [] }), "bvh");
       this.getView().setModel(new JSONModel({ mode: "exec", bands: [], assessed: 0, p1: 0, stale: 0, topScore: 0, headline: "" }), "rep");
       // HV-1 / CAPEX-1 tabs
       this.getView().setModel(new JSONModel({ bridgeID: null, bridgePickerText: "", vehicleCode: null, vehicles: [], checks: [], verdictText: "—", verdictState: "None", governing: "" }), "hv");
@@ -463,24 +465,53 @@ sap.ui.define([
     onHvBridgeValueHelp: function () { this._openBridgeDialog("hv"); },
     _openBridgeDialog: function (target) {
       this._bridgeVHTarget = target;
-      var dlg = this.byId("bridgeSelectDialog");
-      var binding = dlg.getBinding("items"); if (binding) { binding.filter([]); } // full list on open
-      dlg.open();
+      // rebuild the facet drop-downs (distinct values present in the loaded fleet, "All" first)
+      var rows = this.getView().getModel("br").getProperty("/rows") || [];
+      var bvh = this.getView().getModel("bvh");
+      bvh.setProperty("/modes", this._facet(rows, "transportMode", this._t("assess.allModes")));
+      bvh.setProperty("/states", this._facet(rows, "state", this._t("assess.allStates")));
+      bvh.setProperty("/postings", this._facet(rows, "postingStatus", this._t("assess.allPostings")));
+      this.onBridgeDialogClearFilters();           // reset controls + apply (shows full list + count)
+      this.byId("bridgeSelectDialog").open();
     },
-    onBridgeDialogSearch: function (oEvent) {
-      var q = oEvent.getParameter("value") || "";
-      var binding = oEvent.getSource().getBinding("items"); if (!binding) return;
-      if (!q) { binding.filter([]); return; }
-      binding.filter(new Filter({
-        filters: [
-          new Filter("bridgeId", FilterOperator.Contains, q),
-          new Filter("bridgeName", FilterOperator.Contains, q)
-        ], and: false
-      }));
+    // distinct non-empty values of a field, sorted, with an "All …" option (key "") first
+    _facet: function (rows, field, allLabel) {
+      var seen = {}, out = [];
+      rows.forEach(function (r) { var v = r[field]; if (v != null && v !== "" && !seen[v]) { seen[v] = 1; out.push({ key: String(v), text: String(v) }); } });
+      out.sort(function (a, b) { return a.text.localeCompare(b.text); });
+      out.unshift({ key: "", text: allLabel });
+      return out;
     },
-    onBridgeDialogConfirm: function (oEvent) {
-      var item = oEvent.getParameter("selectedItem"); if (!item) return;
-      var ctx = item.getBindingContext("br"); if (!ctx) return;
+    // combined filter = free-text (OR across id/name/mode/network/state/posting) AND each facet
+    _applyBridgeFilter: function () {
+      var binding = this.byId("bvhTable").getBinding("items"); if (!binding) return;
+      var q = (this.byId("bvhSearch").getValue() || "").trim();
+      var mode = this.byId("bvhMode").getSelectedKey();
+      var state = this.byId("bvhState").getSelectedKey();
+      var posting = this.byId("bvhPosting").getSelectedKey();
+      var ands = [];
+      if (q) {
+        ands.push(new Filter({ and: false, filters: ["bridgeId", "bridgeName", "transportMode", "network", "state", "postingStatus"]
+          .map(function (f) { return new Filter(f, FilterOperator.Contains, q); }) }));
+      }
+      if (mode) { ands.push(new Filter("transportMode", FilterOperator.EQ, mode)); }
+      if (state) { ands.push(new Filter("state", FilterOperator.EQ, state)); }
+      if (posting) { ands.push(new Filter("postingStatus", FilterOperator.EQ, posting)); }
+      binding.filter(ands.length ? new Filter({ and: true, filters: ands }) : []);
+      this.getView().getModel("bvh").setProperty("/count", binding.getLength());
+    },
+    onBridgeDialogFilter: function () { this._applyBridgeFilter(); },
+    onBridgeDialogClearFilters: function () {
+      this.byId("bvhSearch").setValue("");
+      this.byId("bvhMode").setSelectedKey("");
+      this.byId("bvhState").setSelectedKey("");
+      this.byId("bvhPosting").setSelectedKey("");
+      this._applyBridgeFilter();
+    },
+    onBridgeDialogClose: function () { this.byId("bridgeSelectDialog").close(); },
+    onBridgeRowSelect: function (oEvent) {
+      var item = oEvent.getParameter("listItem") || oEvent.getSource();
+      var ctx = item && item.getBindingContext("br"); if (!ctx) return;
       var row = ctx.getObject();
       if (this._bridgeVHTarget === "hv") {
         var hv = this.getView().getModel("hv");
@@ -489,6 +520,7 @@ sap.ui.define([
       } else {
         this._applyBridge(row.ID);
       }
+      this.byId("bridgeSelectDialog").close();
     },
 
     // Load + display one bridge on the Assess tab: prominent identity header, read-only federated

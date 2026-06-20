@@ -16,6 +16,21 @@
 
 ---
 
+## 3.50.0 — Bridge search-help: register-style slice & dice
+**Improved (Prioritisation bridge picker — Assess & HV tabs):**
+- The bridge value-help (F4) is now a **filtered ALV-style grid**, not just a search box. Narrow the
+  list by **free text** (matches across ID, name, mode, network, state, posting) **and** by
+  **Transport Mode**, **State** and **Posting Status** facet drop-downs — the same way you slice the
+  Bridges register. A live **match count** and a **Clear filters** button are shown; clicking a row
+  chooses the bridge. Columns: Bridge ID · Name · Mode · Network · State · Condition · Posting.
+
+**Confirmed (registers — already ALV smart tables, no change needed):**
+- The **Bridges** register is a `GridTable` and the **Restrictions** register a hierarchical
+  `TreeTable`; both have full personalization (sort / filter / group / choose & reorder columns)
+  + Excel export, a multi-field filter bar, and **clicking a row opens that record's details
+  (Object Page)**. The FE value-helps inside the registers (e.g. the restriction's bridge picker)
+  are likewise multi-column, filterable dialogs.
+
 ## 3.49.0 — Prioritisation: removed the read-only model panel + jurisdiction-neutral labels
 **Changed (Prioritisation):**
 - The **Assess** tab no longer shows the read-only **"Configured model … — auto criteria
