@@ -163,33 +163,40 @@
     return values;
   }
 
-  // allGroups = the full pool of classes scoped to this object type; assigned = the class IDs
-  // explicitly selected for THIS bridge (SAP EAM-style). visibleGroups() filters the pool to
-  // the assigned set; an empty set means "no explicit selection — show all" (back-compatible).
+  // allGroups = the full pool of classes scoped to this object type (for the picker); assigned =
+  // the class IDs explicitly selected for THIS bridge (SAP EAM classification). visibleGroups()
+  // returns ONLY the assigned classes — an UNCLASSIFIED object (no assigned class) shows NOTHING.
   var _state = { allGroups: [], assigned: [], values: {}, editMode: false };
 
   function visibleGroups() {
-    if (!_state.assigned.length) return _state.allGroups;
+    if (!_state.assigned.length) return [];
     var set = new Set(_state.assigned.map(String));
     return _state.allGroups.filter(function (g) { return set.has(String(g.ID)); });
   }
 
-  // Class picker (edit mode): tick the classes that apply to this bridge; the characteristics
-  // panel updates live and the selection persists on Save.
+  // Class picker (edit mode): a searchable, multi-select dialog (scales to hundreds/thousands of
+  // classes) + chips of the current selection. The characteristics panel updates on confirm and
+  // the selection persists on Save.
   function renderClassSelector() {
-    if (!_state.allGroups.length) return '';
     var assignedSet = new Set(_state.assigned.map(String));
-    var boxes = '';
-    _state.allGroups.forEach(function (g) {
-      boxes += '<label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:400;margin:0 18px 6px 0">' +
-        '<input type="checkbox" onchange="window._caToggleClass(\'' + esc(g.ID) + '\')"' + (assignedSet.has(String(g.ID)) ? ' checked' : '') + '/>' + esc(g.name) + '</label>';
-    });
-    var hint = _state.assigned.length
-      ? '<div style="font-size:11px;color:#aaa;margin-top:2px">Showing only the ticked classes. Untick all to show every class.</div>'
-      : '<div style="font-size:11px;color:#aaa;margin-top:2px">No classes selected — showing all. Tick the classes that apply to this bridge to limit data collection to them.</div>';
+    var names = _state.allGroups.filter(function (g) { return assignedSet.has(String(g.ID)); }).map(function (g) { return g.name; });
+    var chips = names.length
+      ? names.map(function (n) { return '<span style="display:inline-block;background:#e3f0fb;color:#0a6ed1;border-radius:10px;padding:2px 10px;margin:0 6px 6px 0;font-size:12px">' + esc(n) + '</span>'; }).join('')
+      : '<span style="color:#aaa;font-size:12px">None selected — pick the class(es) that apply to this bridge.</span>';
     return '<div style="background:#f7f9fb;border:1px solid #e5e5e5;border-radius:6px;padding:10px 12px;margin-bottom:14px">' +
-      '<div style="font-size:12px;font-weight:600;color:#556b82;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Classes</div>' +
-      '<div style="display:flex;flex-wrap:wrap">' + boxes + '</div>' + hint + '</div>';
+      '<div style="display:flex;align-items:center;margin-bottom:8px">' +
+      '<span style="font-size:12px;font-weight:600;color:#556b82;text-transform:uppercase;letter-spacing:.04em;flex:1">Classes (' + names.length + ')</span>' +
+      '<button onclick="window._caPickClasses()" style="padding:4px 12px;background:#fff;color:#0a6ed1;border:1px solid #0a6ed1;border-radius:4px;font-size:12px;cursor:pointer">Select Classes…</button>' +
+      '</div><div style="line-height:1.9">' + chips + '</div></div>';
+  }
+
+  function emptyMessage() {
+    if (!_state.assigned.length) {
+      return _state.editMode
+        ? '<div style="color:#8696a9;padding:1rem;text-align:center">No classes selected. Use <b>Select Classes…</b> above to choose which classes apply, then their characteristics appear here.</div>'
+        : '<div style="color:#8696a9;padding:1rem;text-align:center">No classes assigned to this bridge. Choose <b>Edit</b> to assign one or more classes and collect their data.</div>';
+    }
+    return '<div style="color:#8696a9;padding:1rem;text-align:center">The selected class(es) have no characteristics configured.</div>';
   }
 
   function render() {
@@ -206,7 +213,8 @@
     }
     content += '</div>';
     if (_state.editMode) content += renderClassSelector();
-    content += renderGroups(visibleGroups(), _state.values, _state.editMode);
+    var vis = visibleGroups();
+    content += vis.length ? renderGroups(vis, _state.values, _state.editMode) : emptyMessage();
     content += '</div>';
     root.innerHTML = content;
   }
@@ -246,12 +254,38 @@
   window._caEdit = function () { _state.editMode = true; render(); };
   window._caCancel = function () { _state.editMode = false; render(); };
 
-  // Toggle a class on/off for this bridge — preserve any entered values across the re-render.
-  window._caToggleClass = function (groupId) {
-    _state.values = Object.assign({}, _state.values, collectValues(visibleGroups()));
-    var i = _state.assigned.map(String).indexOf(String(groupId));
-    if (i >= 0) _state.assigned.splice(i, 1); else _state.assigned.push(groupId);
-    render();
+  // Searchable, multi-select class picker (sap.m.SelectDialog) — scales to hundreds/thousands of
+  // classes via type-ahead search + growing. Preserves entered values across the re-render.
+  window._caPickClasses = function () {
+    sap.ui.require([
+      'sap/m/SelectDialog', 'sap/m/StandardListItem', 'sap/ui/model/json/JSONModel',
+      'sap/ui/model/Filter', 'sap/ui/model/FilterOperator'
+    ], function (SelectDialog, StandardListItem, JSONModel, Filter, FilterOperator) {
+      var assignedSet = new Set(_state.assigned.map(String));
+      var rows = _state.allGroups.map(function (g) { return { ID: String(g.ID), name: g.name, sel: assignedSet.has(String(g.ID)) }; });
+      var doFilter = function (oEvt) {
+        var q = oEvt.getParameter('value') || '';
+        var b = oEvt.getParameter('itemsBinding') || oEvt.getSource().getBinding('items');
+        if (b) b.filter(q ? [new Filter('name', FilterOperator.Contains, q)] : []);
+      };
+      var dlg = new SelectDialog({
+        title: 'Select Classes', multiSelect: true, rememberSelections: true,
+        growing: true, growingThreshold: 50, contentWidth: '30rem', contentHeight: '24rem',
+        search: doFilter, liveChange: doFilter,
+        confirm: function (oEvt) {
+          // preserve entered values before the panel re-renders for the new class set
+          _state.values = Object.assign({}, _state.values, collectValues(visibleGroups()));
+          var sel = oEvt.getParameter('selectedContexts') || [];
+          _state.assigned = sel.map(function (c) { return c.getObject().ID; });
+          render();
+          dlg.destroy();
+        },
+        cancel: function () { dlg.destroy(); }
+      });
+      dlg.setModel(new JSONModel({ classes: rows }));
+      dlg.bindAggregation('items', { path: '/classes', template: new StandardListItem({ title: '{name}', selected: '{sel}' }) });
+      dlg.open();
+    });
   };
 
   window._caSave = function () {

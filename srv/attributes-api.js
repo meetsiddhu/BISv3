@@ -82,9 +82,17 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
     if (!objectType) return res.status(400).json({ error: { message: 'objectType is required' } })
     try {
       const db = await cds.connect.to('db')
-      const groupIds = objectId ? await loadAssignedGroupIds(db, objectType, objectId) : []
-      const config = await loadActiveConfig(db, objectType, assetClass, groupIds)
-      res.json({ objectType, assetClass: assetClass || null, assignedClasses: groupIds, groups: config })
+      let groups; let assignedClasses = []
+      if (objectId) {
+        assignedClasses = await loadAssignedGroupIds(db, objectType, objectId)
+        // EAM rule: an object with NO class assignment is unclassified → it has NO
+        // characteristics (blank), rather than inheriting every class. The full pool is
+        // available via the no-objectId call below (used by the class picker).
+        groups = assignedClasses.length ? await loadActiveConfig(db, objectType, assetClass, assignedClasses) : []
+      } else {
+        groups = await loadActiveConfig(db, objectType, assetClass)
+      }
+      res.json({ objectType, assetClass: assetClass || null, assignedClasses, groups })
     } catch (err) {
       res.status(500).json({ error: { message: err.message || 'Failed to load attribute config' } })
     }
@@ -198,17 +206,22 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
         }
       }
 
-      // Check required fields
-      for (const group of config) {
-        for (const attr of group.attributes) {
-          if (!attr.required) continue
-          const incomingVal = incoming[attr.internalKey]
-          const isSet = incomingVal !== null && incomingVal !== undefined && incomingVal !== ''
-          if (!isSet) {
-            // Only error if it was included in the payload (allow partial saves)
-            if (Object.prototype.hasOwnProperty.call(incoming, attr.internalKey)) {
-              errors.push(`${attr.name} is required and cannot be empty`)
-            }
+      // MANDATORY (SAP CT04 "entry required"): every required characteristic of the object's
+      // ASSIGNED classes must end up with a value — satisfied by the incoming payload OR an
+      // already-saved value. An unclassified object (no assigned class) has no required fields.
+      const assignedGroupIds = await loadAssignedGroupIds(db, objectType, objectId)
+      if (assignedGroupIds.length) {
+        const requiredConfig = await loadActiveConfig(db, objectType, req.query.assetClass, assignedGroupIds)
+        const existing = await loadValues(db, objectType, objectId)
+        const existingMap = {}
+        for (const v of existing) existingMap[v.attributeKey] = v.valueText ?? v.valueInteger ?? v.valueDecimal ?? v.valueDate ?? v.valueBoolean ?? null
+        const nonBlank = (val) => val !== null && val !== undefined && String(val).trim() !== ''
+        for (const group of requiredConfig) {
+          for (const attr of group.attributes) {
+            if (!attr.required) continue
+            const k = attr.internalKey
+            const effective = Object.prototype.hasOwnProperty.call(incoming, k) ? incoming[k] : existingMap[k]
+            if (!nonBlank(effective)) errors.push(`${attr.name} is required and cannot be empty`)
           }
         }
       }

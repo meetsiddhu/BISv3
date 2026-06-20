@@ -16,6 +16,24 @@
 
 ---
 
+## 3.43.0 — EAM-grade classification: blank-when-unclassified, searchable picker, mandatory fields
+**What's new (custom attributes / classification):**
+- **Unclassified = blank.** A bridge (or restriction) with **no class assigned** now shows **no**
+  custom attributes — pick class(es) first (true SAP-classification behaviour). No more "all
+  attributes showing when nothing is selected".
+- **Searchable, multi-select class picker.** Edit → **Select Classes…** opens a dialog with
+  **type-ahead search + multi-select** that scales to hundreds/thousands of classes; selected
+  classes show as chips and only their characteristics appear below.
+- **Mandatory characteristics enforced.** A characteristic marked **Required** in an assigned
+  class must be filled when the asset is saved — the save is blocked with a clear message
+  (server-validated), and on mass-import too.
+- **Reportable / downloadable / mass-maintainable** (confirmed): characteristic values are saved
+  + audited, surfaced in the **Change Documents** report and via OData, exported to Excel, and
+  bulk **created or changed** via mass-upload — all driven by one config (`classification.resolve`).
+
+See `docs/CLASSIFICATION-EAM-ALIGNMENT.md` for the full SAP ECC/S-4 classification mapping, the
+limitations we overcome, and the no-code extensibility model.
+
 ## 3.42.0 — Class config aligned across register, selector & mass-upload
 **Where the config lives:** the **Attribute Classes** tile is the config. Each class has an
 **Object Type** (Bridge / Restriction) and a **Status** — only **Active** classes whose Object
