@@ -933,7 +933,10 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       doc.kv('Prepared (as-at)', today)
       doc.kv('Methodology owner', owner + ' · ' + formulaVersion + ' / config ' + version)
       doc.kv('Methodology versions', versions.join(', ') + (versions.length > 1 ? '  (mixed)' : ''))
-      const modelIds = Array.from(new Set(runs.map(r => (r.modelCode || 'NSW-RISK-V1') + ' v' + (r.modelVersion || 1))))
+      // store-readiness: strip a jurisdiction prefix (e.g. "NSW-") from the model code for display
+      // only; the stored code is unchanged (audit). Mirrors the UI _modelLabel scrub.
+      const stripJuris = (c) => String(c || '').replace(/^[A-Z]{2,3}-(?=[A-Z])/, '')
+      const modelIds = Array.from(new Set(runs.map(r => stripJuris(r.modelCode || 'RISK-V1') + ' v' + (r.modelVersion || 1))))
       doc.kv('Scoring model(s)', modelIds.join(', ') + ' — criteria/weights per Model Builder (BMS Admin)')
       // B3a disclosure: held runs are excluded from every figure above — say so, with the count.
       if (heldCount > 0) doc.kv('Held for review (excluded)', heldCount + ' run(s) pending engineering review (forceReview) — release via the worklist to include them')

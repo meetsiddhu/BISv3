@@ -16,6 +16,19 @@
 
 ---
 
+## 3.49.0 — Prioritisation: removed the read-only model panel + jurisdiction-neutral labels
+**Changed (Prioritisation):**
+- The **Assess** tab no longer shows the read-only **"Configured model … — auto criteria
+  (read-only, from data)"** panel. That model and its criteria/weights are **configurable** where
+  they belong — **BMS Administration → Prioritisation Models** — and the per-criterion evaluation
+  is still available in the audit **Run detail** dialog. (The Federated facts panel — condition,
+  load rating, restrictions — stays.)
+- **Jurisdiction-neutral model labels.** Everywhere a model was named to a user (Run detail, the
+  exec PDF's "Scoring model(s)", the Models admin note, and the Help dialog) now shows a neutral
+  label — e.g. a *"standards parameter pack"* / `PACK-V1` — instead of a jurisdiction-prefixed
+  code. The **stored** model codes are unchanged, so audit reproducibility of past runs is
+  preserved.
+
 ## 3.48.0 — Prioritisation Assess tab: clearer bridge identity + searchable picker
 **Fixed / improved (Prioritisation → Assess):**
 - **You can now see which bridge you're assessing.** Picking a bridge — from the Worklist or the

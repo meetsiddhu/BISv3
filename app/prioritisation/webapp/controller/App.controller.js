@@ -42,6 +42,14 @@ sap.ui.define([
       return (v === null || v === undefined || v === "") ? "" : v + "%";
     },
 
+    // Store-readiness: a stored model code may carry a jurisdiction prefix (e.g. "NSW-"). Strip it
+    // for any USER-FACING display so the UI stays jurisdiction-neutral. The stored code is never
+    // changed (kept for audit reproducibility of frozen runs + backend tests).
+    _modelLabel: function (code, ver) {
+      var c = String(code || "").replace(/^[A-Z]{2,3}-(?=[A-Z])/, "");
+      return c + (ver != null && ver !== "" ? " v" + ver : "");
+    },
+
     onInit: function () {
       this._svc = "/odata/v4/prioritisation";
       this._cfg = DEFAULT_CFG;
@@ -122,7 +130,7 @@ sap.ui.define([
             "<li>Release any review-held runs after engineering sign-off; export the one-page <strong>Report</strong> for exec sign-off.</li>" +
             "</ol>" +
             "<h3>How to configure it</h3>" +
-            "<p>Open <strong>BMS Administration → Prioritisation Models</strong> to change the weights (per asset class too), the band cut-offs, and which model is active. Two models ship: the 5-factor <strong>NSW-RISK-V1</strong> (engineer judgement) and the 37-factor <strong>NSW-PACK-V1</strong> (auto-scores the whole fleet from data).</p>" +
+            "<p>Open <strong>BMS Administration → Prioritisation Models</strong> to change the weights (per asset class too), the band cut-offs, and which model is active. Two models ship: a <strong>risk-criticality blend</strong> (engineer judgement) and a configurable <strong>standards parameter pack</strong> (auto-scores the whole fleet from data). Both are fully configurable — add or reweight criteria there.</p>" +
             "<p><em>To explain any single result: condition + consequence + which rule fired + which model. " +
             "The run detail shows all four.</em></p>";
           this._helpDialog = new Dialog({
@@ -517,14 +525,9 @@ sap.ui.define([
           var fresh = f.conditionAsAtMonths;
           m.setProperty("/confidenceText", (f.inputsAvailable + " of " + f.inputsTotal + " inputs") + (fresh != null ? " · condition as-at " + fresh + " mo" : ""));
           m.setProperty("/confidenceState", (f.inputsAvailable < f.inputsTotal || (fresh != null && fresh > 12)) ? "Warning" : "Success");
-          // RULE ENGINE: resolved model + read-only auto criteria (value · source · score)
-          m.setProperty("/modelText", f.modelCode ? (f.modelCode + " v" + f.modelVersion + " · " + (f.aggregationMethod || "")) : "");
-          var auto;
-          try { auto = JSON.parse(f.autoCriteria || "[]"); } catch (_e) { auto = []; }
-          m.setProperty("/autoCriteria", auto.map(function (a) {
-            return { code: a.code, rawText: (a.raw == null ? "—" : String(a.raw)), source: a.source,
-              scoreText: (a.score == null ? (a.note || "missing → flagged") : String(a.score)), weight: a.weight };
-          }));
+          // (the configured-model / auto-criteria preview was removed from this tab — the model and
+          //  its criteria/weights are maintained in BMS Administration → Prioritisation Models, and
+          //  the per-criterion evaluation is still shown in the audit Run detail dialog.)
           self._recompute();
         })
         .catch(function (e) { MessageToast.show("Could not load bridge facts: " + e.message); });
@@ -593,7 +596,7 @@ sap.ui.define([
       // RULE ENGINE: per-criterion model evaluation (configured model runs)
       var bd; try { bd = JSON.parse(r.criterionBreakdown); } catch (_e) { bd = null; }
       if (bd && bd.rows && !bd.delegated) {
-        items.push(new sap.m.Title({ text: "Model evaluation — " + (r.modelCode || "") + " v" + (r.modelVersion || "") + (bd.forceReview ? "  ·  REVIEW REQUIRED" : ""), level: "H6" }).addStyleClass("sapUiSmallMarginTop"));
+        items.push(new sap.m.Title({ text: "Model evaluation — " + self._modelLabel(r.modelCode, r.modelVersion) + (bd.forceReview ? "  ·  REVIEW REQUIRED" : ""), level: "H6" }).addStyleClass("sapUiSmallMarginTop"));
         // B4: coverage disclosure — "Scored on X of Y weight" (missing-data criteria are
         // excluded from the denominator; this line makes the evidence base explicit).
         var iw = bd.includedWeight != null ? bd.includedWeight : r.includedWeight;
@@ -611,7 +614,7 @@ sap.ui.define([
           items.push(new sap.m.ObjectStatus({ text: fl, state: "Warning" }));
         });
       } else if (bd && bd.delegated) {
-        items.push(new sap.m.Text({ text: "Model: " + (r.modelCode || "NSW-RISK-V1") + " v" + (r.modelVersion || 1) + " (baseline formula, delegated)", wrapping: true }).addStyleClass("sapUiTinyMarginTop sapUiContentLabelColor"));
+        items.push(new sap.m.Text({ text: "Model: " + self._modelLabel(r.modelCode || "RISK-V1", r.modelVersion || 1) + " (baseline formula, delegated)", wrapping: true }).addStyleClass("sapUiTinyMarginTop sapUiContentLabelColor"));
       }
       items.push(new sap.m.Text({ text: methodology, wrapping: true }).addStyleClass("sapUiSmallMarginTop sapUiContentLabelColor"));
       var dlg = new sap.m.Dialog({
