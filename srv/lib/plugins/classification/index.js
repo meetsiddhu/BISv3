@@ -75,9 +75,16 @@ function buildValueEntry (objectType, objectId, attributeKey, dataType, coerced)
 // Resolve the enabled characteristic groups for an (objectType, assetClass). A config row scoped
 // to the requested assetClass overrides the all-classes (null) row; with no assetClass only the
 // all-classes rows apply (backward compatible). Returns groups with their enabled attributes.
-async function resolve (db, { objectType, assetClass } = {}, opts = {}) {
+// groupIds (optional): when a non-empty array, restrict the resolved config to ONLY those
+// classes (SAP EAM-style explicit classification — the object's assigned classes). When
+// omitted/empty, all classes scoped to the objectType apply (the original behaviour).
+async function resolve (db, { objectType, assetClass, groupIds } = {}, opts = {}) {
   const ent = E(opts)
-  const groups = await db.run(SELECT.from(ent.groups).where({ objectType, status: 'Active' }).orderBy('displayOrder'))
+  let groups = await db.run(SELECT.from(ent.groups).where({ objectType, status: 'Active' }).orderBy('displayOrder'))
+  if (Array.isArray(groupIds) && groupIds.length) {
+    const wanted = new Set(groupIds.map(String))
+    groups = groups.filter(g => wanted.has(String(g.ID)))
+  }
   if (!groups.length) return []
 
   const allDefs = await db.run(SELECT.from(ent.definitions).where({ objectType, status: 'Active' }).orderBy('displayOrder'))

@@ -34,8 +34,17 @@ function currentUser(req) {
 // buildValueEntry) are used internally by the plugin; the routes here only need coerceValue.
 const coerceValue = (dataType, raw) => classification.coerceValue(dataType, raw)
 
-const loadActiveConfig = (db, objectType, assetClass) => classification.resolve(db, { objectType, assetClass })
+const loadActiveConfig = (db, objectType, assetClass, groupIds) => classification.resolve(db, { objectType, assetClass, groupIds })
 const loadValues = (db, objectType, objectId) => classification.loadValues(db, { objectType, objectId })
+
+// SAP EAM-style explicit classification: the class IDs a specific object instance is assigned to.
+// Empty array = no explicit assignment (caller falls back to asset-class scoping). The link rows
+// live in ObjectClassAssignment.
+const ASSIGN_ENTITY = 'bridge.management.ObjectClassAssignment'
+const loadAssignedGroupIds = async (db, objectType, objectId) => {
+  const rows = await db.run(SELECT.from(ASSIGN_ENTITY).columns('group_ID').where({ objectType, objectId: String(objectId) }))
+  return (rows || []).map(r => r.group_ID).filter(Boolean)
+}
 const writeValuesWithHistory = (db, objectType, objectId, updates, changedBy, changeSource) =>
   classification.writeValues(db, { objectType, objectId, updates, changedBy, changeSource })
 
@@ -64,16 +73,59 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
   const router = express.Router()
   router.use(express.json({ limit: '10mb' }))
 
-  // GET /config?objectType=bridge[&assetClass=Road Bridge]
+  // GET /config?objectType=bridge[&assetClass=Road Bridge][&objectId=1001]
+  // When objectId is given AND that object has explicit class assignments, the config is
+  // filtered to ONLY the assigned classes (SAP EAM-style). With no assignments it falls back
+  // to the asset-class scoping (every class for the type) — unchanged for existing records.
   router.get('/config', async (req, res) => {
-    const { objectType, assetClass } = req.query
+    const { objectType, assetClass, objectId } = req.query
     if (!objectType) return res.status(400).json({ error: { message: 'objectType is required' } })
     try {
       const db = await cds.connect.to('db')
-      const config = await loadActiveConfig(db, objectType, assetClass)
-      res.json({ objectType, assetClass: assetClass || null, groups: config })
+      const groupIds = objectId ? await loadAssignedGroupIds(db, objectType, objectId) : []
+      const config = await loadActiveConfig(db, objectType, assetClass, groupIds)
+      res.json({ objectType, assetClass: assetClass || null, assignedClasses: groupIds, groups: config })
     } catch (err) {
       res.status(500).json({ error: { message: err.message || 'Failed to load attribute config' } })
+    }
+  })
+
+  // GET /classes/:objectType/:objectId — the classes assigned to this object + all available
+  // classes for the type, so the editor can offer a "which classes apply?" selector.
+  router.get('/classes/:objectType/:objectId', async (req, res) => {
+    const { objectType, objectId } = req.params
+    try {
+      const db = await cds.connect.to('db')
+      const available = await db.run(SELECT.from('bridge.management.AttributeGroups')
+        .columns('ID', 'name').where({ objectType, status: 'Active' }).orderBy('displayOrder'))
+      const assigned = await loadAssignedGroupIds(db, objectType, objectId)
+      res.json({ objectType, objectId, assigned, available })
+    } catch (err) {
+      res.status(500).json({ error: { message: err.message || 'Failed to load classes' } })
+    }
+  })
+
+  // POST /classes/:objectType/:objectId  Body: { groupIds: [...] } — replace the object's class
+  // assignment set. Empty array clears it (form then falls back to asset-class scoping).
+  // Auth + scope (POST requires the manage scope) + CSRF are enforced by the router-level
+  // middleware mounted below.
+  router.post('/classes/:objectType/:objectId', async (req, res) => {
+    const { objectType, objectId } = req.params
+    const groupIds = Array.isArray(req.body?.groupIds) ? req.body.groupIds.filter(Boolean).map(String) : []
+    try {
+      const db = await cds.connect.to('db')
+      const changedBy = currentUser(req)
+      await db.tx(async (tx) => {
+        await tx.run(cds.ql.DELETE.from(ASSIGN_ENTITY).where({ objectType, objectId: String(objectId) }))
+        if (groupIds.length) {
+          await tx.run(INSERT.into(ASSIGN_ENTITY).entries(groupIds.map(g => ({
+            objectType, objectId: String(objectId), group_ID: g, createdBy: changedBy, modifiedBy: changedBy
+          }))))
+        }
+      })
+      res.json({ ok: true, assigned: groupIds })
+    } catch (err) {
+      res.status(500).json({ error: { message: err.message || 'Failed to save classes' } })
     }
   })
 

@@ -285,6 +285,14 @@ service AdminService {
   @restrict: [{ grant: '*', to: 'admin' }]
   entity AttributeObjectTypeConfig as projection on my.AttributeObjectTypeConfig;
 
+  // Explicit per-object classification (SAP EAM-style): an editor (manage) assigns classes to
+  // a record; viewers can read. Admin defines the classes themselves (above).
+  @restrict: [
+    { grant: 'READ', to: 'view' },
+    { grant: ['CREATE','UPDATE','DELETE'], to: ['manage','admin'] }
+  ]
+  entity ObjectClassAssignment as projection on my.ObjectClassAssignment;
+
   // EAM-T5: EAM integration config is operated by the dedicated 'integration' scope
   // (separate from app admin) or admin.
   @restrict: [{ grant: '*', to: ['admin','integration'] }]

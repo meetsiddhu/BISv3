@@ -92,6 +92,20 @@ entity AttributeObjectTypeConfig : cuid, managed {
 }
 
 /**
+ * Explicit per-object classification (SAP EAM-style, additive). Links a specific object
+ * INSTANCE (objectType + objectId) to one or more classes (AttributeGroups). When an object
+ * HAS assignments, the data-collection form shows ONLY the assigned classes' characteristics
+ * (the user picks the classes when editing the record). When it has NONE, the form falls back
+ * to the asset-class scoping (AttributeObjectTypeConfig) — preserving the original behaviour
+ * for existing records. (objectType, objectId, group) is unique per assignment.
+ */
+entity ObjectClassAssignment : cuid, managed {
+  objectType : String(40)  not null;   // 'bridge' | 'restriction' | ...
+  objectId   : String(100) not null;   // the object instance id (string)
+  group      : Association to AttributeGroups not null;  // the assigned class
+}
+
+/**
  * EAV table — current attribute values per object instance.
  * One row per (objectType, objectId, attributeKey).
  * Typed value columns: only the column matching the attribute's dataType is populated.

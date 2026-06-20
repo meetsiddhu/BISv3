@@ -158,7 +158,31 @@
     return values;
   }
 
-  var _state = { groups: [], values: {}, editMode: false };
+  // allGroups = full class pool for restrictions; assigned = the classes explicitly selected
+  // for THIS restriction. Empty assigned = show all (back-compatible). Mirrors the bridge UI.
+  var _state = { allGroups: [], assigned: [], values: {}, editMode: false };
+
+  function visibleGroups() {
+    if (!_state.assigned.length) return _state.allGroups;
+    var set = new Set(_state.assigned.map(String));
+    return _state.allGroups.filter(function (g) { return set.has(String(g.ID)); });
+  }
+
+  function renderClassSelector() {
+    if (!_state.allGroups.length) return '';
+    var assignedSet = new Set(_state.assigned.map(String));
+    var boxes = '';
+    _state.allGroups.forEach(function (g) {
+      boxes += '<label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:400;margin:0 18px 6px 0">' +
+        '<input type="checkbox" onchange="window._carToggleClass(\'' + esc(g.ID) + '\')"' + (assignedSet.has(String(g.ID)) ? ' checked' : '') + '/>' + esc(g.name) + '</label>';
+    });
+    var hint = _state.assigned.length
+      ? '<div style="font-size:11px;color:#aaa;margin-top:2px">Showing only the ticked classes. Untick all to show every class.</div>'
+      : '<div style="font-size:11px;color:#aaa;margin-top:2px">No classes selected — showing all. Tick the classes that apply to this restriction to limit data collection to them.</div>';
+    return '<div style="background:#f7f9fb;border:1px solid #e5e5e5;border-radius:6px;padding:10px 12px;margin-bottom:14px">' +
+      '<div style="font-size:12px;font-weight:600;color:#556b82;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Classes</div>' +
+      '<div style="display:flex;flex-wrap:wrap">' + boxes + '</div>' + hint + '</div>';
+  }
 
   function render() {
     var root = document.getElementById('ca-restriction-root');
@@ -173,7 +197,8 @@
       content += '<button onclick="window._carCancel()" style="padding:5px 14px;background:transparent;color:#0a6ed1;border:1px solid #0a6ed1;border-radius:4px;font-size:13px;cursor:pointer">Cancel</button>';
     }
     content += '</div>';
-    content += renderGroups(_state.groups, _state.values, _state.editMode);
+    if (_state.editMode) content += renderClassSelector();
+    content += renderGroups(visibleGroups(), _state.values, _state.editMode);
     content += '</div>';
     root.innerHTML = content;
   }
@@ -187,10 +212,12 @@
 
     Promise.all([
       fetch(API_BASE + '/config?objectType=' + OBJECT_TYPE).then(function (configResponse) { return configResponse.json(); }),
-      fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id).then(function (valuesResponse) { return valuesResponse.json(); })
+      fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id).then(function (valuesResponse) { return valuesResponse.json(); }),
+      fetch(API_BASE + '/classes/' + OBJECT_TYPE + '/' + id).then(function (cr) { return cr.ok ? cr.json() : { assigned: [] }; }).catch(function () { return { assigned: [] }; })
     ]).then(function (results) {
-      _state.groups = results[0].groups || [];
+      _state.allGroups = results[0].groups || [];
       _state.values = results[1].values || {};
+      _state.assigned = (results[2] && results[2].assigned) || [];
       _state.editMode = false;
       render();
     }).catch(function () {
@@ -201,26 +228,34 @@
   window._carEdit = function () { _state.editMode = true; render(); };
   window._carCancel = function () { _state.editMode = false; render(); };
 
+  window._carToggleClass = function (groupId) {
+    _state.values = Object.assign({}, _state.values, collectValues(visibleGroups()));
+    var i = _state.assigned.map(String).indexOf(String(groupId));
+    if (i >= 0) _state.assigned.splice(i, 1); else _state.assigned.push(groupId);
+    render();
+  };
+
   window._carSave = function () {
     var id = getRestrictionId();
     if (!id) return;
-    var values = collectValues(_state.groups);
-    fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: values })
-    }).then(function (saveResponse) { return saveResponse.json(); }).then(function (result) {
-      if (result.errors) {
-        alert('Validation errors:\n' + result.errors.join('\n'));
-        return;
-      }
-      _state.values = Object.assign({}, _state.values, values);
-      _state.editMode = false;
-      render();
-      try { sap.m.MessageToast.show('Custom attributes saved.'); } catch (_) {}
-    }).catch(function () {
-      alert('Failed to save custom attributes.');
-    });
+    var values = collectValues(visibleGroups());
+    var hdr = { 'Content-Type': 'application/json', 'x-csrf-token': 'bms-attr' };
+    fetch(API_BASE + '/classes/' + OBJECT_TYPE + '/' + id, { method: 'POST', headers: hdr, credentials: 'same-origin', body: JSON.stringify({ groupIds: _state.assigned }) })
+      .then(function () {
+        return fetch(API_BASE + '/values/' + OBJECT_TYPE + '/' + id, { method: 'POST', headers: hdr, credentials: 'same-origin', body: JSON.stringify({ values: values }) });
+      })
+      .then(function (saveResponse) { return saveResponse.json(); }).then(function (result) {
+        if (result.errors) {
+          alert('Validation errors:\n' + result.errors.join('\n'));
+          return;
+        }
+        _state.values = Object.assign({}, _state.values, values);
+        _state.editMode = false;
+        render();
+        try { sap.m.MessageToast.show('Custom attributes saved.'); } catch (_) {}
+      }).catch(function () {
+        alert('Failed to save custom attributes.');
+      });
   };
 
   window._carHistory = function (key, label) {

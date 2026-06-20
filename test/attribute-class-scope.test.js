@@ -51,3 +51,41 @@ describe('Class-aware attribute configuration (ATTR-1)', () => {
     expect(resolveFor('Road Bridge').required).toBe(false)      // falls back to all-classes
   })
 })
+
+// SAP EAM explicit classification: classification.resolve(...groupIds) restricts the resolved
+// config to the object's ASSIGNED classes. Empty/omitted groupIds = all classes (back-compat).
+describe('Explicit class assignment filters the resolved config', () => {
+  const classification = require('../srv/lib/plugins/classification')
+  const gA = cds.utils.uuid(); const gB = cds.utils.uuid()
+  const dA = cds.utils.uuid(); const dB = cds.utils.uuid()
+
+  test('seed two classes, each with one enabled characteristic', async () => {
+    const db = await cds.connect.to('db')
+    const now = new Date().toISOString()
+    await db.run(INSERT.into(NS + 'AttributeGroups').entries([
+      { ID: gA, objectType: 'bridge', name: 'CLS A', internalKey: 'cls_a_t', displayOrder: 90, status: 'Active', createdAt: now, modifiedAt: now },
+      { ID: gB, objectType: 'bridge', name: 'CLS B', internalKey: 'cls_b_t', displayOrder: 91, status: 'Active', createdAt: now, modifiedAt: now }
+    ]))
+    await db.run(INSERT.into(NS + 'AttributeDefinitions').entries([
+      { ID: dA, group_ID: gA, objectType: 'bridge', name: 'CA', internalKey: 'cls_char_a', dataType: 'Text', displayOrder: 1, status: 'Active', createdAt: now, modifiedAt: now },
+      { ID: dB, group_ID: gB, objectType: 'bridge', name: 'CB', internalKey: 'cls_char_b', dataType: 'Text', displayOrder: 1, status: 'Active', createdAt: now, modifiedAt: now }
+    ]))
+    await db.run(INSERT.into(NS + 'AttributeObjectTypeConfig').entries([
+      { ID: cds.utils.uuid(), attribute_ID: dA, objectType: 'bridge', enabled: true, required: false, displayOrder: 1, createdAt: now, modifiedAt: now },
+      { ID: cds.utils.uuid(), attribute_ID: dB, objectType: 'bridge', enabled: true, required: false, displayOrder: 1, createdAt: now, modifiedAt: now }
+    ]))
+  })
+
+  test('no groupIds -> both classes resolve (backward compatible)', async () => {
+    const db = await cds.connect.to('db')
+    const names = (await classification.resolve(db, { objectType: 'bridge' })).map(g => g.name)
+    expect(names).toEqual(expect.arrayContaining(['CLS A', 'CLS B']))
+  })
+
+  test('groupIds=[A] -> only the assigned Class A resolves', async () => {
+    const db = await cds.connect.to('db')
+    const names = (await classification.resolve(db, { objectType: 'bridge', groupIds: [gA] })).map(g => g.name)
+    expect(names).toContain('CLS A')
+    expect(names).not.toContain('CLS B')
+  })
+})
