@@ -148,6 +148,29 @@ async function seedDemoData () {
   backfillDataQuality()
   // Council fix #3: same idempotent backfill for the advisory AS 5100.6 fatigue screen.
   backfillFatigue()
+  // Remove any legacy non-UUID AM Objective / Service-Level rows a prior deploy may have left.
+  cleanupLegacyAmoIds()
+}
+
+// One-time, idempotent cleanup. Earlier builds seeded Asset-Management Objectives / Service Levels
+// with human-readable IDs (e.g. "amo-safe", "sl-safe-1") into a cuid (Edm.Guid) key column. OData
+// then rejected those rows on read ("Invalid value: amo"), so the AM Objectives tile failed to
+// open. The seed CSVs now use proper UUIDs; this deletes any legacy non-UUID rows still present
+// (e.g. on the already-deployed HANA). No-op once none remain (and on local sqlite, which re-seeds
+// from the corrected CSVs). Children (Service Levels) are removed before parents (Objectives).
+async function cleanupLegacyAmoIds () {
+  try {
+    await cds.tx({ user: cds.User.privileged }, async (tx) => {
+      const SL = 'bridge.management.AssetManagementServiceLevels'
+      const OBJ = 'bridge.management.AssetManagementObjectives'
+      const badSl = await tx.run(SELECT.one.from(SL).columns('ID').where("ID like 'sl-%' or objective_ID like 'amo-%'"))
+      const badObj = await tx.run(SELECT.one.from(OBJ).columns('ID').where("ID like 'amo-%'"))
+      if (!badSl && !badObj) return // idempotent: nothing legacy left
+      await tx.run(DELETE.from(SL).where("ID like 'sl-%' or objective_ID like 'amo-%'"))
+      await tx.run(DELETE.from(OBJ).where("ID like 'amo-%'"))
+      LOG.info('demo-seed: removed legacy non-UUID AM Objective / Service-Level rows')
+    })
+  } catch (e) { LOG.warn('demo-seed: AM Objective legacy-id cleanup skipped (' + e.message + ')') }
 }
 
 // One-time, idempotent data-quality backfill for rows where dataCompleteness IS NULL. Groups

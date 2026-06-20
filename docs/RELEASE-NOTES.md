@@ -16,6 +16,14 @@
 
 ---
 
+## 3.52.0 — Fix: Asset Management Objectives tile errored ("Invalid value: amo")
+**Fixed:** opening the **Asset Management Objectives** tile failed with *"Invalid value: amo (5)"*.
+The five seeded objectives (and their service levels) were stored with human-readable IDs
+(`amo-safe`, `sl-safe-1`, …) in a key column that requires a **UUID**, so the OData read rejected
+all five rows. The seed data now uses proper UUIDs — with the objective→service-level links
+preserved — and a one-time, idempotent cleanup removes any legacy non-UUID rows left on the
+deployed database. The tile now opens and lists the objectives and their service levels normally.
+
 ## 3.51.0 — In-app Help (ⓘ) on every tile
 **What's new:** every tile now has in-app **Help** that explains the screen's **purpose**, **how to
 use it**, and **useful tips** for the end user.

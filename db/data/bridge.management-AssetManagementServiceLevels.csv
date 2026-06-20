@@ -1,10 +1,10 @@
 ID,objective_ID,name,measure,unit,targetValue,currentValue,assetClassScope,linkedCriterion,status,displayOrder
-sl-safe-1,amo-safe,No unmanaged Critical-condition bridges,Bridges in condition band 5 (Critical) without a treatment plan,count,0,3,*,conditionRatingBand,Active,1
-sl-safe-2,amo-safe,Scour-critical bridges have countermeasures,Scour-critical bridges with installed countermeasures,%,100,60,*,scourRating,Active,2
-sl-freight-1,amo-freight,Minimal load-limited freight bridges,Load-limited bridges on key freight routes,%,2,4,Road Bridge,loadRating,Active,1
-sl-freight-2,amo-freight,B-double network availability,Approved B-double route bridges open,%,99,98,Road Bridge,freightRoute,Active,2
-sl-cost-1,amo-cost,Portfolio health maintained,Bridges with BHI >= 60,%,80,64,*,bhiScore,Active,1
-sl-cost-2,amo-cost,Capital program funded,Priority P1/P2 works funded within the budget year,%,100,85,*,priorityScore,Active,2
-sl-resil-1,amo-resil,Flood immunity,Bridges with flood immunity >= 1:100 ARI,%,90,72,*,floodImmunityAriYears,Active,1
-sl-comply-1,amo-comply,Inspection currency,Bridges inspected within the 24-month cycle,%,98,88,*,lastInspectionDate,Active,1
-sl-comply-2,amo-comply,Register completeness,Bridges meeting the data-completeness threshold,%,95,41,*,completenessScore,Active,2
+00000000-0000-4000-9201-000000000001,00000000-0000-4000-9200-000000000001,No unmanaged Critical-condition bridges,Bridges in condition band 5 (Critical) without a treatment plan,count,0,3,*,conditionRatingBand,Active,1
+00000000-0000-4000-9201-000000000002,00000000-0000-4000-9200-000000000001,Scour-critical bridges have countermeasures,Scour-critical bridges with installed countermeasures,%,100,60,*,scourRating,Active,2
+00000000-0000-4000-9201-000000000003,00000000-0000-4000-9200-000000000002,Minimal load-limited freight bridges,Load-limited bridges on key freight routes,%,2,4,Road Bridge,loadRating,Active,1
+00000000-0000-4000-9201-000000000004,00000000-0000-4000-9200-000000000002,B-double network availability,Approved B-double route bridges open,%,99,98,Road Bridge,freightRoute,Active,2
+00000000-0000-4000-9201-000000000005,00000000-0000-4000-9200-000000000003,Portfolio health maintained,Bridges with BHI >= 60,%,80,64,*,bhiScore,Active,1
+00000000-0000-4000-9201-000000000006,00000000-0000-4000-9200-000000000003,Capital program funded,Priority P1/P2 works funded within the budget year,%,100,85,*,priorityScore,Active,2
+00000000-0000-4000-9201-000000000007,00000000-0000-4000-9200-000000000004,Flood immunity,Bridges with flood immunity >= 1:100 ARI,%,90,72,*,floodImmunityAriYears,Active,1
+00000000-0000-4000-9201-000000000008,00000000-0000-4000-9200-000000000005,Inspection currency,Bridges inspected within the 24-month cycle,%,98,88,*,lastInspectionDate,Active,1
+00000000-0000-4000-9201-000000000009,00000000-0000-4000-9200-000000000005,Register completeness,Bridges meeting the data-completeness threshold,%,95,41,*,completenessScore,Active,2
