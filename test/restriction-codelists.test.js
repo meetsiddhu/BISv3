@@ -206,3 +206,29 @@ describe('report inclusion — CSV export field set', () => {
     ])
   })
 })
+
+// RESTR-TAX: mode-aware, multi-modal restriction taxonomy.
+describe('multi-modal restriction taxonomy', () => {
+  const byCode = new Map(lib.RESTRICTION_TYPES.map((t) => [t.code, t]))
+
+  test('the catalog covers all modes (rail / marine / pedestrian / dangerous goods)', () => {
+    for (const code of ['Air Draft', 'Rail Route Availability', 'Rail Tonnage Limit',
+      'Temporary Speed Restriction', 'Dangerous Goods Prohibition', 'Pedestrian Load Limit',
+      'Navigation Channel Width', 'Bridge Opening Schedule']) {
+      expect(byCode.has(code)).toBe(true)
+    }
+  })
+
+  test('every type is mode-tagged + categorised (configurable taxonomy)', () => {
+    for (const t of lib.RESTRICTION_TYPES) {
+      expect(typeof t.applicableModes).toBe('string')
+      expect(t.applicableModes.length).toBeGreaterThan(0)
+      expect(typeof t.category).toBe('string')
+    }
+  })
+
+  test('a marine type maps to the marine clearance field', () => {
+    expect(byCode.get('Air Draft').applicableModes).toContain('Marine')
+    expect(byCode.get('Air Draft').valueField).toBe('airDraftLimit')
+  })
+})

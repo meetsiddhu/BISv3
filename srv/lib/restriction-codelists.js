@@ -26,26 +26,43 @@
 // restrictionValue must parse as a number; `valueField` / `valueFieldByUnit` = the
 // typed limit column auto-filled from a numeric restrictionValue; `isClosure` feeds
 // the bridge postingStatus = CLOSED derivation.
+// applicableModes/category/defaultUnit (RESTR-TAX) make the catalog mode-aware + grouped — used
+// by the UI value-help, the route-feed, and seeded into the RestrictionTypes lookup columns.
 const RESTRICTION_TYPES = [
-  // ── legacy seeded set (unchanged — rule 1) ──
-  { code: 'Access Restriction', name: 'Access Restriction', descr: 'Restriction based on route or vehicle access conditions.', units: ['approval'], numeric: false },
-  { code: 'Dimension Limit', name: 'Dimension Limit', descr: 'Restriction based on height, width, or length.', units: ['m'], numeric: true },
-  { code: 'Mass Limit', name: 'Mass Limit', descr: 'Restriction based on gross or axle mass.', units: ['t'], numeric: true, valueField: 'grossMassLimit' },
-  { code: 'Speed Restriction', name: 'Speed Restriction', descr: 'Restriction based on permitted speed.', units: ['km/h'], numeric: true, valueField: 'speedLimit', integer: true },
+  // ── legacy seeded set (unchanged codes — rule 1) ──
+  { code: 'Access Restriction', name: 'Access Restriction', descr: 'Restriction based on route or vehicle access conditions.', units: ['approval'], numeric: false, applicableModes: 'Road', category: 'Access', defaultUnit: 'approval' },
+  { code: 'Dimension Limit', name: 'Dimension Limit', descr: 'Restriction based on height, width, or length.', units: ['m'], numeric: true, applicableModes: 'Road', category: 'Dimension', defaultUnit: 'm' },
+  { code: 'Mass Limit', name: 'Mass Limit', descr: 'Restriction based on gross or axle mass.', units: ['t'], numeric: true, valueField: 'grossMassLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  { code: 'Speed Restriction', name: 'Speed Restriction', descr: 'Restriction based on permitted speed.', units: ['km/h'], numeric: true, valueField: 'speedLimit', integer: true, applicableModes: 'Road', category: 'Operational', defaultUnit: 'km/h' },
   // ── NSW / NHVR completion set (additive) ──
-  { code: 'Load Limit', name: 'Load Limit', descr: 'Sign-posted load limit (NSW posted-load order) — distinct from a generic mass limit.', units: ['t'], numeric: true, valueField: 'grossMassLimit' },
-  { code: 'Gross Combination Mass', name: 'Gross Combination Mass', descr: 'Gross combination mass (GCM) limit for multi-unit combinations.', units: ['t'], numeric: true, valueField: 'grossCombinationLimit' },
-  { code: 'Axle Group Limit', name: 'Axle Group Limit', descr: 'Single / tandem / tri-axle group mass limit.', units: ['t', 't/axle'], numeric: true, valueField: 'axleMassLimit' },
-  { code: 'Height Limit', name: 'Height Limit', descr: 'Vertical clearance limit.', units: ['m'], numeric: true, valueField: 'heightLimit' },
-  { code: 'Width Limit', name: 'Width Limit', descr: 'Vehicle width limit.', units: ['m'], numeric: true, valueField: 'widthLimit' },
-  { code: 'Length Limit', name: 'Length Limit', descr: 'Vehicle or combination length limit.', units: ['m'], numeric: true, valueField: 'lengthLimit' },
-  { code: 'Lane Restriction', name: 'Lane Restriction', descr: 'Lane closure, lane width limit or single-lane operation.', units: ['lanes', 'm'], numeric: true, valueFieldByUnit: { lanes: 'lanesOpen', m: 'laneWidthLimit' } },
-  { code: 'Vehicle Class Restriction', name: 'Vehicle Class Restriction', descr: 'Network access restriction for a vehicle class or PBS level (B-double, road train, HML, PBS L1–L4).', units: ['class', 'approval'], numeric: false },
-  { code: 'One-Way Operation', name: 'One-Way Operation', descr: 'Directional / one-way traffic restriction.', units: ['n/a'], numeric: false },
-  { code: 'Temporary Closure', name: 'Temporary Closure', descr: 'Temporary or event-based full closure of the structure.', units: ['n/a'], numeric: false, isClosure: true },
-  { code: 'Full Closure', name: 'Full Closure', descr: 'Bridge fully closed to traffic.', units: ['n/a'], numeric: false, isClosure: true },
-  { code: 'Environmental Restriction', name: 'Environmental Restriction', descr: 'Conditional restriction with an environmental trigger (flood level, fire, wind, seasonal).', units: ['n/a', 'm'], numeric: false },
-  { code: 'Permit Condition', name: 'Permit Condition', descr: 'Permit-required travel condition (escort, pilot vehicles, notice period).', units: ['approval'], numeric: false }
+  { code: 'Load Limit', name: 'Load Limit', descr: 'Sign-posted load limit (NSW posted-load order) — distinct from a generic mass limit.', units: ['t'], numeric: true, valueField: 'grossMassLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  { code: 'Gross Combination Mass', name: 'Gross Combination Mass', descr: 'Gross combination mass (GCM) limit for multi-unit combinations.', units: ['t'], numeric: true, valueField: 'grossCombinationLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  { code: 'Axle Group Limit', name: 'Axle Group Limit', descr: 'Single / tandem / tri-axle group mass limit.', units: ['t', 't/axle'], numeric: true, valueField: 'axleMassLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  { code: 'Height Limit', name: 'Height Limit', descr: 'Vertical clearance limit.', units: ['m'], numeric: true, valueField: 'heightLimit', applicableModes: 'Road,Rail', category: 'Dimension', defaultUnit: 'm' },
+  { code: 'Width Limit', name: 'Width Limit', descr: 'Vehicle width limit.', units: ['m'], numeric: true, valueField: 'widthLimit', applicableModes: 'Road', category: 'Dimension', defaultUnit: 'm' },
+  { code: 'Length Limit', name: 'Length Limit', descr: 'Vehicle or combination length limit.', units: ['m'], numeric: true, valueField: 'lengthLimit', applicableModes: 'Road', category: 'Dimension', defaultUnit: 'm' },
+  { code: 'Lane Restriction', name: 'Lane Restriction', descr: 'Lane closure, lane width limit or single-lane operation.', units: ['lanes', 'm'], numeric: true, valueFieldByUnit: { lanes: 'lanesOpen', m: 'laneWidthLimit' }, applicableModes: 'Road', category: 'Operational', defaultUnit: 'lanes' },
+  { code: 'Vehicle Class Restriction', name: 'Vehicle Class Restriction', descr: 'Network access restriction for a vehicle class or PBS level (B-double, road train, HML, PBS L1–L4).', units: ['class', 'approval'], numeric: false, applicableModes: 'Road', category: 'Access', defaultUnit: 'class' },
+  { code: 'One-Way Operation', name: 'One-Way Operation', descr: 'Directional / one-way traffic restriction.', units: ['n/a'], numeric: false, applicableModes: 'Road', category: 'Operational', defaultUnit: 'n/a' },
+  { code: 'Temporary Closure', name: 'Temporary Closure', descr: 'Temporary or event-based full closure of the structure.', units: ['n/a'], numeric: false, isClosure: true, applicableModes: 'All', category: 'Closure', defaultUnit: 'n/a' },
+  { code: 'Full Closure', name: 'Full Closure', descr: 'Bridge fully closed to traffic.', units: ['n/a'], numeric: false, isClosure: true, applicableModes: 'All', category: 'Closure', defaultUnit: 'n/a' },
+  { code: 'Environmental Restriction', name: 'Environmental Restriction', descr: 'Conditional restriction with an environmental trigger (flood level, fire, wind, seasonal).', units: ['n/a', 'm'], numeric: false, applicableModes: 'All', category: 'Environmental', defaultUnit: 'n/a' },
+  { code: 'Permit Condition', name: 'Permit Condition', descr: 'Permit-required travel condition (escort, pilot vehicles, notice period).', units: ['approval'], numeric: false, applicableModes: 'Road', category: 'Permit', defaultUnit: 'approval' },
+  // ── Multi-modal extension (RESTR-TAX): rail / marine / pedestrian / dangerous goods + finer axle ──
+  { code: 'Single Axle Limit', name: 'Single Axle Limit', descr: 'Single (steer) axle mass limit.', units: ['t'], numeric: true, valueField: 'steerAxleLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  { code: 'Tandem Axle Limit', name: 'Tandem Axle Limit', descr: 'Tandem axle group mass limit.', units: ['t'], numeric: true, valueField: 'tandemAxleLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  { code: 'Tri-Axle Limit', name: 'Tri-Axle Limit', descr: 'Tri-axle group mass limit.', units: ['t'], numeric: true, valueField: 'triAxleLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  { code: 'Dangerous Goods Prohibition', name: 'Dangerous Goods Prohibition', descr: 'Hazardous-goods / dangerous-goods vehicles prohibited or restricted over the structure.', units: ['class'], numeric: false, applicableModes: 'Road,Rail,Marine', category: 'Access', defaultUnit: 'class' },
+  { code: 'Rail Route Availability', name: 'Rail Route Availability (RA)', descr: 'Permitted rail Route Availability (RA) class for the structure.', units: ['RA'], numeric: false, valueField: 'railRouteAvailability', applicableModes: 'Rail', category: 'Access', defaultUnit: 'RA' },
+  { code: 'Rail Tonnage Limit', name: 'Rail Tonnage Limit', descr: 'Gross rail tonnage limit over the structure.', units: ['t'], numeric: true, valueField: 'railTonnageLimit', applicableModes: 'Rail', category: 'Mass', defaultUnit: 't' },
+  { code: 'Rail Axle Load Limit', name: 'Rail Axle Load Limit', descr: 'Rail axle load limit (t/axle).', units: ['t'], numeric: true, applicableModes: 'Rail', category: 'Mass', defaultUnit: 't' },
+  { code: 'Temporary Speed Restriction', name: 'Temporary Speed Restriction (Rail)', descr: 'Rail temporary speed restriction (TSR) — speed limit with a cause + period.', units: ['km/h'], numeric: true, valueField: 'speedLimit', integer: true, applicableModes: 'Rail', category: 'Operational', defaultUnit: 'km/h' },
+  { code: 'Structure Gauge Limit', name: 'Structure Gauge Limit', descr: 'Rail structure-gauge / clearance envelope limit.', units: ['m'], numeric: true, applicableModes: 'Rail', category: 'Dimension', defaultUnit: 'm' },
+  { code: 'Air Draft', name: 'Air Draft (Navigation Clearance)', descr: 'MARINE: vertical navigation clearance above water for vessels passing under the bridge.', units: ['m'], numeric: true, valueField: 'airDraftLimit', applicableModes: 'Marine', category: 'Dimension', defaultUnit: 'm' },
+  { code: 'Navigation Channel Width', name: 'Navigation Channel Width', descr: 'MARINE: navigable channel width through/under the structure.', units: ['m'], numeric: true, valueField: 'navigationClearanceLimit', applicableModes: 'Marine', category: 'Dimension', defaultUnit: 'm' },
+  { code: 'Bridge Opening Schedule', name: 'Bridge Opening Schedule', descr: 'MARINE: movable-span (lift / swing / bascule) opening schedule.', units: ['n/a'], numeric: false, valueField: 'openingSchedule', applicableModes: 'Marine', category: 'Operational', defaultUnit: 'n/a' },
+  { code: 'Pedestrian Load Limit', name: 'Pedestrian Load Limit', descr: 'Pedestrian / crowd load limit on a footbridge or shared path.', units: ['kPa', 'persons'], numeric: true, applicableModes: 'Pedestrian,Active', category: 'Mass', defaultUnit: 'kPa' },
+  { code: 'Path Width Limit', name: 'Path Width Limit', descr: 'Usable path / deck width limit on a pedestrian or active-transport bridge.', units: ['m'], numeric: true, valueField: 'widthLimit', applicableModes: 'Pedestrian,Active', category: 'Dimension', defaultUnit: 'm' }
 ]
 
 // Legacy closure code recognised for backwards compatibility — historic rows /
@@ -62,7 +79,11 @@ const RESTRICTION_UNITS = [
   { code: 't/axle', name: 'tonnes per axle group (t/axle)', descr: 'Axle-group mass limit in tonnes per axle group.' },
   { code: 'lanes', name: 'lanes', descr: 'Number of trafficable lanes.' },
   { code: 'class', name: 'vehicle class', descr: 'Vehicle class or PBS network level.' },
-  { code: 'n/a', name: 'not applicable', descr: 'No unit applies (closures, directional and conditional restrictions).' }
+  { code: 'n/a', name: 'not applicable', descr: 'No unit applies (closures, directional and conditional restrictions).' },
+  // RESTR-TAX (multi-modal additive): rail + pedestrian units.
+  { code: 'RA', name: 'Route Availability (RA)', descr: 'Rail Route Availability class.' },
+  { code: 'kPa', name: 'kilopascals (kPa)', descr: 'Pedestrian / crowd load intensity.' },
+  { code: 'persons', name: 'persons', descr: 'Permitted number of persons (crowd load).' }
 ]
 
 const RESTRICTION_DIRECTIONS = [
@@ -199,7 +220,15 @@ function missingCodes (listName, existingCodes) {
     // rather than force-activating — so a canonical list can seed a code as retired, and the
     // resolver stays consistent with the value-help (which filters isActive). Deactivated rows
     // already in the DB are never resurrected (they are present, so excluded by `have`).
-    .map((row) => ({ code: row.code, name: row.name, descr: row.descr || '', isActive: row.isActive !== false }))
+    .map((row) => {
+      const base = { code: row.code, name: row.name, descr: row.descr || '', isActive: row.isActive !== false }
+      // RESTR-TAX: carry the mode-aware taxonomy columns when the row defines them (RestrictionTypes
+      // only — other codelists' rows omit these, so their inserts stay {code,name,descr,isActive}).
+      if (row.applicableModes !== undefined) base.applicableModes = row.applicableModes
+      if (row.category !== undefined) base.category = row.category
+      if (row.defaultUnit !== undefined) base.defaultUnit = row.defaultUnit
+      return base
+    })
 }
 
 /**
@@ -234,6 +263,20 @@ async function seedRestrictionCodelists (db, { changedBy = 'system' } = {}) {
     perList[listName] = toInsert.length
     inserted += toInsert.length
   }
+
+  // RESTR-TAX backfill: existing RestrictionTypes rows that predate the mode-aware columns get
+  // applicableModes/category/defaultUnit from the canonical catalog, only where still NULL (so
+  // admin edits are preserved). Idempotent — a no-op once every row is tagged.
+  try {
+    const { UPDATE } = cds.ql
+    for (const row of CODELIST_ENTITIES.RestrictionTypes.rows) {
+      if (row.applicableModes === undefined) continue
+      await db.run(UPDATE('bridge.management.RestrictionTypes')
+        .set({ applicableModes: row.applicableModes, category: row.category || null, defaultUnit: row.defaultUnit || null })
+        .where({ code: row.code, applicableModes: null }))
+    }
+  } catch (e) { (require('@sap/cds').log('restriction-codelists')).warn('RestrictionTypes taxonomy backfill skipped: ' + e.message) }
+
   return { inserted, perList }
 }
 

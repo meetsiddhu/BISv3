@@ -312,6 +312,14 @@ aspect RestrictionNhvrAttributes {
   // Escort / signage conditions
   pilotVehicleCount      : Integer;      // pilot/escort vehicles required
   signageRequired        : Boolean default false;
+  // RESTR-TAX (additive, multi-modal): marine, rail + dangerous-goods restriction data so the
+  // register covers all modes, not only road. See docs/RESTRICTIONS-TAXONOMY.md.
+  airDraftLimit          : Decimal(9,2); // MARINE: vertical navigation clearance above water (m)
+  navigationClearanceLimit : Decimal(9,2); // MARINE: navigable channel width (m)
+  openingSchedule        : String(255);  // MARINE: movable-span (lift/swing/bascule) opening times
+  railRouteAvailability  : String(20);   // RAIL: Route Availability (RA) number / class
+  railTonnageLimit       : Decimal(9,2); // RAIL: gross tonnage limit (t)
+  dangerousGoodsRestricted : Boolean default false; // hazmat prohibited / restricted over the structure
 }
 
 extend Restrictions with RestrictionNhvrAttributes;
@@ -326,6 +334,11 @@ extend Restrictions with {
   lanesTotal          : Integer;
   laneWidthLimit      : Decimal(9,2);  // posted lane width (m)
   restrictionSeverity : String(20);    // -> RestrictionSeverities
+  // RESTR-TAX (additive): the standalone Restrictions register is now multi-modal too —
+  // transportMode + network parity with BridgeRestrictions so restrictions can be captured,
+  // filtered + fed downstream per mode (Road/Rail/Marine/Pedestrian). Defaults from the bridge.
+  transportMode       : String(40);    // -> TransportModes
+  network             : String(80);    // -> Networks
 }
 
 entity BridgeCapacities : cuid, managed {
@@ -752,6 +765,12 @@ entity StructuralAdequacyTypes : sap.common.CodeList {
 entity RestrictionTypes : sap.common.CodeList {
   key code : String(40);
   isActive : Boolean default true;
+  // RESTR-TAX (additive): mode-aware, configurable taxonomy metadata so the catalog covers all
+  // modes and the UI/route-feed can filter by mode + group. Admin-editable. See
+  // docs/RESTRICTIONS-TAXONOMY.md.
+  applicableModes : String(120) default 'Road';  // e.g. Road | Rail | Marine | Pedestrian | Road,Rail | All
+  category        : String(40);                   // Mass | Dimension | Operational | Access | Permit | Closure | Environmental
+  defaultUnit     : String(20);                   // suggested unit (t | m | km/h | RA | …)
 }
 
 entity RestrictionStatuses : sap.common.CodeList {

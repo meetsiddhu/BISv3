@@ -104,6 +104,7 @@ annotate AdminService.Restrictions with @(
           {$Type: 'UI.ReferenceFacet', Label: 'Dimensional Limits', Target: '@UI.FieldGroup#RstDimLimits'},
           {$Type: 'UI.ReferenceFacet', Label: 'Axle & Combination Limits (t)', Target: '@UI.FieldGroup#RstAxleLimits'},
           {$Type: 'UI.ReferenceFacet', Label: 'Lane Configuration', Target: '@UI.FieldGroup#RstLaneConfig'},
+          {$Type: 'UI.ReferenceFacet', Label: 'Rail & Marine', Target: '@UI.FieldGroup#RstMultiModal'},
         ]
       },
       // ── Tab 3: Validity & Approval (5 sub-sections) ──────────────────────
@@ -130,8 +131,11 @@ annotate AdminService.Restrictions with @(
       Data: [
         {Value: restrictionRef},   // server-generated and read-only
         {Value: bridgeRef},
+        {Value: transportMode},    // RESTR-TAX: multi-modal — which mode this restriction applies to
+        {Value: network},
         {Value: restrictionCategory},
         {Value: restrictionType},
+        {Value: restrictionSeverity},
         {Value: restrictionStatus},
         {Value: active},           // read-only — managed by Deactivate / Reactivate actions
       ]
@@ -140,6 +144,7 @@ annotate AdminService.Restrictions with @(
       Data: [
         {Value: appliesToVehicleClass},
         {Value: pbsClassApplicable},
+        {Value: dangerousGoodsRestricted}, // RESTR-TAX: hazmat prohibition
         {Value: direction},
         {Value: permitRequired},
         {Value: escortRequired},
@@ -168,6 +173,16 @@ annotate AdminService.Restrictions with @(
         {Value: widthLimit},
         {Value: lengthLimit},
         {Value: speedLimit},
+        {Value: airDraftLimit},            // RESTR-TAX: marine vertical navigation clearance (m)
+        {Value: navigationClearanceLimit}, // RESTR-TAX: marine channel width (m)
+      ]
+    },
+    // RESTR-TAX: rail / marine specific data (multi-modal restrictions).
+    FieldGroup#RstMultiModal: {
+      Data: [
+        {Value: railRouteAvailability},
+        {Value: railTonnageLimit},
+        {Value: openingSchedule},
       ]
     },
     // New per-type limits (Axle Group Limit / Gross Combination Mass types)
@@ -276,6 +291,16 @@ annotate AdminService.Restrictions with {
   parent         @UI.Hidden;
   // descr — free-text, multiline
   descr          @title: 'Description'  @UI.MultiLineText;
+  // RESTR-TAX: multi-modal field titles.
+  transportMode            @title: 'Transport Mode';
+  network                  @title: 'Network';
+  restrictionSeverity      @title: 'Severity';
+  dangerousGoodsRestricted @title: 'Dangerous Goods Restricted';
+  airDraftLimit            @title: 'Air Draft / Nav. Clearance (m)';
+  navigationClearanceLimit @title: 'Navigation Channel Width (m)';
+  railRouteAvailability    @title: 'Rail Route Availability (RA)';
+  railTonnageLimit         @title: 'Rail Tonnage Limit (t)';
+  openingSchedule          @title: 'Bridge Opening Schedule';
 };
 
 annotate AdminService.Restrictions with {

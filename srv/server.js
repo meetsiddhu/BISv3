@@ -1812,6 +1812,59 @@ cds.on('bootstrap', (app) => {
 
   app.use('/map/api', requiresAuthentication, mapRouter)
 
+  // RESTR-TAX: downstream route-planning feed — a clean, read-only, machine-readable list of
+  // active restrictions WITH the bridge location, so external routing engines can exclude/flag a
+  // structure and pick the governing limit per mode without reading the internal schema.
+  // GET /restrictions/api/route-feed[?mode=Road&activeOnly=true]. See docs/RESTRICTIONS-TAXONOMY.md §4.
+  const routeFeedRouter = express.Router()
+  routeFeedRouter.get('/route-feed', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const mode = req.query.mode
+      const where = {}
+      if (req.query.activeOnly !== 'false') where.active = true
+      if (mode) where.transportMode = mode
+      const restrictions = await db.run(SELECT.from('bridge.management.Restrictions').where(where))
+      const ids = [...new Set(restrictions.map((r) => r.bridge_ID).filter((v) => v != null))]
+      const refs = [...new Set(restrictions.map((r) => r.bridgeRef).filter(Boolean))]
+      const COLS = ['ID', 'bridgeId', 'bridgeName', 'latitude', 'longitude', 'geoJson', 'route', 'network', 'state']
+      const byIdRows = ids.length ? await db.run(SELECT.from('bridge.management.Bridges').columns(...COLS).where({ ID: { in: ids } })) : []
+      const byRefRows = refs.length ? await db.run(SELECT.from('bridge.management.Bridges').columns(...COLS).where({ bridgeId: { in: refs } })) : []
+      const byId = new Map(byIdRows.map((b) => [String(b.ID), b]))
+      const byRef = new Map(byRefRows.map((b) => [b.bridgeId, b]))
+      const feed = restrictions.map((r) => {
+        const b = byId.get(String(r.bridge_ID)) || byRef.get(r.bridgeRef) || {}
+        return {
+          bridgeId: b.bridgeId || r.bridgeRef || null, bridgeName: b.bridgeName || null,
+          latitude: b.latitude ?? null, longitude: b.longitude ?? null, geoJson: b.geoJson || null,
+          route: b.route || null, network: r.network || b.network || null, state: b.state || null,
+          restrictionRef: r.restrictionRef || null, transportMode: r.transportMode || null,
+          restrictionType: r.restrictionType || null, value: r.restrictionValue || null, unit: r.restrictionUnit || null,
+          severity: r.restrictionSeverity || null, direction: r.direction || null,
+          appliesToVehicleClass: r.appliesToVehicleClass || null, pbsClassApplicable: r.pbsClassApplicable || null,
+          dangerousGoodsRestricted: !!r.dangerousGoodsRestricted,
+          limits: {
+            grossMass: r.grossMassLimit ?? null, gcm: r.grossCombinationLimit ?? null,
+            steerAxle: r.steerAxleLimit ?? null, tandemAxle: r.tandemAxleLimit ?? null, triAxle: r.triAxleLimit ?? null,
+            height: r.heightLimit ?? null, width: r.widthLimit ?? null, length: r.lengthLimit ?? null,
+            airDraft: r.airDraftLimit ?? null, navigationClearance: r.navigationClearanceLimit ?? null,
+            railTonnage: r.railTonnageLimit ?? null, speed: r.speedLimit ?? null
+          },
+          permitRequired: !!r.permitRequired, escortRequired: !!r.escortRequired, pilotVehicleCount: r.pilotVehicleCount ?? null,
+          detourRoute: r.detourRoute || null, openingSchedule: r.openingSchedule || null,
+          railRouteAvailability: r.railRouteAvailability || null,
+          effectiveFrom: r.effectiveFrom || null, effectiveTo: r.effectiveTo || null,
+          gazetteNumber: r.gazetteNumber || null, gazetteExpiryDate: r.gazetteExpiryDate || null,
+          issuingAuthority: r.issuingAuthority || null
+        }
+      })
+      res.json({ generatedAt: new Date().toISOString(), count: feed.length, mode: mode || 'all', restrictions: feed })
+    } catch (err) {
+      res.status(500).json({ error: { message: err.message || 'Failed to build route feed' } })
+    }
+  })
+  app.use('/restrictions/api', requiresAuthentication, routeFeedRouter)
+
   const massEditRouter = express.Router()
   massEditRouter.use(express.json({ limit: process.env.MASS_EDIT_JSON_LIMIT || '5mb' })) // CONFIG-T1
 

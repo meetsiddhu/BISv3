@@ -16,6 +16,28 @@
 
 ---
 
+## 3.44.0 — Multi-modal restrictions: full taxonomy + downstream route-planning feed
+**What's new (restrictions):**
+- **Comprehensive, mode-aware restriction catalog** — the type list now covers **all modes**:
+  road (NHVR mass/dimension/access), **rail** (Route Availability, tonnage, axle, TSR, structure
+  gauge), **marine** (air draft / navigation clearance, channel width, opening schedule),
+  **pedestrian** (crowd load, path width) and **dangerous-goods prohibition** — 31 types, each
+  tagged with its mode + category + default unit, fully **admin-configurable and extendable**.
+- **Multi-modal data captured** — restrictions now hold `transportMode`, `network`, severity,
+  air-draft / navigation-clearance, rail RA / tonnage, dangerous-goods flag, opening schedule,
+  surfaced in a **Rail & Marine** section on the restriction page.
+- **Downstream route-planning feed** — `GET /restrictions/api/route-feed[?mode=Road]` gives
+  external routing engines a clean, machine-readable list of active restrictions **with the bridge
+  location** and the governing limits per mode (so they can exclude/flag a structure and plan the
+  route). NHVR-aligned.
+- **Reporting** — multi-mode `Restrictions Dashboard` (Analytical List Page), Change Documents,
+  Excel export and mass upload/update all cover the new fields.
+- **Classification on restrictions** — the same optional class/characteristics engine as bridges
+  works on restrictions too (searchable multi-select, blank-when-unclassified, mandatory fields).
+
+See `docs/RESTRICTIONS-TAXONOMY.md` for the full taxonomy, standards basis (AS 5100 / HVNL-NHVR /
+Austroads / rail RA / marine), and the route-planning data contract.
+
 ## 3.43.0 — EAM-grade classification: blank-when-unclassified, searchable picker, mandatory fields
 **What's new (custom attributes / classification):**
 - **Unclassified = blank.** A bridge (or restriction) with **no class assigned** now shows **no**
