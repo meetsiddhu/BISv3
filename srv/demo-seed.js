@@ -87,10 +87,15 @@ async function seedDemoData () {
     await cds.tx({ user: cds.User.privileged }, async (tx) => {
       const existing = await tx.run(SELECT.one.from('bridge.management.Bridges').columns('ID'))
       if (existing) {
+        // BMS_SEED_DEMO_RESET=true forces a clean refresh even when the demo set is already
+        // present — previously the demo-marker skip returned first, leaving RESET unreachable
+        // once seeded (so a deployed demo could never pick up enriched seed data). The flag
+        // now takes precedence; default (no flag) behaviour is unchanged.
+        const reset = process.env.BMS_SEED_DEMO_RESET === 'true'
         const hasDemo = await tx.run(SELECT.one.from('bridge.management.Bridges').columns('ID').where({ bridgeId: DEMO_MARKER }))
-        if (hasDemo) { LOG.info('demo-seed: demo set already present — skipping'); return }
-        if (process.env.BMS_SEED_DEMO_RESET !== 'true') {
-          LOG.info('demo-seed: register populated (non-demo) — skipping. Set BMS_SEED_DEMO_RESET=true to replace.')
+        if (!reset) {
+          if (hasDemo) LOG.info('demo-seed: demo set already present — skipping')
+          else LOG.info('demo-seed: register populated (non-demo) — skipping. Set BMS_SEED_DEMO_RESET=true to replace.')
           return
         }
         LOG.warn('demo-seed RESET: clearing existing register + child data, loading the clean demo set')
