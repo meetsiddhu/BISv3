@@ -16,6 +16,22 @@
 
 ---
 
+## 3.42.0 — Class config aligned across register, selector & mass-upload
+**Where the config lives:** the **Attribute Classes** tile is the config. Each class has an
+**Object Type** (Bridge / Restriction) and a **Status** — only **Active** classes whose Object
+Type matches, **and that have at least one enabled characteristic**, apply to that object. Each
+characteristic's **Object-Type Scoping** (Enabled) is the finer control.
+**What's aligned now:**
+- The per-record **Classes** selector now offers **only classes that actually have enabled
+  characteristics** — no more empty/irrelevant classes in the list (it now matches the register
+  exactly).
+- **Mass-upload import** now writes values **only for enabled characteristics**, the same set the
+  download template and the register use — so config, register, restrictions and mass-upload/update
+  are all driven by one source of truth.
+**To control which classes show for bridges:** open the **Attribute Classes** tile, filter by
+Object Type = Bridge, and set a class **Inactive** (or its characteristics' scoping to disabled)
+to remove it; per bridge, use the **Classes** tick-list in Edit mode.
+
 ## 3.41.0 — Capital optimiser shows its reasoning
 **What's new:** the **Prioritisation → Optimise** tab now explains *why* each bridge was
 selected and *how* the program was built, not just the result.

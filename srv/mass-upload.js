@@ -541,10 +541,18 @@ async function importUpload({ buffer, fileName, datasetName, uploadedBy, isAdmin
           SELECT.from('bridge.management.AttributeDefinitions').where({ objectType, status: 'Active' })
         )
         const defByKey = new Map(allDefs.map(d => [d.internalKey, d]))
+        // ALIGNMENT: only import characteristics that are ENABLED for this object type — exactly
+        // the set the template generates + the register shows. A column for a disabled (or
+        // unscoped) characteristic is ignored rather than silently written.
+        const enabledCfg = await db.run(
+          SELECT.from('bridge.management.AttributeObjectTypeConfig').columns('attribute_ID').where({ objectType, enabled: true })
+        )
+        const enabledDefIds = new Set(enabledCfg.map(c => c.attribute_ID))
 
         const colAttrMap = headerRow.map(spreadsheetHeader => {
           const match = String(spreadsheetHeader || '').match(/\(([^)]+)\)$/)
-          return match ? defByKey.get(match[1]) || null : null
+          const def = match ? defByKey.get(match[1]) || null : null
+          return (def && enabledDefIds.has(def.ID)) ? def : null
         })
 
         for (let ri = 2; ri < attrRows.length; ri++) {

@@ -96,8 +96,12 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
     const { objectType, objectId } = req.params
     try {
       const db = await cds.connect.to('db')
-      const available = await db.run(SELECT.from('bridge.management.AttributeGroups')
-        .columns('ID', 'name').where({ objectType, status: 'Active' }).orderBy('displayOrder'))
+      // ALIGNMENT: available classes = exactly the classes the register/mass-upload would show
+      // for this object type — i.e. active classes that actually have ≥1 enabled characteristic
+      // (classification.resolve drops empty/disabled-only classes). Never offer a class that
+      // would render nothing.
+      const cfg = await loadActiveConfig(db, objectType, req.query.assetClass)
+      const available = cfg.map(g => ({ ID: g.ID, name: g.name }))
       const assigned = await loadAssignedGroupIds(db, objectType, objectId)
       res.json({ objectType, objectId, assigned, available })
     } catch (err) {
