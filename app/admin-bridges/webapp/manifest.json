@@ -205,6 +205,16 @@
           "title": "Class Types",
           "icon": "sap-icon://tag"
         },
+        "AMObjectives-manage": {
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          },
+          "semanticObject": "AMObjectives",
+          "action": "manage",
+          "title": "AM Objectives",
+          "icon": "sap-icon://target-group"
+        },
         "RiskFactors-manage": {
           "signature": {
             "parameters": {},
@@ -436,6 +446,16 @@
           "name": "ClassTypePage",
           "pattern": "ClassTypes({key}):?query:",
           "target": "ClassTypePage"
+        },
+        {
+          "name": "AMObjectivesList",
+          "pattern": "AssetManagementObjectives:?query:",
+          "target": "AMObjectivesList"
+        },
+        {
+          "name": "AMObjectivesPage",
+          "pattern": "AssetManagementObjectives({key}):?query:",
+          "target": "AMObjectivesPage"
         },
         {
           "name": "RiskConfigList",
@@ -1009,6 +1029,36 @@
           "options": {
             "settings": {
               "entitySet": "ClassTypes",
+              "editableHeaderContent": false
+            }
+          }
+        },
+        "AMObjectivesList": {
+          "type": "Component",
+          "id": "AMObjectivesList",
+          "name": "sap.fe.templates.ListReport",
+          "options": {
+            "settings": {
+              "entitySet": "AssetManagementObjectives",
+              "liveMode": false,
+              "initialLoad": "Enabled",
+              "navigation": {
+                "AssetManagementObjectives": {
+                  "detail": {
+                    "route": "AMObjectivesPage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "AMObjectivesPage": {
+          "type": "Component",
+          "id": "AMObjectivesPage",
+          "name": "sap.fe.templates.ObjectPage",
+          "options": {
+            "settings": {
+              "entitySet": "AssetManagementObjectives",
               "editableHeaderContent": false
             }
           }

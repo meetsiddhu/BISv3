@@ -103,9 +103,26 @@ function weightsFor (mode, overWater, cfg) {
 }
 const envPenaltyOf = (env, E) =>
   (num(env && env.floodExp, 1) - 1) * E.floodStep + (num(env && env.corrZone, 1) - 1) * E.corrStep + num(env && env.seismic, 0) * E.seismicStep
-// elements: BridgeElements rows (elementType + conditionRating 1-10). env: {age, floodExp 1-5,
-// corrZone 1-4, seismic 0-3, importClass 1-4, overWater}. Missing element buckets are EXCLUDED
-// from Σweight (never silently zeroed); fallback rating = bridge conditionRating when no elements.
+// AS 5100.7 / AASHTO-NBE condition-state EXTENT: when an element carries a (near-)complete
+// CS1..CS4 quantity distribution, derive its 1-10 rating from HOW MUCH is in each state — so a
+// deck 90% in CS4 scores far worse than one 5% in CS4. CS1=good(10) .. CS4=severe(1). When the
+// distribution is absent/incomplete (sum well below totalQuantity), fall back to the single
+// inspector conditionRating, keeping legacy records unchanged. (Council fix #2.)
+function effectiveRating (e) {
+  const cs1 = num(e.conditionState1Qty, 0); const cs2 = num(e.conditionState2Qty, 0)
+  const cs3 = num(e.conditionState3Qty, 0); const cs4 = num(e.conditionState4Qty, 0)
+  const csTotal = cs1 + cs2 + cs3 + cs4
+  const total = num(e.totalQuantity, 0)
+  if (csTotal > 0 && total > 0 && csTotal >= 0.95 * total) {
+    const weightedState = (cs1 + cs2 * 2 + cs3 * 3 + cs4 * 4) / csTotal // 1 (all good) .. 4 (all severe)
+    return clamp(10 - (weightedState - 1) * 3, 1, 10) // 1->10, 2->7, 3->4, 4->1
+  }
+  return num(e.conditionRating, null)
+}
+
+// elements: BridgeElements rows (elementType + conditionRating 1-10, optional CS1-4 quantities).
+// env: {age, floodExp 1-5, corrZone 1-4, seismic 0-3, importClass 1-4, overWater}. Missing element
+// buckets are EXCLUDED from Σweight (never silently zeroed); fallback = bridge conditionRating.
 function computeBSI (elements, mode, env, cfg) {
   const c = cfg || _active
   const E = c.env
@@ -113,7 +130,7 @@ function computeBSI (elements, mode, env, cfg) {
   const byBucket = {}
   for (const e of (elements || [])) {
     const b = bucketOf(e.elementType)
-    const r = num(e.conditionRating, null)
+    const r = effectiveRating(e)
     if (r === null || !(b in w)) continue
     byBucket[b] = byBucket[b] ? Math.min(byBucket[b], r) : r // worst element per bucket governs
   }

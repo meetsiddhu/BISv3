@@ -551,6 +551,36 @@ entity ClassTypes : sap.common.CodeList {
   isActive  : Boolean default true;
 }
 
+// ── ISO 55001 §5.2/6.2 line-of-sight: Asset Management Objectives → Levels of Service ──
+// WHY: ISO 55001 requires a documented "line of sight" — organisational goal → AM objective →
+// measurable level of service → the activities that deliver it (here, prioritisation + intervention).
+// The BIS had the activities but no strategic intent to defend them against. These two additive
+// entities close that gap (council fix #1): each AM objective declares the organisational goal it
+// serves (line-of-sight UP) and carries the measurable service levels (with target vs current) that
+// link DOWN to a prioritisation criterion. EAM remains the system of record for execution.
+entity AssetManagementObjectives : cuid, managed {
+  code               : String(40);
+  name               : String(150) not null;
+  organisationalGoal : String(255);   // the organisational objective this AM objective serves (line-of-sight UP)
+  category           : String(40);     // Safety | Service | Cost | Environment | Compliance
+  description        : LargeString;
+  owner              : String(111);
+  status             : String(20) default 'Active';   // Active | Draft | Retired
+  serviceLevels      : Composition of many AssetManagementServiceLevels on serviceLevels.objective = $self;
+}
+entity AssetManagementServiceLevels : cuid {
+  objective       : Association to AssetManagementObjectives;
+  name            : String(150) not null;   // the level-of-service statement
+  measure         : String(150);            // what is measured, e.g. "Bridges in condition band 5 (Critical)"
+  unit            : String(20);             // % | count | months | rating | days
+  targetValue     : Decimal(12, 2);
+  currentValue    : Decimal(12, 2);
+  assetClassScope : String(80) default '*'; // '*' = whole network, else an asset class
+  linkedCriterion : String(60);             // ties DOWN to a prioritisation criterion / KPI
+  status          : String(20) default 'Active';
+  displayOrder    : Integer default 0;
+}
+
 // ── Multi-modal lookups (Phase 1) — plain code/name lists (CSV-seeded) ──
 entity TransportModes {
   key code  : String(40);

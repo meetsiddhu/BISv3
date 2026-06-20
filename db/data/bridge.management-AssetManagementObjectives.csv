@@ -1,0 +1,6 @@
+ID,code,name,organisationalGoal,category,description,owner,status
+amo-safe,AMO-SAFE,Eliminate critical structural risk,Safe & reliable network (Future Transport 2056),Safety,No road or rail user exposed to a structurally critical bridge.,Bridge Asset Owner,Active
+amo-freight,AMO-FREIGHT,Sustain heavy-vehicle freight productivity,Efficient & productive freight movement,Service,Keep the heavy-vehicle network open and load-limit-free where economically justified.,Network Access Manager,Active
+amo-cost,AMO-COST,Optimise whole-of-life cost,Fiscally sustainable asset base,Cost,Intervene at lowest whole-of-life cost; avoid reactive failure spend.,Asset Strategy Lead,Active
+amo-resil,AMO-RESIL,Climate & flood resilience,Resilient infrastructure,Environment,Reduce flood and scour exposure across the structures portfolio.,Resilience Lead,Active
+amo-comply,AMO-COMPLY,Inspection & compliance assurance,Regulatory & standards compliance (AS 5100),Compliance,Every structure inspected within cycle with defensible condition data.,Bridge Engineering Manager,Active

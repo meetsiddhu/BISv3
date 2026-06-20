@@ -2068,3 +2068,75 @@ annotate AdminService.BnacObjectIdMap with @(
   loadedBy     @title: 'Loaded By';
   loadBatchId  @title: 'Load Batch';
 };
+
+////////////////////////////////////////////////////////////////////////////
+//  ISO 55001 line-of-sight — Asset Management Objectives → Levels of Service
+//  Fiori Elements List Report + Object Page (draft CRUD). WHY: gives the BIS a
+//  defensible strategic intent (org goal → AM objective → measurable service
+//  level → prioritisation) so spend decisions trace to objectives, per ISO 55001.
+////////////////////////////////////////////////////////////////////////////
+annotate bridge.management.AssetManagementObjectives with @fiori.draft.enabled;
+annotate AdminService.AssetManagementObjectives with @odata.draft.enabled;
+
+annotate AdminService.AssetManagementObjectives with @(
+  UI.HeaderInfo: {
+    TypeName      : 'AM Objective',
+    TypeNamePlural: 'Asset Management Objectives',
+    Title         : { $Type: 'UI.DataField', Value: name },
+    Description   : { $Type: 'UI.DataField', Value: organisationalGoal }
+  },
+  UI.SelectionFields: [ category, status ],
+  UI.LineItem: [
+    { $Type: 'UI.DataField', Value: code,               Label: 'Code' },
+    { $Type: 'UI.DataField', Value: name,               Label: 'Objective' },
+    { $Type: 'UI.DataField', Value: category,           Label: 'Category' },
+    { $Type: 'UI.DataField', Value: organisationalGoal, Label: 'Serves organisational goal' },
+    { $Type: 'UI.DataField', Value: owner,              Label: 'Owner' },
+    { $Type: 'UI.DataField', Value: status,             Label: 'Status' }
+  ],
+  UI.Facets: [
+    { $Type: 'UI.ReferenceFacet', ID: 'General',  Label: 'Objective', Target: '@UI.FieldGroup#General' },
+    { $Type: 'UI.ReferenceFacet', ID: 'Services', Label: 'Levels of Service', Target: 'serviceLevels/@UI.LineItem' }
+  ],
+  UI.FieldGroup #General: { Data: [
+    { $Type: 'UI.DataField', Value: code },
+    { $Type: 'UI.DataField', Value: name },
+    { $Type: 'UI.DataField', Value: category },
+    { $Type: 'UI.DataField', Value: organisationalGoal },
+    { $Type: 'UI.DataField', Value: description },
+    { $Type: 'UI.DataField', Value: owner },
+    { $Type: 'UI.DataField', Value: status }
+  ]}
+);
+annotate AdminService.AssetManagementObjectives with {
+  code               @title: 'Code';
+  name               @title: 'Objective';
+  category           @title: 'Category';
+  organisationalGoal @title: 'Serves organisational goal';
+  description        @title: 'Description'  @UI.MultiLineText;
+  owner              @title: 'Owner';
+  status             @title: 'Status';
+};
+
+annotate AdminService.AssetManagementServiceLevels with @(
+  UI.LineItem: [
+    { $Type: 'UI.DataField', Value: name,            Label: 'Level of Service' },
+    { $Type: 'UI.DataField', Value: measure,         Label: 'Measure' },
+    { $Type: 'UI.DataField', Value: targetValue,     Label: 'Target' },
+    { $Type: 'UI.DataField', Value: currentValue,    Label: 'Current' },
+    { $Type: 'UI.DataField', Value: unit,            Label: 'Unit' },
+    { $Type: 'UI.DataField', Value: assetClassScope, Label: 'Scope' },
+    { $Type: 'UI.DataField', Value: linkedCriterion, Label: 'Linked KPI / criterion' },
+    { $Type: 'UI.DataField', Value: status,          Label: 'Status' }
+  ]
+);
+annotate AdminService.AssetManagementServiceLevels with {
+  name            @title: 'Level of Service';
+  measure         @title: 'Measure';
+  targetValue     @title: 'Target';
+  currentValue    @title: 'Current';
+  unit            @title: 'Unit';
+  assetClassScope @title: 'Scope';
+  linkedCriterion @title: 'Linked KPI / criterion';
+  status          @title: 'Status';
+};

@@ -118,12 +118,15 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
         if (!attr) continue
         try {
           const coerced = coerceValue(attr.dataType, rawValue)
-          // Validate allowed values for select types
-          if ((attr.dataType === 'SingleSelect' || attr.dataType === 'MultiSelect') && coerced !== null) {
+          // Enforce allowed values whenever the characteristic defines them — for ANY data type,
+          // not only select types. loadActiveConfig returns only status='Active' values, so a
+          // DISABLED allowed value is rejected here too. (Council fix #5: server-side enforcement;
+          // previously off-list/inactive values slipped through on Text/Number characteristics.)
+          if (Array.isArray(attr.allowedValues) && attr.allowedValues.length > 0 && coerced !== null && coerced !== '') {
             const allowed = attr.allowedValues.map(av => av.value)
-            const selectedValues = attr.dataType === 'MultiSelect' ? coerced.split(',').map(value => value.trim()) : [coerced]
+            const selectedValues = attr.dataType === 'MultiSelect' ? String(coerced).split(',').map(value => value.trim()) : [coerced]
             for (const selectedValue of selectedValues) {
-              if (!allowed.includes(selectedValue)) errors.push(`${attr.name}: "${selectedValue}" is not an allowed value`)
+              if (!allowed.includes(selectedValue)) errors.push(`${attr.name}: "${selectedValue}" is not an allowed/active value`)
             }
           }
           // Validate range

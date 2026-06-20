@@ -125,6 +125,13 @@ service AdminService {
   @restrict: [{ grant: 'READ', to: ['view','manage','admin'] }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
   entity ClassTypes as projection on my.ClassTypes;
 
+  // ISO 55001 line-of-sight (council fix #1): AM objectives + their levels of service. Read for
+  // view+ (everyone needs to see the strategic intent); manage maintains.
+  @restrict: [{ grant: 'READ', to: ['view','manage','admin'] }, { grant: ['CREATE','UPDATE','DELETE'], to: ['manage','admin'] }]
+  entity AssetManagementObjectives as projection on my.AssetManagementObjectives;
+  @restrict: [{ grant: 'READ', to: ['view','manage','admin'] }, { grant: ['CREATE','UPDATE','DELETE'], to: ['manage','admin'] }]
+  entity AssetManagementServiceLevels as projection on my.AssetManagementServiceLevels;
+
   // ── Multi-modal lookups (Phase 1) ──
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'admin' }]
   entity TransportModes as projection on my.TransportModes;

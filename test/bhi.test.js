@@ -27,6 +27,17 @@ describe('BSI/BHI engine', () => {
     expect(b.computeBSI([], 'Road', { age: 0, fallbackCondition: 6 }).bsi).toBe(6)
     expect(b.computeBSI([], 'Road', { age: 0 }).bsi).toBeNull()
   })
+  test('CS1-4 extent governs over the single rating when a complete distribution is recorded (council fix #2)', () => {
+    const env = { age: 0 }
+    // identical inspector rating (5) — only the condition-state EXTENT differs
+    const mostlyGood = b.computeBSI([{ elementType: 'Deck', conditionRating: 5, totalQuantity: 100, conditionState1Qty: 95, conditionState4Qty: 5 }], 'Road', env)
+    const mostlySevere = b.computeBSI([{ elementType: 'Deck', conditionRating: 5, totalQuantity: 100, conditionState1Qty: 5, conditionState4Qty: 95 }], 'Road', env)
+    expect(mostlyGood.bsi).toBeGreaterThan(8)
+    expect(mostlySevere.bsi).toBeLessThan(3)
+    expect(mostlyGood.bsi).toBeGreaterThan(mostlySevere.bsi + 5)
+    // an INCOMPLETE distribution (CS sum well below totalQuantity) falls back to the inspector rating
+    expect(b.computeBSI([{ elementType: 'Deck', conditionRating: 5, totalQuantity: 100, conditionState1Qty: 40 }], 'Road', env).bsi).toBeCloseTo(5, 1)
+  })
 })
 
 // Council B8 — weights/coefficients are GOVERNED CONFIG (SystemConfig 'bhiWeights' JSON) with

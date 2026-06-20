@@ -261,6 +261,16 @@
                   }
                 },
                 {
+                  "id": "CfgAMObjectives",
+                  "tileType": "sap.ushell.ui.tile.StaticTile",
+                  "properties": {
+                    "title": "AM Objectives",
+                    "subtitle": "ISO 55001 line-of-sight (FE)",
+                    "icon": "sap-icon://target-group",
+                    "targetURL": "#AMObjectives-manage&/AssetManagementObjectives"
+                  }
+                },
+                {
                   "id": "CfgRiskFactors",
                   "tileType": "sap.ushell.ui.tile.StaticTile",
                   "properties": {
@@ -603,6 +613,20 @@
               "semanticObject": "ClassTypes",
               "action": "manage",
               "title": "Class Types",
+              "signature": {
+                "parameters": {},
+                "additionalParameters": "allowed"
+              },
+              "resolutionResult": {
+                "applicationType": "SAPUI5",
+                "additionalInformation": "SAPUI5.Component=BridgeManagement.adminbridges",
+                "url": "/BridgeManagementadminbridges"
+              }
+            },
+            "AMObjectives-manage": {
+              "semanticObject": "AMObjectives",
+              "action": "manage",
+              "title": "AM Objectives",
               "signature": {
                 "parameters": {},
                 "additionalParameters": "allowed"
