@@ -1,6 +1,6 @@
 {
   "name": "BridgeManagement",
-  "version": "3.42.0",
+  "version": "3.43.0",
   "comment:workspaces": "P2 build-cost: the 10 html5 UI apps are npm workspaces so `npm ci` installs their shared @ui5/cli toolchain ONCE (hoisted) instead of per-module. The MTA html5 builders therefore only run `npm run build` (no per-module npm ci). Excludes app/router (separate approuter module).",
   "workspaces": [
     "app/admin-bridges",
