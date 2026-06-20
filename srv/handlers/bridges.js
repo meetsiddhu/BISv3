@@ -1,6 +1,7 @@
 const cds = require('@sap/cds')
 const { CONDITION_LABELS, deriveCondition, labelToBand, labelToLegacy } = require('../lib/condition-rating')
 const { scoreCompleteness } = require('../lib/data-quality')
+const { screenFatigue } = require('../lib/fatigue')
 
 function registerBridgeHandlers (srv, { logAudit }) {
 
@@ -25,6 +26,12 @@ function registerBridgeHandlers (srv, { logAudit }) {
         const dq = scoreCompleteness(merged)
         data.dataCompleteness      = dq.tier
         data.dataCompletenessScore = dq.score
+        // FATIGUE-1 (council fix #3): refresh the advisory AS 5100.6 fatigue screen on save so
+        // it reflects material/year/mode/detail-category in the same change. Derived fields
+        // only — fatigueDetailCategory + fatigueAssessmentDate stay user-owned inputs.
+        const fat = screenFatigue(merged)
+        data.fatigueScreeningStatus    = fat.status
+        data.estimatedFatigueLifeYears = fat.estimatedFatigueLifeYears
     })
 
     srv.before('UPDATE', 'Bridges', async req => {

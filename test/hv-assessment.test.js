@@ -82,3 +82,43 @@ describe('assessRoute', () => {
     expect(r.governingStructure).toBe('B2')
   })
 })
+
+// RAIL-1 (council fix #3): mode applicability — a road model must never silently "assess" a
+// rail structure, and a rail model must never be road-checked.
+describe('assessVehicle mode applicability', () => {
+  const capacity = { ratingFactor: 1.2, grossMassLimit: 150, grossCombined: 150 }
+  const roadVehicle = { code: 'HML-BDOUBLE', applicableModes: 'Road', gvmTonnes: 64,
+    axleGroups: [{ type: 'steer', massT: 6 }, { type: 'tandem', massT: 16 }] }
+  const railModel = { code: '300LA', applicableModes: 'Rail', gvmTonnes: 122,
+    axleGroups: [{ type: 'single', massT: 30.6 }] }
+
+  test('a road model on a RAIL structure is refused (not a misleading pass)', () => {
+    const r = hv.assessVehicle({ bridge: { bridgeId: 'R1', transportMode: 'Rail' }, capacity, vehicle: roadVehicle })
+    expect(r.verdict).toBe('not-assessable')
+    expect(r.governingCheck).toBe('Mode applicability')
+    expect(r.checks).toHaveLength(1)
+  })
+
+  test('a road model on a ROAD structure assesses normally', () => {
+    const r = hv.assessVehicle({ bridge: { bridgeId: 'B1', transportMode: 'Road' }, capacity, vehicle: roadVehicle })
+    expect(r.verdict).not.toBe('not-assessable')
+    expect(r.governingCheck).not.toBe('Mode applicability')
+  })
+
+  test('a rail load model on a RAIL structure is assessed (rating-factor governs)', () => {
+    const r = hv.assessVehicle({ bridge: { bridgeId: 'R1', transportMode: 'Rail' }, capacity, vehicle: railModel })
+    expect(r.verdict).toBe('pass') // RF 1.2 ≥ 1.0
+    expect(r.checks.find(c => c.check === 'Mode applicability')).toBeUndefined()
+  })
+
+  test('a Multi (shared road+rail) structure accepts any model', () => {
+    const r = hv.assessVehicle({ bridge: { bridgeId: 'M1', transportMode: 'Multi' }, capacity, vehicle: roadVehicle })
+    expect(r.verdict).not.toBe('not-assessable')
+  })
+
+  test('a vehicle with no declared mode scope is not blocked (legacy/custom)', () => {
+    const legacy = { code: 'custom', gvmTonnes: 40 }
+    const r = hv.assessVehicle({ bridge: { transportMode: 'Rail' }, capacity, vehicle: legacy })
+    expect(r.governingCheck).not.toBe('Mode applicability')
+  })
+})

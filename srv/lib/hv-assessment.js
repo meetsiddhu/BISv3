@@ -131,11 +131,51 @@ function dimensionChecks (bridge, capacity, vehicle) {
 
 function round (n) { return Math.round(Number(n) * 10) / 10 }
 
+// Normalise a comma list of mode codes to a lower-cased Set.
+function modeSet (s) {
+  return new Set(String(s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean))
+}
+
+// RAIL-1 (council fix #3): mode applicability gate. A vehicle/load model only applies to the
+// transport mode(s) it declares (AssessmentVehicles.applicableModes). Running a road
+// heavy-vehicle model against a rail or pedestrian structure and reporting the road mass /
+// bridge-formula / dimension "passes" would be actively misleading — worse than no answer.
+// So a mode mismatch refuses the assessment with a clear reason. Rules: a 'Multi' structure
+// (shared road+rail) accepts any model; an unspecified bridge mode defaults to Road (schema
+// default) so legacy data is unaffected; a vehicle with no declared scope is not blocked
+// (legacy/custom rows). Returns a not-assessable check on mismatch, else null.
+function modeApplicabilityCheck (bridge, vehicle) {
+  const bridgeMode = String((bridge && bridge.transportMode) || 'Road').trim()
+  if (bridgeMode.toLowerCase() === 'multi') return null
+  const applicable = modeSet(vehicle && vehicle.applicableModes)
+  if (!applicable.size) return null
+  if (applicable.has(bridgeMode.toLowerCase()) || applicable.has('multi')) return null
+  const label = (vehicle && (vehicle.code || vehicle.name)) || 'load model'
+  return {
+    check: 'Mode applicability',
+    verdict: 'not-assessable',
+    detail: `${label} applies to ${[...applicable].join('/')} structures, not a ${bridgeMode} structure — use the ${bridgeMode} design load model.`
+  }
+}
+
 // ── Public: assess one vehicle against one bridge+capacity ─────────────────────
 // bridge: Bridges row; capacity: a BridgeCapacities row (latest); vehicle: an
 // AssessmentVehicles row (axleGroups JSON) or equivalent object; params: optional
 // config { refusalRF, bridgeFormula:{baseT, ratePerM} }.
 function assessVehicle ({ bridge, capacity, vehicle, params } = {}) {
+  // Refuse a mode-mismatched model up front rather than emitting misleading road checks.
+  const modeMismatch = modeApplicabilityCheck(bridge, vehicle)
+  if (modeMismatch) {
+    return {
+      bridgeId: bridge && (bridge.bridgeId || bridge.ID),
+      vehicle: vehicle && (vehicle.code || vehicle.name),
+      verdict: 'not-assessable',
+      governingCheck: modeMismatch.check,
+      governingDetail: modeMismatch.detail,
+      minMarginPct: null,
+      checks: [modeMismatch]
+    }
+  }
   const groups = parseAxleGroups(vehicle)
   const checks = [
     ratingFactorCheck(capacity, params),

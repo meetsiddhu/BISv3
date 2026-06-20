@@ -621,13 +621,26 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   // 1=red/unreliable, 0=neutral/none.
   const LOAD_BASIS_CRITICALITY = { 'Certified': 3, 'Detailed': 3, 'Screening': 2, 'None': 0 }
   const COMPLETENESS_CRITICALITY = { 'Complete': 3, 'Partial': 2, 'Incomplete': 1 }
+  // Council fix #3: fatigue screen badge (High=red, Elevated=orange, Low=green, n/a neutral)
+  // + a per-bridge BHI calibration-status badge so the road-derived weight caveat for rail /
+  // pedestrian modes is visible on the object page, not only in the BHI explorer.
+  const FATIGUE_CRITICALITY = { High: 1, Elevated: 2, Low: 3, 'Not Applicable': 0, 'Not Assessed': 0 }
+  const bhiLib = require('./lib/bhi')
   this.after('READ', Bridges, (rows) => {
     if (!rows) return
+    const calibrated = (bhiLib.activeBhiConfig().calibrated) || []
     for (const r of (Array.isArray(rows) ? rows : [rows])) {
       if (!r) continue
       if (r.riskPriority !== undefined) r.riskCriticality = RISK_CRITICALITY[r.riskPriority] ?? 0
       if (r.loadRatingBasis !== undefined) r.loadRatingCriticality = LOAD_BASIS_CRITICALITY[r.loadRatingBasis] ?? 0
       if (r.dataCompleteness !== undefined) r.dataCompletenessCriticality = COMPLETENESS_CRITICALITY[r.dataCompleteness] ?? 0
+      if (r.fatigueScreeningStatus !== undefined) r.fatigueCriticality = FATIGUE_CRITICALITY[r.fatigueScreeningStatus] ?? 0
+      if (r.transportMode !== undefined) {
+        const mk = bhiLib.modeKeyFor(r.transportMode || 'Road', false)
+        const isCal = calibrated.includes(mk)
+        r.bhiCalibrationStatus = isCal ? 'Calibrated' : 'Indicative (road-derived weights)'
+        r.bhiCalibrationCriticality = isCal ? 3 : 2
+      }
     }
   })
 

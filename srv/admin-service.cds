@@ -25,6 +25,10 @@ service AdminService {
     // badges the open-data DQ tier so an incomplete stub never reads as a surveyed record.
     virtual loadRatingCriticality : Integer,
     virtual dataCompletenessCriticality : Integer,
+    // Council fix #3: fatigue-screen badge + BHI calibration-status badge (after-READ).
+    virtual fatigueCriticality : Integer,
+    virtual bhiCalibrationStatus : String,
+    virtual bhiCalibrationCriticality : Integer,
     // External Systems tab: BNAC object-id links surfaced by business-key match on
     // bridgeId (BnacObjectIdMap is keyed by bridgeId; no managed FK). Read-only on the page.
     _bnacLinks : Association to many my.BnacObjectIdMap on _bnacLinks.bridgeId = bridgeId

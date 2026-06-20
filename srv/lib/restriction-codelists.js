@@ -195,7 +195,11 @@ function missingCodes (listName, existingCodes) {
   const have = new Set(existingCodes || [])
   return def.rows
     .filter((row) => !have.has(row.code))
-    .map((row) => ({ code: row.code, name: row.name, descr: row.descr || '', isActive: true }))
+    // Council fix #5p2: the canonical merge now HONOURS the row's own isActive (default true)
+    // rather than force-activating — so a canonical list can seed a code as retired, and the
+    // resolver stays consistent with the value-help (which filters isActive). Deactivated rows
+    // already in the DB are never resurrected (they are present, so excluded by `have`).
+    .map((row) => ({ code: row.code, name: row.name, descr: row.descr || '', isActive: row.isActive !== false }))
 }
 
 /**

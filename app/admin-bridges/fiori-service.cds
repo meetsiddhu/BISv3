@@ -203,9 +203,17 @@ annotate AdminService.Bridges with @(
       Data: [
         {Value: structureType},
         {Value: material},
+        {Value: superstructureMaterial},
         {Value: yearBuilt},
         {Value: designLoad},
         {Value: designStandard},
+        // Council fix #3: AS 5100.6 fatigue screen (advisory) + BHI weight-calibration badge,
+        // so the rail/steel fatigue prompt and the road-derived-weights caveat are visible.
+        {Value: fatigueScreeningStatus, Criticality: fatigueCriticality},
+        {Value: fatigueDetailCategory},
+        {Value: estimatedFatigueLifeYears},
+        {Value: fatigueAssessmentDate},
+        {Value: bhiCalibrationStatus, Criticality: bhiCalibrationCriticality},
       ]
     },
     FieldGroup#Dimensions: {
@@ -544,6 +552,12 @@ annotate AdminService.Bridges with {
   sourceRecordId         @title: 'Source Record ID';
   dataCompleteness       @title: 'Data Quality';
   dataCompletenessScore  @title: 'Completeness (%)';
+  fatigueScreeningStatus    @title: 'Fatigue Screen (AS 5100.6)';
+  fatigueDetailCategory     @title: 'Fatigue Detail Category';
+  estimatedFatigueLifeYears @title: 'Est. Fatigue Life (yrs, advisory)';
+  fatigueAssessmentDate     @title: 'Fatigue Assessment Date';
+  bhiCalibrationStatus      @title: 'BHI Weight Calibration';
+  superstructureMaterial    @title: 'Superstructure Material';
   conditionSummary @(
     Common.ValueListWithFixedValues,
     Common.ValueList: { SearchSupported: true, CollectionPath: 'ConditionSummaries', Parameters: [

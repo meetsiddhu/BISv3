@@ -1,6 +1,7 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('demo-seed')
 const { scoreCompleteness } = require('./lib/data-quality')
+const { screenFatigue } = require('./lib/fatigue')
 
 // Council fix #4: bulk seed inserts bypass the CAP save handler, so stamp the data-quality
 // tier + the honest load-rating basis directly on the entries. Open-data (OpenStreetMap)
@@ -15,6 +16,13 @@ function enrichDataQuality (bridges) {
       b.dataCompletenessScore = dq.score
     }
     if (b.loadRatingBasis == null) b.loadRatingBasis = 'Screening'
+    // Council fix #3: advisory AS 5100.6 fatigue screen for bulk-seeded rows (the handler
+    // does this for interactive saves). Non-steel rows screen Not Applicable.
+    if (b.fatigueScreeningStatus == null) {
+      const fat = screenFatigue(b)
+      b.fatigueScreeningStatus = fat.status
+      b.estimatedFatigueLifeYears = fat.estimatedFatigueLifeYears
+    }
   }
   return bridges
 }

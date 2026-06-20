@@ -99,6 +99,14 @@ entity Bridges : managed {
       scourCountermeasures : String(255);
       designFloodAriYears  : Integer;
       lastScourInspectionDate : Date;
+      // FATIGUE-1 (council fix #3, AS 5100.6, additive): fatigue is a leading failure mode
+      // for steel/composite structures under cyclic (esp. rail) loading. These are ADVISORY
+      // screening fields — they prompt a detailed AS 5100.6 assessment, they are NOT a
+      // certified fatigue rating. Derived by srv/lib/fatigue.js on save; surfaced badged.
+      fatigueDetailCategory     : String(20);   // AS 5100.6 detail category (e.g. '36','71','125')
+      fatigueScreeningStatus    : String(20);    // Not Applicable | Not Assessed | Low | Elevated | High
+      estimatedFatigueLifeYears : Decimal(6,1);  // advisory remaining fatigue life (assumption-based)
+      fatigueAssessmentDate     : Date;          // when a detailed assessment was last done
       // REGISTER-1 (additive): standard Austroads register items used for treatment
       // selection and heavy-vehicle load distribution.
       skewAngleDeg          : Decimal(5,2);
@@ -538,6 +546,12 @@ entity AssessmentVehicles : cuid, managed {
   overallWidthM   : Decimal(6,2);
   overallHeightM  : Decimal(6,2);
   standardRef     : String(120);                     // e.g. AS 5100.2 SM1600; NHVR HML
+  // RAIL-1 (council fix #3, additive): which transport mode(s) this load model applies to,
+  // so a road heavy-vehicle model is never silently run against a rail (or pedestrian)
+  // structure. Comma list of TransportModes codes; default 'Road'. Rail design-load models
+  // (e.g. 300LA) carry 'Rail'. The HV assessor refuses a mode-mismatched check rather than
+  // returning a misleading pass.
+  applicableModes : String(120) default 'Road';      // e.g. Road | Rail | Road,Rail
   description     : LargeString;
   active          : Boolean default true;
 }
