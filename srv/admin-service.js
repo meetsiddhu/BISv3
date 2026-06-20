@@ -615,10 +615,19 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   // FE_UX-1: compute the virtual riskCriticality on read (draft-safe — not in SQL).
   const RISK_CRITICALITY = { 'Very High': 1, 'High': 1, 'Medium': 2, 'Low': 3 }
+  // Council fix #4 (advisory/provenance badges, draft-safe — computed here, not in SQL):
+  // a screening load rating must never read as a certified capacity, and an open-data stub
+  // must never read as a surveyed record. Criticality 3=green/trusted, 2=orange/caution,
+  // 1=red/unreliable, 0=neutral/none.
+  const LOAD_BASIS_CRITICALITY = { 'Certified': 3, 'Detailed': 3, 'Screening': 2, 'None': 0 }
+  const COMPLETENESS_CRITICALITY = { 'Complete': 3, 'Partial': 2, 'Incomplete': 1 }
   this.after('READ', Bridges, (rows) => {
     if (!rows) return
     for (const r of (Array.isArray(rows) ? rows : [rows])) {
-      if (r && r.riskPriority !== undefined) r.riskCriticality = RISK_CRITICALITY[r.riskPriority] ?? 0
+      if (!r) continue
+      if (r.riskPriority !== undefined) r.riskCriticality = RISK_CRITICALITY[r.riskPriority] ?? 0
+      if (r.loadRatingBasis !== undefined) r.loadRatingCriticality = LOAD_BASIS_CRITICALITY[r.loadRatingBasis] ?? 0
+      if (r.dataCompleteness !== undefined) r.dataCompletenessCriticality = COMPLETENESS_CRITICALITY[r.dataCompleteness] ?? 0
     }
   })
 

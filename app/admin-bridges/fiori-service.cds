@@ -15,7 +15,7 @@ annotate AdminService.Bridges with @(
   UI.SelectionFields: [
     bridgeId, bridgeName, transportMode, network, state, region,
     condition, postingStatus, status,
-    highPriorityAsset, assetClass
+    highPriorityAsset, assetClass, dataCompleteness
   ],
   UI.LineItem: [
     { Value: bridgeId,           Label: 'Bridge ID' },
@@ -28,6 +28,9 @@ annotate AdminService.Bridges with @(
     { Value: conditionRating,    Label: 'Rating' },
     { Value: postingStatus,      Label: 'Posting Status' },
     { Value: status,             Label: 'Status' },
+    // Council fix #4: surface the data-quality tier in the worklist so open-data stubs
+    // are visibly flagged (and filterable) before anyone acts on them.
+    { Value: dataCompleteness,   Label: 'Data Quality', Criticality: dataCompletenessCriticality },
     { Value: lastInspectionDate, Label: 'Last Inspected' },
     { Value: highPriorityAsset,  Label: 'High Priority' }
   ]
@@ -229,7 +232,11 @@ annotate AdminService.Bridges with @(
     },
     FieldGroup#RouteClass: {
       Data: [
-        {Value: loadRating},
+        // Council fix #4: badge the load rating with its assurance basis so a screening
+        // estimate (orange) is never read as a certified capacity (green).
+        {Value: loadRating, Criticality: loadRatingCriticality},
+        {Value: loadRatingBasis, Criticality: loadRatingCriticality},
+        {Value: ratingStandardType},
         {Value: pbsApprovalClass},
         {Value: freightRoute},
         {Value: overMassRoute},
@@ -249,6 +256,10 @@ annotate AdminService.Bridges with @(
     // Tab 8 — Data Provenance
     FieldGroup#SourceInfo: {
       Data: [
+        // Council fix #4: first-class data-quality tier + score, badged so an open-data
+        // stub (red/orange) never reads as a surveyed, register-complete record.
+        {Value: dataCompleteness, Criticality: dataCompletenessCriticality},
+        {Value: dataCompletenessScore},
         {Value: dataSource},
         {Value: sourceReferenceUrl},
         {Value: openDataReference},
@@ -514,6 +525,8 @@ annotate AdminService.Bridges with {
   floodImpacted          @title: 'Flood Impacted';
   remarks                @title: 'Remarks'  @UI.MultiLineText;
   loadRating             @title: 'Load Rating (t)';
+  loadRatingBasis        @title: 'Load Rating Basis';
+  ratingStandardType     @title: 'Rating Standard';
   importanceLevel        @title: 'Importance Level (1–4)';
   averageDailyTraffic    @title: 'Average Daily Traffic (ADT)';
   heavyVehiclePercent    @title: 'Heavy Vehicle Percentage (%)';
@@ -529,6 +542,8 @@ annotate AdminService.Bridges with {
   sourceReferenceUrl     @title: 'Source Reference URL';
   openDataReference      @title: 'Open Data Reference';
   sourceRecordId         @title: 'Source Record ID';
+  dataCompleteness       @title: 'Data Quality';
+  dataCompletenessScore  @title: 'Completeness (%)';
   conditionSummary @(
     Common.ValueListWithFixedValues,
     Common.ValueList: { SearchSupported: true, CollectionPath: 'ConditionSummaries', Parameters: [

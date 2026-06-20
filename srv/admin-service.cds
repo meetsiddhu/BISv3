@@ -19,6 +19,12 @@ service AdminService {
     // NOT a calculated SQL column — a calculated CASE on a draft-enabled entity is
     // mis-translated by the CAP draft engine to invalid SQL and 500s draftEdit.
     virtual riskCriticality : Integer,
+    // Council fix #4: advisory/provenance badge criticalities (computed in after-READ,
+    // draft-safe — same reason as riskCriticality). loadRatingCriticality badges
+    // loadRatingBasis (Screening = caution, Certified = trusted); dataCompletenessCriticality
+    // badges the open-data DQ tier so an incomplete stub never reads as a surveyed record.
+    virtual loadRatingCriticality : Integer,
+    virtual dataCompletenessCriticality : Integer,
     // External Systems tab: BNAC object-id links surfaced by business-key match on
     // bridgeId (BnacObjectIdMap is keyed by bridgeId; no managed FK). Read-only on the page.
     _bnacLinks : Association to many my.BnacObjectIdMap on _bnacLinks.bridgeId = bridgeId

@@ -1,5 +1,6 @@
 const cds = require('@sap/cds')
 const { CONDITION_LABELS, deriveCondition, labelToBand, labelToLegacy } = require('../lib/condition-rating')
+const { scoreCompleteness } = require('../lib/data-quality')
 
 function registerBridgeHandlers (srv, { logAudit }) {
 
@@ -13,6 +14,17 @@ function registerBridgeHandlers (srv, { logAudit }) {
         }
         if (typeof data.bridgeId   === 'string') data.bridgeId   = data.bridgeId.trim()
         if (typeof data.bridgeName === 'string') data.bridgeName = data.bridgeName.trim()
+        // Council fix #4: keep the data-quality tier in sync on every interactive save.
+        // On UPDATE the payload can be partial, so score the merged record (current row
+        // overlaid with the change) — a patch that omits a field must never downgrade
+        // completeness. (Bulk imports set it in their own loop / the seed backfill.)
+        const id = data.ID ?? req.params?.[0]?.ID
+        const merged = (req.event === 'UPDATE' && id != null)
+            ? { ...(await SELECT.one.from('bridge.management.Bridges').where({ ID: id })), ...data }
+            : data
+        const dq = scoreCompleteness(merged)
+        data.dataCompleteness      = dq.tier
+        data.dataCompletenessScore = dq.score
     })
 
     srv.before('UPDATE', 'Bridges', async req => {

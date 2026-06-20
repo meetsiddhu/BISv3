@@ -126,6 +126,11 @@ entity Bridges : managed {
       // CAPA-1: which evaluation standard the load rating follows (AS5100 default for NSW;
       // scaffolds AASHTO/Eurocode for multi-country scope without replicating EAM).
       ratingStandardType : String(20) default 'AS5100'; // AS5100 | AASHTO | Eurocode | Other
+      // CAPA-2 (advisory badging): assurance level of the stored loadRating. 'Screening'
+      // (default) = indicative/derived, NOT a certified capacity; a certified rating comes
+      // from a structural assessment (or EAM system of record). Surfaced as a badge so a
+      // screening estimate is never mistaken for an engineering certification.
+      loadRatingBasis : String(20) default 'Screening'; // Screening | Detailed | Certified | None
       pbsApprovalClass : String(40);
       importanceLevel : Integer @assert.range: [1, 4];  // -> ImportanceLevels (NSW classification)
       averageDailyTraffic : Integer;
@@ -140,6 +145,12 @@ entity Bridges : managed {
       sourceReferenceUrl : String(255);
       openDataReference : String(255);
       sourceRecordId : String(111);
+      // DQ-1 (provenance/quality badging): first-class data-quality tier — previously only
+      // narrated in free-text `remarks`. Complete = key identity/geometry/structural/condition
+      // fields present; Partial = a few gaps; Incomplete = open-data stub needing verification.
+      // Computed by srv/lib/data-quality.js on save + backfilled; surfaced as a badge + filter.
+      dataCompleteness      : String(20);  // Complete | Partial | Incomplete
+      dataCompletenessScore : Integer @assert.range: [0, 100];  // % of key fields populated
       // DEPRECATED (rule 1: kept, not removed): stale SINGULAR restriction link.
       // Use the to-many `restrictions` association / the Restrictions register.
       restriction  : Association to Restrictions;

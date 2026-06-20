@@ -1,5 +1,23 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('demo-seed')
+const { scoreCompleteness } = require('./lib/data-quality')
+
+// Council fix #4: bulk seed inserts bypass the CAP save handler, so stamp the data-quality
+// tier + the honest load-rating basis directly on the entries. Open-data (OpenStreetMap)
+// rows score Partial/Incomplete by design — that is the point of badging them. Mutates +
+// returns the array. loadRatingBasis defaults to 'Screening' (never present a derived rating
+// as certified) unless the seed explicitly recorded a higher assurance level.
+function enrichDataQuality (bridges) {
+  for (const b of (bridges || [])) {
+    if (b.dataCompleteness == null) {
+      const dq = scoreCompleteness(b)
+      b.dataCompleteness = dq.tier
+      b.dataCompletenessScore = dq.score
+    }
+    if (b.loadRatingBasis == null) b.loadRatingBasis = 'Screening'
+  }
+  return bridges
+}
 
 // Standard bridge asset classes + Culvert / Major Culvert. Seeded at RUNTIME (idempotent,
 // insert-if-missing) rather than via a db/data CSV: the AssetClasses table already holds
@@ -82,7 +100,7 @@ async function seedDemoData () {
         await tx.run(DELETE.from('bridge.management.Bridges'))
       }
 
-      await tx.run(INSERT.into('bridge.management.Bridges').entries(data.bridges))
+      await tx.run(INSERT.into('bridge.management.Bridges').entries(enrichDataQuality(data.bridges)))
       await tx.run(INSERT.into('bridge.management.BridgeElements').entries(data.elements))
       await tx.run(INSERT.into('bridge.management.Restrictions').entries(data.restrictions))
       await tx.run(INSERT.into('bridge.management.PrioritisationAssessment').entries(data.runs))
@@ -97,6 +115,42 @@ async function seedDemoData () {
   // Bulk NSW open-data load — fire-and-forget so the ~1,300-row insert never delays the server
   // from listening (and the CF health check). It self-catches; the register just fills in shortly.
   seedNsw()
+
+  // Council fix #4: backfill the data-quality tier on any pre-existing rows that predate the
+  // field (e.g. the already-deployed register). Idempotent + fire-and-forget — a no-op once
+  // every row is scored — and runs as the app's privileged user, so no DB credentials needed.
+  backfillDataQuality()
+}
+
+// One-time, idempotent data-quality backfill for rows where dataCompleteness IS NULL. Groups
+// rows by computed (tier, score, basis) so the whole register is updated in a handful of
+// statements rather than one-per-row. Skips itself entirely once nothing is left to score.
+async function backfillDataQuality () {
+  const COLS = ['ID', 'loadRatingBasis', 'bridgeId', 'bridgeName', 'assetClass',
+    'latitude', 'longitude', 'state', 'structureType', 'material', 'yearBuilt',
+    'spanLength', 'totalLength', 'numberOfLanes', 'conditionRating', 'lastInspectionDate',
+    'assetOwner', 'route', 'lga']
+  try {
+    await cds.tx({ user: cds.User.privileged }, async (tx) => {
+      const pending = await tx.run(SELECT.one.from('bridge.management.Bridges').columns('ID').where('dataCompleteness is null'))
+      if (!pending) return // idempotent: nothing to backfill
+      const rows = await tx.run(SELECT.from('bridge.management.Bridges').columns(...COLS).where('dataCompleteness is null'))
+      const groups = new Map()
+      for (const b of rows) {
+        const dq = scoreCompleteness(b)
+        const basis = b.loadRatingBasis || 'Screening'
+        const key = `${dq.tier}|${dq.score}|${basis}`
+        if (!groups.has(key)) groups.set(key, { tier: dq.tier, score: dq.score, basis, ids: [] })
+        groups.get(key).ids.push(b.ID)
+      }
+      for (const g of groups.values()) {
+        await tx.run(UPDATE('bridge.management.Bridges')
+          .set({ dataCompleteness: g.tier, dataCompletenessScore: g.score, loadRatingBasis: g.basis })
+          .where({ ID: { in: g.ids } }))
+      }
+      LOG.info(`demo-seed: backfilled data-quality on ${rows.length} bridges (${groups.size} groups)`)
+    })
+  } catch (e) { LOG.warn('demo-seed: data-quality backfill skipped (' + e.message + ')') }
 }
 
 /*
@@ -113,6 +167,7 @@ async function seedNsw () {
       if (present) { LOG.info('demo-seed: NSW open data already present — skipping'); return }
       let nsw
       try { nsw = require('./demo-seed-nsw.data.json') } catch { LOG.warn('demo-seed: NSW data file missing — skipping'); return }
+      enrichDataQuality(nsw.bridges)
       const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o }
       for (const part of chunk(nsw.bridges, 250)) await tx.run(INSERT.into('bridge.management.Bridges').entries(part))
       if (nsw.restrictions && nsw.restrictions.length) await tx.run(INSERT.into('bridge.management.Restrictions').entries(nsw.restrictions))
