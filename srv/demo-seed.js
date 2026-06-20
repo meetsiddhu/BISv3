@@ -133,6 +133,8 @@ async function seedDemoData () {
   // field (e.g. the already-deployed register). Idempotent + fire-and-forget — a no-op once
   // every row is scored — and runs as the app's privileged user, so no DB credentials needed.
   backfillDataQuality()
+  // Council fix #3: same idempotent backfill for the advisory AS 5100.6 fatigue screen.
+  backfillFatigue()
 }
 
 // One-time, idempotent data-quality backfill for rows where dataCompleteness IS NULL. Groups
@@ -164,6 +166,33 @@ async function backfillDataQuality () {
       LOG.info(`demo-seed: backfilled data-quality on ${rows.length} bridges (${groups.size} groups)`)
     })
   } catch (e) { LOG.warn('demo-seed: data-quality backfill skipped (' + e.message + ')') }
+}
+
+// One-time, idempotent AS 5100.6 fatigue-screen backfill for rows where fatigueScreeningStatus
+// IS NULL. Grouped by (status, life) — concrete/unknown rows collapse to one update each, only
+// the handful of steel structures get individual screens. No-op once every row is screened.
+async function backfillFatigue () {
+  const COLS = ['ID', 'material', 'superstructureMaterial', 'yearBuilt', 'transportMode', 'fatigueDetailCategory']
+  try {
+    await cds.tx({ user: cds.User.privileged }, async (tx) => {
+      const pending = await tx.run(SELECT.one.from('bridge.management.Bridges').columns('ID').where('fatigueScreeningStatus is null'))
+      if (!pending) return
+      const rows = await tx.run(SELECT.from('bridge.management.Bridges').columns(...COLS).where('fatigueScreeningStatus is null'))
+      const groups = new Map()
+      for (const b of rows) {
+        const fat = screenFatigue(b)
+        const key = `${fat.status}|${fat.estimatedFatigueLifeYears}`
+        if (!groups.has(key)) groups.set(key, { status: fat.status, life: fat.estimatedFatigueLifeYears, ids: [] })
+        groups.get(key).ids.push(b.ID)
+      }
+      for (const g of groups.values()) {
+        await tx.run(UPDATE('bridge.management.Bridges')
+          .set({ fatigueScreeningStatus: g.status, estimatedFatigueLifeYears: g.life })
+          .where({ ID: { in: g.ids } }))
+      }
+      LOG.info(`demo-seed: backfilled fatigue screen on ${rows.length} bridges (${groups.size} groups)`)
+    })
+  } catch (e) { LOG.warn('demo-seed: fatigue backfill skipped (' + e.message + ')') }
 }
 
 /*
