@@ -290,20 +290,46 @@
                   <ObjectStatus title="{i18n>capex.remaining}" text="{capex>/remainingText}" state="Success" class="sapUiMediumMarginEnd" />
                   <ObjectStatus title="{i18n>capex.unfunded}" text="{capex>/unfundedText}" state="{= ${capex>/unfundedCount} > 0 ? 'Error' : 'Success' }" />
                 </HBox>
+                <MessageStrip text="{capex>/methodSummary}" type="Information" showIcon="true" class="sapUiTinyMarginTop sapUiSmallMarginBottom" visible="{= !!${capex>/methodSummary} }" />
                 <Title text="{i18n>capex.funded}" level="H5" class="sapUiTinyMarginTop" />
                 <Table items="{path:'capex>/selected'}" noDataText="{capex>/noDataText}">
+                  <columns>
+                    <Column width="3rem" hAlign="End"><Text text="{i18n>capex.col.rank}" /></Column>
+                    <Column><Text text="{i18n>capex.col.name}" /></Column>
+                    <Column width="5rem"><Text text="{i18n>capex.col.band}" /></Column>
+                    <Column hAlign="End" width="9rem"><Text text="{i18n>capex.col.cost}" /></Column>
+                    <Column hAlign="End" width="8rem"><Text text="{i18n>capex.col.perDollar}" /></Column>
+                    <Column hAlign="End" width="10rem" minScreenWidth="Tablet" demandPopin="true"><Text text="{i18n>capex.col.cumulative}" /></Column>
+                    <Column minScreenWidth="Desktop" demandPopin="true"><Text text="{i18n>capex.col.why}" /></Column>
+                  </columns>
+                  <items><ColumnListItem>
+                    <cells>
+                      <Text text="{capex>rank}" />
+                      <Text text="{capex>name}" />
+                      <ObjectStatus text="{capex>band}" state="{= ${capex>band} === 'P1' ? 'Error' : ${capex>band} === 'P2' ? 'Error' : ${capex>band} === 'P3' ? 'Warning' : 'Success' }" />
+                      <Text text="{capex>costAud}" />
+                      <Text text="{capex>benefitPerDollar}" />
+                      <Text text="{capex>cumulativeSpendAud}" />
+                      <Text text="{capex>reason}" wrapping="true" />
+                    </cells>
+                  </ColumnListItem></items>
+                </Table>
+                <Title text="{i18n>capex.unfundedTitle}" level="H5" class="sapUiSmallMarginTop" visible="{= (${capex>/unfundedDetail} || []).length &gt; 0 }" />
+                <Table items="{path:'capex>/unfundedDetail'}" visible="{= (${capex>/unfundedDetail} || []).length &gt; 0 }" noDataText="{i18n>capex.unfundedNone}">
                   <columns>
                     <Column><Text text="{i18n>capex.col.name}" /></Column>
                     <Column width="5rem"><Text text="{i18n>capex.col.band}" /></Column>
                     <Column hAlign="End" width="9rem"><Text text="{i18n>capex.col.cost}" /></Column>
-                    <Column hAlign="End" width="9rem"><Text text="{i18n>capex.col.benefit}" /></Column>
+                    <Column hAlign="End" width="9rem"><Text text="{i18n>capex.col.shortBy}" /></Column>
+                    <Column minScreenWidth="Desktop" demandPopin="true"><Text text="{i18n>capex.col.whyNot}" /></Column>
                   </columns>
                   <items><ColumnListItem>
                     <cells>
                       <Text text="{capex>name}" />
-                      <ObjectStatus text="{capex>band}" state="{= ${capex>band} === 'P1' ? 'Error' : ${capex>band} === 'P2' ? 'Error' : ${capex>band} === 'P3' ? 'Warning' : 'Success' }" />
+                      <ObjectStatus text="{capex>band}" state="Error" />
                       <Text text="{capex>costAud}" />
-                      <Text text="{capex>benefitAud}" />
+                      <Text text="{capex>shortfallAud}" />
+                      <Text text="{capex>reason}" wrapping="true" />
                     </cells>
                   </ColumnListItem></items>
                 </Table>

@@ -58,7 +58,7 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({ mode: "exec", bands: [], assessed: 0, p1: 0, stale: 0, topScore: 0, headline: "" }), "rep");
       // HV-1 / CAPEX-1 tabs
       this.getView().setModel(new JSONModel({ bridgeID: null, vehicleCode: null, vehicles: [], checks: [], verdictText: "—", verdictState: "None", governing: "" }), "hv");
-      this.getView().setModel(new JSONModel({ budget: null, strategy: "greedy-bcr", fundingYear: "", selected: [], spentText: "—", remainingText: "—", unfundedText: "—", unfundedCount: 0, noDataText: this._t("capex.noData") }), "capex");
+      this.getView().setModel(new JSONModel({ budget: null, strategy: "greedy-bcr", fundingYear: "", selected: [], deferred: [], unfundedDetail: [], methodSummary: "", spentText: "—", remainingText: "—", unfundedText: "—", unfundedCount: 0, noDataText: this._t("capex.noData") }), "capex");
       this._loadVehicles();
 
       this._DIMS = [["dimSafety", "Safety"], ["dimNetwork", "Network service"], ["dimFinancial", "Financial"], ["dimEnvironmental", "Environmental"], ["dimReputational", "Reputational"]];
@@ -278,6 +278,11 @@ sap.ui.define([
           var res = JSON.parse(resp.result);
           var fmt = function (n) { return "$" + Number(n || 0).toLocaleString(); };
           cx.setProperty("/selected", res.selected || []);
+          // CAPEX-1 rationale: show HOW the program was derived + the deferred works + the
+          // P1/P2 left unfunded (each with its plain-English reason from the optimiser).
+          cx.setProperty("/methodSummary", res.methodSummary || "");
+          cx.setProperty("/deferred", res.deferred || []);
+          cx.setProperty("/unfundedDetail", res.unfundedHighPriorityDetail || []);
           // UAT P3-011: after running, distinguish "nothing funded" from the initial prompt.
           cx.setProperty("/noDataText", (res.selected && res.selected.length) ? self._t("capex.noData") : self._t("capex.noneFunded"));
           cx.setProperty("/spentText", fmt(res.spentAud) + " (" + (res.selectedCount || 0) + ")");

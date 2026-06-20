@@ -47,3 +47,33 @@ describe('robustness', () => {
     expect(() => opt.optimise({ candidates: fleet, budget: -1 })).toThrow(/non-negative/)
   })
 })
+
+describe('selection rationale (shown to the user)', () => {
+  test('a method summary explains how the program was derived', () => {
+    const r = opt.optimise({ candidates: fleet, budget: 160000, strategy: 'greedy-bcr' })
+    expect(r.methodSummary).toMatch(/per dollar|risk/i)
+    expect(r.strategy).toBe('greedy-bcr')
+  })
+  test('each funded item carries rank, risk-per-dollar, cumulative spend + a plain-English reason', () => {
+    const r = opt.optimise({ candidates: fleet, budget: 160000, strategy: 'greedy-bcr' })
+    const top = r.selected[0]
+    expect(top.rank).toBe(1)                                  // best value-for-money funded first
+    expect(top.benefitPerDollar).toBeGreaterThan(0)
+    expect(top.cumulativeSpendAud).toBeGreaterThan(0)
+    expect(top.funded).toBe(true)
+    expect(top.reason).toMatch(/Funded.*ranked #1.*per dollar/i)
+    // funded items are ranked best-first by density
+    const ranks = r.selected.map(s => s.rank)
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b))
+  })
+  test('an unfunded P1/P2 is flagged with its shortfall + why it was deferred', () => {
+    // budget only fits item A (100k) + C (50k); P1 item B (400k) cannot be funded
+    const r = opt.optimise({ candidates: fleet, budget: 160000, strategy: 'greedy-bcr' })
+    expect(r.unfundedHighPriority).toContain(2)              // B is a P1 left unfunded
+    const b = r.unfundedHighPriorityDetail.find(d => d.id === 2)
+    expect(b).toBeTruthy()
+    expect(b.funded).toBe(false)
+    expect(b.shortfallAud).toBeGreaterThan(0)
+    expect(b.reason).toMatch(/Deferred/i)
+  })
+})
