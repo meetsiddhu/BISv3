@@ -26,6 +26,11 @@
             <contentMiddle>
               <Title text="{i18n>filterTitle}" level="H4" />
             </contentMiddle>
+            <contentRight>
+              <!-- Collapse/close the side panel (gives the map full width). Re-open via the
+                   menu button on the map toolbar. Same handler as that toggle. -->
+              <Button icon="sap-icon://navigation-left-arrow" tooltip="{view>/panelToggleTooltip}" press=".onTogglePanel" type="Transparent" />
+            </contentRight>
           </Bar>
         </customHeader>
 

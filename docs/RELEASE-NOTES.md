@@ -16,6 +16,12 @@
 
 ---
 
+## 3.46.0 — Map: close button on the side panel
+**Fixed:** the **Filter Bridges** side panel now has a **collapse/close button** on the top-right of
+its header — click it to hide the panel and give the map full width. Re-open it with the menu
+button on the map toolbar. (Previously the only toggle was the map-toolbar menu icon, which was
+easy to miss.)
+
 ## 3.45.0 — Standardised ALV-style tables + completed search helps
 **What's new (registers, Fiori Elements):**
 - **Every list table is now ALV-capable** — column personalization (sort / filter / group /
