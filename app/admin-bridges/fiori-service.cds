@@ -1754,12 +1754,13 @@ annotate AdminService.AttributeDefinitions with @(
     { $Type:'UI.ReferenceFacet', ID:'ADScope',   Label:'Object-Type Scoping', Target:'objectTypeConfigs/@UI.LineItem' }
   ],
   UI.FieldGroup #ADMain: { Data: [
-    {Value:name},{Value:internalKey},{Value:dataType},{Value:unit},{Value:eamCharacteristic},
+    {Value:name},{Value:internalKey},{Value:dataType},{Value:displayType},{Value:unit},{Value:eamCharacteristic},
     {Value:helpText},{Value:displayOrder},{Value:minValue},{Value:maxValue},{Value:regexPattern},{Value:status}
   ] }
 );
 annotate AdminService.AttributeDefinitions with {
   name @title:'Name'; internalKey @title:'Key'; dataType @title:'Data Type'; unit @title:'Unit';
+  displayType @title:'Display As (Auto / Dropdown / RadioGroup / Checkbox / MultiComboBox / Input)';
   eamCharacteristic @title:'SAP EAM Characteristic'; helpText @title:'Help Text'; displayOrder @title:'Order';
   minValue @title:'Min Value'; maxValue @title:'Max Value'; regexPattern @title:'Validation Pattern'; status @title:'Status';
 };

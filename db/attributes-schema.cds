@@ -35,6 +35,13 @@ entity AttributeDefinitions : cuid, managed {
   name         : String(111) not null;
   internalKey  : String(80)  not null;
   dataType     : String(20)  not null; // Text|Integer|Decimal|Date|Boolean|SingleSelect|MultiSelect
+  // ATTR-DISPLAY (SAP EAM CT04-style): how the value is RENDERED when collecting data — the
+  // single/multi cardinality comes from dataType; this is the control hint. 'Auto' (default)
+  // lets the collector pick from dataType (SingleSelect→Dropdown, MultiSelect→MultiCombo,
+  // Boolean→Checkbox). Enum so FE offers a fixed-value dropdown + validates the choice.
+  displayType  : String(20) enum {
+    Auto; Dropdown; RadioGroup; Checkbox; MultiComboBox; Input
+  } default 'Auto';
   unit         : String(40);
   helpText     : String(255);
   displayOrder : Integer     default 0;
