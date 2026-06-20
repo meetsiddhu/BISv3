@@ -4,8 +4,10 @@ sap.ui.define([
   "sap/m/MessageToast",
   "sap/m/MessageBox",
   "sap/m/SegmentedButton",
-  "sap/m/SegmentedButtonItem"
-], function (Controller, JSONModel, MessageToast, MessageBox, SegmentedButton, SegmentedButtonItem) {
+  "sap/m/SegmentedButtonItem",
+  "sap/ui/model/Filter",
+  "sap/ui/model/FilterOperator"
+], function (Controller, JSONModel, MessageToast, MessageBox, SegmentedButton, SegmentedButtonItem, Filter, FilterOperator) {
   "use strict";
 
   // band -> sap.ui.core.ValueState (label+number ALWAYS shown too — never colour-only, WCAG).
@@ -45,7 +47,7 @@ sap.ui.define([
       this._cfg = DEFAULT_CFG;
       this._rubrics = DEFAULT_RUBRICS;
       this.getView().setModel(new JSONModel({
-        bridgeID: null, strategy: "Renew",
+        bridgeID: null, bridgeName: "", bridgeId: "", bridgeMode: "", bridgePickerText: "", strategy: "Renew",
         dimSafety: 3, dimNetwork: 3, dimFinancial: 3, dimEnvironmental: 3, dimReputational: 3,
         likelihood: 4, likelihoodDerived: 4, likelihoodOverridden: false, likelihoodOverrideReason: "",
         criticality: "3.0", tier: 3, residual: 12, priorityScore: 0, band: "—", bandState: "None",
@@ -57,7 +59,7 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({ rows: [] }), "br");
       this.getView().setModel(new JSONModel({ mode: "exec", bands: [], assessed: 0, p1: 0, stale: 0, topScore: 0, headline: "" }), "rep");
       // HV-1 / CAPEX-1 tabs
-      this.getView().setModel(new JSONModel({ bridgeID: null, vehicleCode: null, vehicles: [], checks: [], verdictText: "—", verdictState: "None", governing: "" }), "hv");
+      this.getView().setModel(new JSONModel({ bridgeID: null, bridgePickerText: "", vehicleCode: null, vehicles: [], checks: [], verdictText: "—", verdictState: "None", governing: "" }), "hv");
       this.getView().setModel(new JSONModel({ budget: null, strategy: "greedy-bcr", fundingYear: "", selected: [], deferred: [], unfundedDetail: [], methodSummary: "", spentText: "—", remainingText: "—", unfundedText: "—", unfundedCount: 0, noDataText: this._t("capex.noData") }), "capex");
       this._loadVehicles();
 
@@ -84,7 +86,10 @@ sap.ui.define([
             "<h3>What this does</h3>" +
             "<p>Every asset gets a <strong>priority band P1 (do first) to P5 (watch)</strong>, computed from its " +
             "<strong>condition</strong> (how deteriorated it is) and its <strong>consequence</strong> (who/what is affected if it fails). " +
-            "The method follows public standards (AS&nbsp;5100, AASHTO, Austroads&hellip;).</p>" +
+            "It is a standard <strong>risk-based</strong> method &mdash; a likelihood&times;consequence risk matrix " +
+            "(<strong>ISO&nbsp;31000</strong>) feeding an asset-management priority (<strong>ISO&nbsp;55000&thinsp;/&thinsp;55001</strong>). " +
+            "The engineering inputs &mdash; condition rating, load rating, importance level &mdash; follow bridge standards " +
+            "(<strong>AS&nbsp;5100</strong>, Austroads; AASHTO where relevant).</p>" +
             "<h3>What the bands mean</h3>" +
             "<ul>" +
             "<li><strong>P1</strong> — act now; highest risk. Candidate for immediate intervention.</li>" +
@@ -100,7 +105,9 @@ sap.ui.define([
             "<li><strong>Blend</strong> into a 0–100 score: <strong>40% Risk + 40% seriousness + 20% strategy</strong> (Renew / Maintain / Monitor).</li>" +
             "<li>The score lands in a band: <strong>P1 ≥ 80, P2 ≥ 60, P3 ≥ 40, P4 ≥ 20, P5 ≥ 0</strong>.</li>" +
             "</ol>" +
-            "<p><em>Example: Safety 5, Network 4, condition 3/10, Renew → seriousness 3.9 → tier 4 → Risk 16 → score 72 → band P2.</em></p>" +
+            "<p><em>Example: Safety&nbsp;5, Network&nbsp;4, the other three&nbsp;3, condition &rarr; likelihood&nbsp;4, Renew &rarr; " +
+            "criticality&nbsp;3.95 &rarr; tier&nbsp;4 &rarr; residual risk = 4&times;4 = 16 &rarr; " +
+            "score = 0.4&times;64 + 0.4&times;79 + 0.2&times;80 = <strong>73</strong> &rarr; band&nbsp;P2.</em></p>" +
             "<h3>Why it can be trusted</h3>" +
             "<ul>" +
             "<li><strong>Safety floors</strong> — a Critical-condition asset is forced to the top band; good scores cannot buy down a structural risk.</li>" +
@@ -110,9 +117,9 @@ sap.ui.define([
             "</ul>" +
             "<h3>How to use it</h3>" +
             "<ol>" +
-            "<li><strong>Assess</strong> one asset (pre-fills register facts; add judgement; save), or</li>" +
-            "<li><strong>Score Fleet</strong> to rank the whole portfolio into P1&ndash;P5, then work the list top-down.</li>" +
-            "<li>Release held runs after engineering review; export the one-page <strong>Report</strong> for exec sign-off.</li>" +
+            "<li><strong>Assess</strong> one asset on the <strong>Assess</strong> tab &mdash; search and pick a bridge (its register facts pre-fill), add judgement, save; or</li>" +
+            "<li>run the <strong>fleet batch</strong> to score the whole portfolio into P1&ndash;P5 from register data &mdash; those runs appear in the <strong>Worklist</strong> badged &ldquo;data-only&rdquo;; work the list top-down.</li>" +
+            "<li>Release any review-held runs after engineering sign-off; export the one-page <strong>Report</strong> for exec sign-off.</li>" +
             "</ol>" +
             "<h3>How to configure it</h3>" +
             "<p>Open <strong>BMS Administration → Prioritisation Models</strong> to change the weights (per asset class too), the band cut-offs, and which model is active. Two models ship: the 5-factor <strong>NSW-RISK-V1</strong> (engineer judgement) and the 37-factor <strong>NSW-PACK-V1</strong> (auto-scores the whole fleet from data).</p>" +
@@ -442,15 +449,63 @@ sap.ui.define([
     // ── interactions ──
     onChange: function () { this._recompute(); },
 
-    onPickBridge: function (oEvent) {
+    // ── bridge value help: a searchable ALV-style table dialog (SAP-standard F4) shared by the
+    // Assess + HV pickers. Replaces the plain dropdown so a large fleet is findable by id or name.
+    onAssessBridgeValueHelp: function () { this._openBridgeDialog("assess"); },
+    onHvBridgeValueHelp: function () { this._openBridgeDialog("hv"); },
+    _openBridgeDialog: function (target) {
+      this._bridgeVHTarget = target;
+      var dlg = this.byId("bridgeSelectDialog");
+      var binding = dlg.getBinding("items"); if (binding) { binding.filter([]); } // full list on open
+      dlg.open();
+    },
+    onBridgeDialogSearch: function (oEvent) {
+      var q = oEvent.getParameter("value") || "";
+      var binding = oEvent.getSource().getBinding("items"); if (!binding) return;
+      if (!q) { binding.filter([]); return; }
+      binding.filter(new Filter({
+        filters: [
+          new Filter("bridgeId", FilterOperator.Contains, q),
+          new Filter("bridgeName", FilterOperator.Contains, q)
+        ], and: false
+      }));
+    },
+    onBridgeDialogConfirm: function (oEvent) {
       var item = oEvent.getParameter("selectedItem"); if (!item) return;
-      var id = parseInt(item.getKey(), 10);
+      var ctx = item.getBindingContext("br"); if (!ctx) return;
+      var row = ctx.getObject();
+      if (this._bridgeVHTarget === "hv") {
+        var hv = this.getView().getModel("hv");
+        hv.setProperty("/bridgeID", row.ID);
+        hv.setProperty("/bridgePickerText", row.bridgeName + " (" + row.bridgeId + ")");
+      } else {
+        this._applyBridge(row.ID);
+      }
+    },
+
+    // Load + display one bridge on the Assess tab: prominent identity header, read-only federated
+    // facts and engine-derived likelihood. Called from the value-help dialog and a worklist press.
+    _applyBridge: function (id) {
       var self = this; var m = this.getView().getModel("v");
       m.setProperty("/bridgeID", id);
+      // show identity immediately from the loaded list (prefill confirms it authoritatively below)
+      var brRow = (this.getView().getModel("br").getProperty("/rows") || []).find(function (b) { return b.ID === id; });
+      if (brRow) {
+        m.setProperty("/bridgeName", brRow.bridgeName);
+        m.setProperty("/bridgeId", brRow.bridgeId);
+        m.setProperty("/bridgePickerText", brRow.bridgeName + " (" + brRow.bridgeId + ")");
+        m.setProperty("/bridgeMode", (brRow.transportMode || "") + (brRow.network ? " · " + brRow.network : ""));
+      }
       // prefill action (read-only federated facts) via OData V4 unbound action
       fetch(this._svc + "/prefill", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, credentials: "same-origin", body: JSON.stringify({ bridgeID: id }) })
         .then(function (r) { if (!r.ok) throw new Error(r.statusText); return r.json(); })
         .then(function (f) {
+          // authoritative identity from the prefill action (name + business ref)
+          if (f.bridgeName) { m.setProperty("/bridgeName", f.bridgeName); }
+          if (f.bridgeRef) {
+            m.setProperty("/bridgeId", f.bridgeRef);
+            m.setProperty("/bridgePickerText", (f.bridgeName || "") + " (" + f.bridgeRef + ")");
+          }
           m.setProperty("/likelihoodDerived", f.derivedLikelihood);
           m.setProperty("/likelihood", f.derivedLikelihood);
           m.setProperty("/facts", {
@@ -598,10 +653,10 @@ sap.ui.define([
     onWorklistPress: function (oEvent) {
       var ctx = oEvent.getParameter("listItem").getBindingContext("wl"); if (!ctx) return;
       var row = ctx.getObject();
-      // jump to Assess for that bridge (pre-selects the picker)
-      var picker = this.byId("bridgePicker");
+      // jump to Assess for that bridge (loads its identity header + facts)
       var match = (this.getView().getModel("br").getProperty("/rows") || []).find(function (b) { return b.bridgeId === row.bridgeRef; });
-      if (match) { picker.setSelectedKey(String(match.ID)); this.onPickBridge({ getParameter: function () { return picker.getSelectedItem(); } }); }
+      if (match) { this._applyBridge(match.ID); }
+      else { MessageToast.show("This bridge isn't in the assessable list (it may be inactive) — pick another from the search."); }
       this.byId("tabs").setSelectedKey("assess");
     },
 

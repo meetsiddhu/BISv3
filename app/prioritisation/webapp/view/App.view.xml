@@ -72,15 +72,27 @@
             <!-- ══════════ ASSESS (hero) ══════════ -->
             <IconTabFilter id="tabAssess" text="{i18n>tab.assess}" key="assess" icon="sap-icon://measure">
               <VBox class="sapUiSmallMarginBeginEnd">
-                <HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginBottom">
-                  <Label text="{i18n>assess.pickBridge}" labelFor="bridgePicker" class="sapUiTinyMarginEnd" />
-                  <ComboBox id="bridgePicker" width="22rem" selectionChange=".onPickBridge"
-                            items="{path:'br>/rows', templateShareable:false}">
-                    <core:Item key="{br>ID}" text="{br>bridgeName} ({br>bridgeId})" />
-                  </ComboBox>
-                  <ObjectStatus class="sapUiSmallMarginBegin" icon="sap-icon://alert"
-                                text="{v>/confidenceText}" state="{v>/confidenceState}" visible="{= !!${v>/bridgeID} }" />
-                </HBox>
+                <VBox class="sapUiTinyMarginBottom">
+                  <HBox alignItems="Center" wrap="Wrap">
+                    <Label text="{i18n>assess.pickBridge}" labelFor="bridgePicker" class="sapUiTinyMarginEnd" />
+                    <!-- searchable value help (F4) — scales to the whole fleet, find by id or name -->
+                    <Input id="bridgePicker" width="24rem" showValueHelp="true" valueHelpOnly="true"
+                           value="{v>/bridgePickerText}" placeholder="{i18n>assess.pickBridgePh}"
+                           valueHelpRequest=".onAssessBridgeValueHelp" />
+                    <ObjectStatus class="sapUiSmallMarginBegin" icon="sap-icon://alert"
+                                  text="{v>/confidenceText}" state="{v>/confidenceState}" visible="{= !!${v>/bridgeID} }" />
+                  </HBox>
+                  <!-- prominent identity of the asset being assessed, so the on-screen data is never ambiguous -->
+                  <HBox alignItems="Center" wrap="Wrap" class="sapUiTinyMarginTop" visible="{= !!${v>/bridgeID} }">
+                    <core:Icon src="sap-icon://functional-location" class="sapUiTinyMarginEnd" />
+                    <Text text="{i18n>assess.assessing}:" class="sapUiContentLabelColor sapUiTinyMarginEnd" />
+                    <Title text="{v>/bridgeName}" level="H4" class="sapUiTinyMarginEnd" />
+                    <ObjectStatus text="{v>/bridgeId}" state="Information" class="sapUiTinyMarginEnd" />
+                    <Text text="{v>/bridgeMode}" class="sapUiContentLabelColor" />
+                  </HBox>
+                  <MessageStrip text="{i18n>assess.noBridge}" showIcon="true" class="sapUiTinyMarginTop"
+                                visible="{= !${v>/bridgeID} }" />
+                </VBox>
 
                 <!-- RULE ENGINE: governing model + read-only auto-bound criteria with provenance -->
                 <Panel headerText="Configured model: {v>/modelText} — auto criteria (read-only, from data)"
@@ -228,11 +240,12 @@
               <VBox class="sapUiSmallMargin">
                 <MessageStrip text="{i18n>hv.subtitle}" showIcon="true" class="sapUiTinyMarginBottom" />
                 <HBox wrap="Wrap" alignItems="End" class="sapUiSmallMarginBottom">
-                  <VBox class="sapUiSmallMarginEnd" width="20rem">
+                  <VBox class="sapUiSmallMarginEnd" width="24rem">
                     <Label text="{i18n>hv.bridge}" labelFor="hvBridge" />
-                    <ComboBox id="hvBridge" selectedKey="{hv>/bridgeID}" items="{path:'br>/rows'}">
-                      <core:Item key="{br>ID}" text="{br>bridgeName} ({br>bridgeId})" />
-                    </ComboBox>
+                    <!-- same searchable value help (F4) as the Assess tab -->
+                    <Input id="hvBridge" showValueHelp="true" valueHelpOnly="true"
+                           value="{hv>/bridgePickerText}" placeholder="{i18n>hv.pickBridgePh}"
+                           valueHelpRequest=".onHvBridgeValueHelp" />
                   </VBox>
                   <VBox class="sapUiSmallMarginEnd" width="18rem">
                     <Label text="{i18n>hv.vehicle}" labelFor="hvVehicle" />
@@ -338,6 +351,35 @@
           </items>
         </IconTabBar>
       </content>
+      <!-- shared searchable bridge value help (ALV-style table + search) for the Assess & HV pickers -->
+      <dependents>
+        <TableSelectDialog
+          id="bridgeSelectDialog"
+          title="{i18n>assess.pickBridgeTitle}"
+          searchPlaceholder="{i18n>assess.pickBridgeSearch}"
+          items="{path:'br>/rows', templateShareable:false}"
+          search=".onBridgeDialogSearch"
+          liveChange=".onBridgeDialogSearch"
+          confirm=".onBridgeDialogConfirm"
+          growing="true"
+          growingThreshold="40"
+          rememberSelections="false">
+          <columns>
+            <Column width="9rem"><Text text="{i18n>assess.col.bridgeId}" /></Column>
+            <Column><Text text="{i18n>assess.col.bridgeName}" /></Column>
+            <Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="{i18n>assess.col.mode}" /></Column>
+            <Column width="7rem" hAlign="End" minScreenWidth="Tablet" demandPopin="true"><Text text="{i18n>assess.col.condition}" /></Column>
+          </columns>
+          <ColumnListItem type="Active">
+            <cells>
+              <Text text="{br>bridgeId}" />
+              <Text text="{br>bridgeName}" />
+              <Text text="{= (${br>transportMode} || '') + (${br>network} ? ' · ' + ${br>network} : '') }" />
+              <Text text="{br>conditionRating}" />
+            </cells>
+          </ColumnListItem>
+        </TableSelectDialog>
+      </dependents>
     </Page>
   </App>
 </mvc:View>

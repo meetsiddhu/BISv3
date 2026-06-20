@@ -16,6 +16,20 @@
 
 ---
 
+## 3.48.0 — Prioritisation Assess tab: clearer bridge identity + searchable picker
+**Fixed / improved (Prioritisation → Assess):**
+- **You can now see which bridge you're assessing.** Picking a bridge — from the Worklist or the
+  picker — now shows its **name + ID + transport mode** prominently at the top of the Assess tab,
+  so the pre-filled data is never ambiguous. Before any bridge is chosen, a hint explains what to do.
+- **Searchable bridge picker (ALV-style value help).** The plain dropdown is replaced by a
+  **search dialog with a table** (Bridge ID · Name · Mode/Network · Condition) and a live search
+  box — type an ID or name to find a structure in a large fleet (SAP-standard F4). The same picker
+  now serves the **HV Assessment** tab.
+- **Help content corrected to standards.** The in-app Help now cites the real method basis — a
+  likelihood×consequence **risk matrix (ISO 31000)** feeding an asset-management priority
+  (**ISO 55000 / 55001**), with **AS 5100** / Austroads (AASHTO where relevant) for the engineering
+  inputs — and the worked example now shows the exact score arithmetic (→ **73**, band **P2**).
+
 ## 3.47.0 — One home for configuration (launchpad tidy-up)
 **Changed:** the launchpad's **Configuration** group no longer shows the four *view-only*
 tiles — **Risk Bands**, **Risk Factors**, **Asset Class Strategy** and **System Settings**.
