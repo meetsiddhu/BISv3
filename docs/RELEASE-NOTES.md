@@ -16,6 +16,18 @@
 
 ---
 
+## 3.47.0 — One home for configuration (launchpad tidy-up)
+**Changed:** the launchpad's **Configuration** group no longer shows the four *view-only*
+tiles — **Risk Bands**, **Risk Factors**, **Asset Class Strategy** and **System Settings**.
+Those screens were read-only duplicates of what you already **create and edit** in the
+**BMS Administration** app (BMS Admin → side panel), so they were removed to avoid the
+"this looks like an editor but isn't" confusion. **Nothing was lost:** edit all four in
+**BMS Administration**, and any saved `#RiskBands-manage` / `#RiskFactors-manage` /
+`#AssetClassStrategyCfg-manage` / `#SystemSettings-manage` deep-link still opens.
+**Kept as tiles:** **Class Types** and **AM Objectives** stay in the Configuration group —
+they're full create/edit (Fiori Elements draft) screens that aren't in the BMS Administration
+sidebar. See `docs/CONFIG-CRUD-AND-IA-REVIEW.md` for the full rationale.
+
 ## 3.46.0 — Map: close button on the side panel
 **Fixed:** the **Filter Bridges** side panel now has a **collapse/close button** on the top-right of
 its header — click it to hide the panel and give the map full width. Re-open it with the menu

@@ -20,13 +20,20 @@ describe('FLP sandbox config consistency', () => {
     const inbounds = c.services.ClientSideTargetResolution.adapter.config.inbounds
     expect(tileIds).toContain('NetworkPortfolio')
     expect(inbounds['NetworkPortfolio-display']).toBeTruthy()
-    // FE config screens (RiskBand/RiskConfig/AssetClassStrategy/SystemConfig) are now exposed
-    // as annotation-based Fiori Elements List Reports via UAT tiles in the CONFIGURATION group.
-    // Each tile deep-links into the admin-bridges FE app via #<SO>-manage&/<inner route>.
-    expect(tileIds).toContain('CfgRiskBands')
-    expect(tileIds).toContain('CfgRiskFactors')
-    expect(tileIds).toContain('CfgAssetStrategy')
-    expect(tileIds).toContain('CfgSystemSettings')
+    // The 4 read-only config viewers (Risk Bands / Risk Factors / Asset Class Strategy /
+    // System Settings) were RETIRED from the launchpad in 3.47.0: they duplicated the BMS
+    // Administration side panel, which is the single home for *editing* them (those entities are
+    // non-draft and the admin app writes them via direct OData; a draft FE tile would break that).
+    // Their inbounds are KEPT so existing #<SO>-manage deep-links still resolve (same pattern as
+    // NetworkRestrictions below).
+    expect(tileIds).not.toContain('CfgRiskBands')
+    expect(tileIds).not.toContain('CfgRiskFactors')
+    expect(tileIds).not.toContain('CfgAssetStrategy')
+    expect(tileIds).not.toContain('CfgSystemSettings')
+    // Class Types + AM Objectives stay as Fiori Elements draft-CRUD tiles (they are NOT in the
+    // BMS Administration sidebar, so they are the real config home for those entities).
+    expect(tileIds).toContain('CfgClassTypes')
+    expect(tileIds).toContain('CfgAMObjectives')
     expect(inbounds['RiskBands-manage']).toBeTruthy()
     expect(inbounds['RiskBands-manage'].resolutionResult.additionalInformation).toMatch(/BridgeManagement\.adminbridges/)
     expect(inbounds['RiskFactors-manage']).toBeTruthy()
