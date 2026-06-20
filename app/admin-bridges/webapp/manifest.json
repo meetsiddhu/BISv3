@@ -528,6 +528,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -618,6 +626,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -662,6 +678,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -715,6 +739,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -768,6 +800,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -808,6 +848,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -834,6 +882,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               },
@@ -879,6 +935,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               },
@@ -945,6 +1009,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -973,6 +1045,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1024,6 +1104,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1061,6 +1149,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1095,6 +1191,14 @@
                     "enableExport": true,
                     "type": "GridTable",
                     "selectionMode": "Multi"
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1138,6 +1242,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1181,6 +1293,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1224,6 +1344,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1267,6 +1395,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1310,6 +1446,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }
@@ -1353,6 +1497,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.adminbridges.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }

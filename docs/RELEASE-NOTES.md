@@ -16,6 +16,17 @@
 
 ---
 
+## 3.51.0 — In-app Help (ⓘ) on every tile
+**What's new:** every tile now has in-app **Help** that explains the screen's **purpose**, **how to
+use it**, and **useful tips** for the end user.
+- The register & report tiles built on Fiori Elements — **Bridges, Inspections, Defects, Bridge
+  Capacity, Attribute Classes, EAM Code Mapping, Class Types, AM Objectives, Network Portfolio,
+  Restrictions Dashboard, Change Documents, Restrictions, Prioritisation Run Archive** — now have a
+  **Help** button in the table toolbar that opens a short *purpose / how-to-use / useful-to-know*
+  dialog written for that specific screen.
+- The other tiles (**Dashboard, Map View, Bridge Prioritisation, Mass Upload, Mass Edit, BMS
+  Administration, BHI/BSI Explorer**) already carried a Help button — unchanged.
+
 ## 3.50.0 — Bridge search-help: register-style slice & dice
 **Improved (Prioritisation bridge picker — Assess & HV tabs):**
 - The bridge value-help (F4) is now a **filtered ALV-style grid**, not just a search box. Narrow the

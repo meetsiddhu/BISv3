@@ -105,6 +105,14 @@
                       "group": true
                     },
                     "enableExport": true
+                  },
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.restrictions.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
                   }
                 }
               }

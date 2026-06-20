@@ -77,7 +77,19 @@
               "contextPath": "/Runs",
               "initialLoad": "Disabled",
               "variantManagement": "Page",
-              "defaultTemplateAnnotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#Default"
+              "defaultTemplateAnnotationPath": "com.sap.vocabularies.UI.v1.SelectionPresentationVariant#Default",
+              "controlConfiguration": {
+                "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "actions": {
+                    "Help": {
+                      "press": "BridgeManagement.prioritisationreport.ext.help.Help.onShowHelp",
+                      "visible": true,
+                      "enabled": true,
+                      "text": "Help"
+                    }
+                  }
+                }
+              }
             }
           }
         }
