@@ -16,6 +16,18 @@
 
 ---
 
+## 3.53.0 — Fix: custom attributes on restrictions
+**Fixed:** the **Custom Attributes** panel on a Restriction's details page didn't load. The
+restriction's record key is a UUID, but the panel was reading the URL as if the key were a quoted
+text value — so it never found the record and stayed blank. It now reads the UUID key correctly and
+loads.
+**Also (usability):** the demo only had *bridge* classification classes, so even once the panel
+loaded there was nothing to classify a restriction with. Added a ready-to-use class
+**"Restriction operational attributes"** — Enforcing agency, Permit / approval reference, Review due
+date, Advisory signage installed, Severity basis (radio) — so restrictions have characteristics to
+capture out of the box, just like bridges. Edit, extend or deactivate it in the **Attribute
+Classes** tile.
+
 ## 3.52.0 — Fix: Asset Management Objectives tile errored ("Invalid value: amo")
 **Fixed:** opening the **Asset Management Objectives** tile failed with *"Invalid value: amo (5)"*.
 The five seeded objectives (and their service levels) were stored with human-readable IDs

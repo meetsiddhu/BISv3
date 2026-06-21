@@ -2767,6 +2767,16 @@ cds.on('served', async () => {
   } catch (error) {
     LOG.error('Template attribute seeding failed (non-fatal):', error.message)
   }
+  // Demo classification class scoped to restrictions, so the restriction Custom Attributes panel
+  // works out-of-the-box (the template catalogue above only registers objectType 'bridge').
+  try {
+    const { ensureRestrictionAttributesSeed } = require('./lib/restriction-attributes-seed')
+    const db = await cds.connect.to('db')
+    const seeded = await ensureRestrictionAttributesSeed(db, { changedBy: 'system' })
+    if (seeded.inserted) LOG.info('Restriction attribute class seed completed (insert-if-missing)', seeded)
+  } catch (error) {
+    LOG.error('Restriction attribute seeding failed (non-fatal):', error.message)
+  }
   // Assessment-vehicle library (HV structural assessment reference vehicles).
   try {
     const { ensureAssessmentVehicleSeed } = require('./lib/assessment-vehicle-seed')

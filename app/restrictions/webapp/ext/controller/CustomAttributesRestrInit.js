@@ -5,8 +5,13 @@
   var OBJECT_TYPE = 'restriction';
 
   function getRestrictionId() {
-    var restrictionIdMatch = (window.location.hash || '').match(/Restrictions\(ID='([^']+)'/);
-    return restrictionIdMatch ? restrictionIdMatch[1] : null;
+    // Restrictions.ID is a UUID (cuid). OData V4 renders a Guid key UNQUOTED in the object-page
+    // URL (e.g. Restrictions(ID=12345678-...) or the canonical Restrictions(12345678-...)). Match
+    // both the ID=<key> and the bare-key forms, and tolerate quotes for safety with String keys.
+    var h = window.location.hash || '';
+    var m = h.match(/Restrictions\(ID=([^)&]+)\)/) || h.match(/Restrictions\(([^)&]+)\)/);
+    if (!m) return null;
+    return decodeURIComponent(m[1].replace(/^'+|'+$/g, '').trim());
   }
 
   function esc(displayText) {
