@@ -3,7 +3,52 @@
 > Living assessment of BridgeManagement (BIS) against SAP standards for BTP /
 > Fiori app certification. Standing principle: **prefer Fiori Elements
 > (annotation-based) over freestyle UI5; use standard SAP ways; call out every
-> deviation here.** Last updated 2026-06-17 (v3.19.x).
+> deviation here.** Last updated **2026-06-28 (v3.55.1)**.
+
+---
+
+## 2026-06-22 update (v3.55.0) — current status (supersedes stale items below)
+
+A council UAT pass (PO·QA·UX·Dev·Security) was run against 3.55.0. **Net verdict unchanged:
+strong foundation, not yet certifiable** — but the blocker set has narrowed.
+
+**Closed / improved since v3.19.x:**
+- **Dual writable facade (was §2, the #1 blocker) — resolved.** The `BridgeManagementService`
+  facade is now **read-only** (verified: `PATCH /bridge-management/Bridges → 405`); **AdminService
+  is the single writer**. There is one canonical write path.
+- **i18n — gaps closed.** The freestyle BMS-admin screens (SystemConfig/GisConfig/BnacConfig) +
+  dashboard/mass-edit tooltips were hardcoded; all externalised to i18n in 3.55.0.
+- **Security — audited GOOD.** `@restrict` on every entity, CSV formula-injection escaping, CSRF on
+  all mutation routes, ChangeLog on every CUD, no secrets. Plus 3.55.0 sanitises 5xx error responses
+  (no internal-detail leakage).
+- **Supply-chain HIGH closed (v3.55.1).** A D18 supply-chain audit flagged a HIGH advisory in the
+  `xlsx` (SheetJS) dependency — prototype pollution (GHSA-4r6h-8v6p-xvw6) + ReDoS
+  (GHSA-5pgg-2g8v-p4x9) — that the **npm registry never patched** (frozen at 0.18.5). This is a live
+  exposure because the **mass-upload** feature parses user-supplied spreadsheets via `XLSX.read`.
+  **Mitigation applied:** pinned `xlsx` to the vendor's official patched **0.20.3** from
+  `cdn.sheetjs.com` (the SheetJS-recommended remediation; above the 0.19.3 / 0.20.2 patch lines),
+  with the integrity hash locked in `package-lock.json`. `npm audit --omit=dev` is now **clean**
+  (0 vulnerabilities). Defence-in-depth on the parse path is unchanged: auth + `manage` scope + CSRF,
+  plus the config-driven 50MB file-size cap (`MAX_UPLOAD_FILE_BYTES`) and row caps. **Build-env note:**
+  CI/MTA `npm ci` must be able to reach `cdn.sheetjs.com` (the patched build is not on npm).
+- **Tests — 448/448 green** (55 suites); OPA5 journeys + a coverage-regression gate exist.
+- `attributes-admin` freestyle duplicate removed.
+
+**Remaining blockers to "certifiable" (priority order):**
+1. **Accessibility** (WCAG 2.2 AA / EN 301 549) — still **untested**. Highest-risk on the freestyle
+   apps. *Hard requirement for SAP UI certification.*
+2. **FE migration** of dashboard + simple bms-admin config screens + bhi-explorer (the rest are
+   justified freestyle deviations — §4).
+3. **Test rigour** — ~53% coverage / ~58% mutation vs. ~70/75% SAP-grade target.
+4. **Horizon theme** consistency confirmation across all apps; broaden OPA5/wdi5 coverage.
+
+**Publishing ≠ code.** SAP Store listing additionally requires **SAP PartnerEdge (Build)** + a formal
+**SAP ICC certification** (e.g. *"SAP Certified – Built on SAP BTP"*) + security/data-privacy
+attestations + a support/SLA model. Confirm current program names with SAP — these are business/
+process gates no code change satisfies.
+
+> The detailed tables in §1–§5 below are retained for history; where they conflict with this block,
+> this block (3.55.0) is current.
 
 ---
 
@@ -116,6 +161,20 @@ here. SAP certification permits freestyle with a written rationale.
 
 ## 6. Change history
 
+- **2026-06-28 (v3.55.1):** Closed the D18 supply-chain HIGH in `xlsx` (SheetJS) — pinned to the
+  vendor's patched **0.20.3** from `cdn.sheetjs.com` (npm's frozen 0.18.5 had prototype-pollution +
+  ReDoS advisories with no npm fix). `npm audit --omit=dev` now clean; 558/558 tests green; no code
+  or behaviour change (same `xlsx` API). See the supply-chain bullet in the 2026-06-22 block.
+  **Also (runtime):** migrated **Node 20 → 22 LTS** (BTP CF Node.js buildpack dropped 20.x; only
+  22/24 remained, so deploys failed to stage). Updated the four Node pins + CLAUDE.md §1 recorded
+  decision; re-verified 558/558 on Node 22. **Deployed to BTP `dev`** and verified live: `/health`
+  reports `version 3.55.1`, app route returns 302→launchpad (the prior 404 was the apps being
+  stopped, not a routing fault).
+- **2026-06-22 (v3.55.0):** Council UAT pass. Recorded the dual-facade resolution (facade now
+  read-only, AdminService the single writer), i18n gap closure on the freestyle admin screens,
+  5xx error-message sanitisation, and the GOOD security audit. Restated remaining blockers
+  (accessibility, FE migrations, test rigour) + the SAP Store partner/ICC process gate. See the
+  "2026-06-22 update" block at the top.
 - **2026-06-17:** Removed `attributes-admin` (freestyle duplicate; admin-bridges
   FE + bms-admin AttributeConfig cover it). Documented dual-facade finding and
   the deviation register. Added mutation testing (Stryker, 58% baseline,

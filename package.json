@@ -1,7 +1,8 @@
 {
   "name": "BridgeManagement",
-  "version": "3.53.0",
+  "version": "3.55.1",
   "comment:workspaces": "P2 build-cost: the 10 html5 UI apps are npm workspaces so `npm ci` installs their shared @ui5/cli toolchain ONCE (hoisted) instead of per-module. The MTA html5 builders therefore only run `npm run build` (no per-module npm ci). Excludes app/router (separate approuter module).",
+  "comment:xlsx": "SECURITY (D18 supply-chain): xlsx is pinned to SheetJS's patched 0.20.3 from their official CDN (cdn.sheetjs.com), NOT the npm registry. The npm-published xlsx is frozen at 0.18.5 with a HIGH advisory — prototype pollution (GHSA-4r6h-8v6p-xvw6) + ReDoS (GHSA-5pgg-2g8v-p4x9) — and no fix on npm. 0.20.3 is the vendor's official mitigation (above the 0.19.3 / 0.20.2 patch lines). The build/CI env must be able to reach cdn.sheetjs.com on `npm ci`.",
   "workspaces": [
     "app/admin-bridges",
     "app/map-view",
@@ -19,7 +20,7 @@
     "@cap-js/hana": "^2",
     "@sap/cds": "^9",
     "@sap/xssec": "^4",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@cap-js/cds-test": "^0.4.1",
@@ -45,7 +46,7 @@
     "test:opa": "cd app/admin-bridges && npx --yes karma start webapp/test/karma.conf.js --single-run"
   },
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "jest": {
     "testEnvironment": "node",

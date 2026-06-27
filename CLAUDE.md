@@ -10,8 +10,12 @@
 - **DB**: SAP HANA Cloud (prod) / SQLite (dev). Spatial data currently stored as
   `Decimal` lat/long + GeoJSON `LargeString` (see CRS policy below).
 - **Auth**: XSUAA (prod), dummy (dev). Three scopes: `view` / `manage` / `admin`.
-- **Runtime**: **Node 20.x** (pinned in `.nvmrc` / `.tool-versions` / `package.json`).
+- **Runtime**: **Node 22.x** (LTS; pinned in `.nvmrc` / `.tool-versions` / `package.json`).
   Node 16/18 cannot run @sap/cds v9.
+  - **Recorded decision (2026-06-28, product owner):** runtime moved **20.x → 22.x**. The SAP BTP
+    Cloud Foundry Node.js buildpack dropped Node 20.x (offered only 22.x/24.x), so deploys failed
+    to stage on the old pin. `@sap/cds` v9 supports `node >=20`, and Node 22 is the active LTS, so
+    22.x is the supported successor. Verified: the full Jest suite passes on Node 22 before redeploy.
 - **Deploy**: MTA → Cloud Foundry. CI in `.github/workflows/ci.yml`; gated deploy in
   `deploy.yml`. See `docs/RUNBOOK.md`.
 

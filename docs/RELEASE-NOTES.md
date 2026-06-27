@@ -16,6 +16,48 @@
 
 ---
 
+## 3.55.1 — Security: patched the spreadsheet-parsing library
+**Fixed (security):** the third-party library the app uses to read uploaded Excel/CSV files
+(SheetJS / `xlsx`) had a publicly-known **HIGH-severity** flaw, and the version published to the
+public npm registry was never patched. We've moved to the vendor's **official patched build (0.20.3)**
+from their own distribution channel, which closes both reported issues (a "prototype pollution" flaw
+and a "regular-expression denial-of-service"). This matters because the **Mass Upload** feature
+parses spreadsheets you supply, so a maliciously-crafted file was a real attack vector — now closed.
+No feature or behaviour changed: mass-upload (per-row results, results-CSV download, source-file
+retention, the dataset templates) works exactly as before, and the dependency security scan
+(`npm audit`) is now clean. **558/558** automated tests pass.
+
+**Under the hood (runtime):** as part of shipping this release, the app's Node.js runtime was moved
+from **Node 20 → Node 22 (LTS)**. The SAP BTP hosting platform retired Node 20 from its build
+images, so the app now runs on the supported Node 22 line. No user-visible change — the full test
+suite passes on Node 22. Open the app in a private/incognito window (or hard-refresh) to pick up the
+new version.
+
+## 3.55.0 — UAT council fixes (hardening + polish)
+Outcome of an expert-council UAT pass (no blocking issues found). This release applies the polish
+and hardening items it surfaced:
+- **Safer error messages:** server error responses no longer echo raw internal error text to the
+  browser — the full detail is logged on the server and you get a clear, generic message instead.
+  (Validation messages you rely on, like "value is not allowed", are unchanged.)
+- **Localisation:** ~30 hard-coded labels/buttons/column headers in the **BMS Administration**
+  screens (System Configuration, GIS Configuration, BNAC) — plus a few dashboard/mass-edit tooltips —
+  now come from the translation file, so the app can be translated end-to-end.
+- **Accessibility:** the "delete layer" button in GIS Configuration now has a proper tooltip/label.
+- **Data quality:** added **"Axle Mass Limit"** to the restriction-type catalogue so an existing
+  restriction that used it is now a recognised, selectable type.
+No functional behaviour changed; 448/448 automated tests pass. Open the app in a private/incognito
+window (or hard-refresh) to pick up the new version.
+
+## 3.54.0 — Fix: custom attributes on restrictions stayed blank (on BTP)
+**Fixed:** on the deployed app, the **Custom Attributes** panel on a Restriction's details page
+showed up empty — no fields, no **Edit** button, nothing. The panel's helper script was being
+loaded from a path that only exists when running locally; on BTP that path doesn't exist, so the
+script never ran and the panel was left blank. It now loads the script the same robust way the
+**Bridge** register already does (resolved through the app's module loader), so it works in every
+environment. Also hardened the panel to read the record key correctly while a restriction is still
+in **Draft** (being created or edited), so the attributes load there too. Open the app in a
+private/incognito window (or hard-refresh) to pick up the new version.
+
 ## 3.53.0 — Fix: custom attributes on restrictions
 **Fixed:** the **Custom Attributes** panel on a Restriction's details page didn't load. The
 restriction's record key is a UUID, but the panel was reading the URL as if the key were a quoted
