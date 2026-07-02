@@ -31,7 +31,9 @@ This document grades each engine against C1–C4 and names the smallest path to 
 |--------|:----------:|:---------------:|:------------:|:--------------:|----------|
 | **Prioritisation** | ✅ | ✅ | ✅ | ✅ | **Complete** — reference implementation |
 | **BHI / BSI** | ✅ | ✅ | ✅ *(v3.55.3)* | ✅ *(v3.55.4)* | **Complete** — per‑class weighting + governed, versioned, cloneable models on the shared `governed-config` plugin |
-| **Risk categorisation** | ✅ | ✅ | ⚠️ partial | ⚠️ soft‑delete only | **Partial** — global config + bands, folded into the prio model but no standalone clone/version |
+| **Risk categorisation** | ✅ | ✅ | ✅ *(v3.55.5)* | ✅ *(v3.55.5)* | **Complete** — `RiskModel` (factors + bands) governed/versioned/cloneable + per‑class factor resolution; engine reads the active version, activate rescore the fleet |
+
+**All three engines now share one governed lifecycle** (`srv/lib/plugins/governed-config`): default → admin‑config → per‑class → clone/version/activate. The vision is fully realised.
 
 Legend: ✅ done · ⚠️ partial/by‑convention · ❌ absent.
 

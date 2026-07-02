@@ -1,0 +1,98 @@
+<mvc:View
+  controllerName="BridgeManagement.bmsadmin.controller.RiskModel"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  displayBlock="true">
+
+  <Page id="riskModelPage" showHeader="true" title="{i18n>risk.title}">
+    <customHeader>
+      <Bar>
+        <contentLeft>
+          <Title text="{i18n>risk.title}" level="H3" />
+        </contentLeft>
+        <contentRight>
+          <Button icon="sap-icon://refresh" tooltip="{i18n>btn.refresh}" press=".onRefresh" type="Transparent" />
+          <Button text="{i18n>action.save}" icon="sap-icon://save" press=".onSave" type="Emphasized"
+                  enabled="{= ${risk>/dirty} &amp;&amp; ${risk>/selectedModel/status} !== 'Retired' }" />
+        </contentRight>
+      </Bar>
+    </customHeader>
+    <content>
+      <MessageStrip text="{i18n>risk.note}" type="Information" showIcon="true" class="sapUiSmallMargin" />
+      <!-- ── Governed versioning ── -->
+      <OverflowToolbar class="sapUiSmallMarginBegin sapUiSmallMarginEnd">
+        <Label text="{i18n>risk.version.label}" />
+        <Select items="{path:'risk>/models', templateShareable:false}" selectedKey="{risk>/selectedModel/ID}"
+                change=".onSelectVersion" autoAdjustWidth="true" tooltip="{i18n>risk.version.tooltip}">
+          <core:Item key="{risk>ID}" text="{risk>label}" />
+        </Select>
+        <ObjectStatus text="{risk>/selectedModel/status}"
+                      state="{= ${risk>/selectedModel/status} === 'Active' ? 'Success' : ${risk>/selectedModel/status} === 'Draft' ? 'Warning' : 'None' }" />
+        <ToolbarSpacer />
+        <Button text="{i18n>risk.version.clone}" icon="sap-icon://duplicate" press=".onCloneVersion" type="Transparent" tooltip="{i18n>risk.version.cloneTip}" />
+        <Button text="{i18n>risk.version.activate}" icon="sap-icon://accept" press=".onActivateVersion" type="Transparent"
+                visible="{= ${risk>/selectedModel/status} !== 'Active' }" tooltip="{i18n>risk.version.activateTip}" />
+      </OverflowToolbar>
+      <MessageStrip text="{i18n>risk.version.draftHint}" type="Warning" showIcon="true" class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginBottom"
+                    visible="{= ${risk>/selectedModel/status} === 'Draft' }" />
+      <MessageStrip text="{i18n>risk.version.retiredHint}" type="Information" showIcon="true" class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginBottom"
+                    visible="{= ${risk>/selectedModel/status} === 'Retired' }" />
+
+      <IconTabBar id="riskTabs" expandable="false" class="sapUiResponsiveContentPadding">
+        <items>
+          <!-- ── Weighting factors ── -->
+          <IconTabFilter text="{i18n>risk.tab.factors}" key="factors" icon="sap-icon://scale">
+            <MessageStrip text="{i18n>risk.factors.hint}" type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
+            <Table items="{path:'risk>/factors', templateShareable:false}" growing="true" growingThreshold="60" noDataText="-">
+              <columns>
+                <Column><Text text="{i18n>risk.col.factor}" /></Column>
+                <Column width="14rem"><Text text="{i18n>risk.col.factorKey}" /></Column>
+                <Column hAlign="End" width="10rem"><Text text="{i18n>risk.col.weight}" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <Text text="{risk>name}" />
+                  <Text text="{risk>factorKey}" />
+                  <Input value="{risk>weight}" type="Number" textAlign="End" change=".onCellChange" width="8rem" />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+            <Text text="{i18n>risk.factors.note}" class="sapUiSmallMarginBegin sapUiTinyText" />
+          </IconTabFilter>
+
+          <!-- ── Risk bands (score → category ladder) ── -->
+          <IconTabFilter text="{i18n>risk.tab.bands}" key="bands" icon="sap-icon://bar-chart">
+            <MessageStrip text="{i18n>risk.bands.hint}" type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
+            <Table items="{path:'risk>/bands', templateShareable:false}" growing="true" growingThreshold="60" noDataText="{i18n>risk.bands.empty}">
+              <headerToolbar>
+                <OverflowToolbar>
+                  <Title text="{i18n>risk.tab.bands}" level="H4" />
+                  <ToolbarSpacer />
+                  <Button text="{i18n>risk.btnAddBand}" icon="sap-icon://add" press=".onAddBand" type="Transparent" />
+                </OverflowToolbar>
+              </headerToolbar>
+              <columns>
+                <Column width="9rem"><Text text="{i18n>risk.col.code}" /></Column>
+                <Column><Text text="{i18n>risk.col.bandName}" /></Column>
+                <Column hAlign="End" width="9rem"><Text text="{i18n>risk.col.minScore}" /></Column>
+                <Column hAlign="End" width="9rem"><Text text="{i18n>risk.col.maxScore}" /></Column>
+                <Column hAlign="Center" width="5rem"><Text text="" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <Input value="{risk>code}" change=".onCellChange" />
+                  <Input value="{risk>name}" change=".onCellChange" />
+                  <Input value="{risk>minScore}" type="Number" textAlign="End" change=".onCellChange" width="7rem" />
+                  <Input value="{risk>maxScore}" type="Number" textAlign="End" change=".onCellChange" width="7rem" />
+                  <Button icon="sap-icon://delete" type="Transparent" tooltip="{i18n>action.remove}" press=".onRemoveBand" />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+            <Text text="{i18n>risk.bands.note}" class="sapUiSmallMarginBegin sapUiTinyText" />
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>

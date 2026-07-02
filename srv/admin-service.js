@@ -18,6 +18,7 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   // ── Risk prioritisation engine (Phase 2/4) — see srv/lib/risk.js (unit-tested) ──
   const { deriveRisk, weightsFromConfig, bandsFromConfig, expectedValueAud, estimatedRulYears, benefitCostRatio, probMapFromConfig } = require('./lib/risk')
+  const riskModelStore = require('./lib/risk-model-store')
   const { nextInspectionDue, isOverdue } = require('./lib/inspection')
 
   // Load the governing strategy (interval + degradation rate) for a bridge. Cached per
@@ -38,54 +39,54 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     return strat || null
   }
 
-  // Load active RiskConfig weights (config-driven scoring; rule 4). Cached per
-  // process; the admin can refresh via recalcRisk after editing weights.
-  let _riskWeights = null
-  const getRiskWeights = async () => {
-    if (_riskWeights) return _riskWeights
+  // Load active risk weights + bands from the GOVERNED RiskModel (db/risk-model.cds) — the
+  // active version's rows, resolved for the bridge's asset class (per-class → '*' default). If no
+  // model exists yet (bare/legacy db) it falls back to the legacy global RiskConfig / RiskBand
+  // tables, then to the documented risk.js defaults. Cached per asset-class per process; the admin
+  // refreshes via recalcRisk after editing/activating a version. (rule 4: config-driven.)
+  const _riskWeightsByClass = new Map()
+  const _riskBandsByClass = new Map()
+  const getRiskWeights = async (assetClass) => {
+    const key = assetClass || '*'
+    if (_riskWeightsByClass.has(key)) return _riskWeightsByClass.get(key)
+    let weights = {}
     try {
       const db = await cds.connect.to('db')
-      const rows = await db.run(SELECT.from('bridge.management.RiskConfig')
-        .columns('factor', 'weight', 'active'))
-      _riskWeights = weightsFromConfig(rows)
-      // P3-003: surface whether a config probability map is in effect, so a silent
-      // fallback to the documented default proxy is visible in the logs.
-      cds.log('bms').info('Risk weights loaded', {
-        factors: Object.keys(_riskWeights).length,
-        customProbMap: Object.keys(_riskWeights).some(k => k.startsWith('prob_'))
-      })
-    } catch (e) {
-      cds.log('bms').warn('RiskConfig load failed; using default weights:', e.message)
-      _riskWeights = {}
-    }
-    return _riskWeights
+      const active = await riskModelStore.loadActiveModel(db, key)
+      if (active) {
+        weights = weightsFromConfig(active.factorRows)
+      } else {
+        const rows = await db.run(SELECT.from('bridge.management.RiskConfig').columns('factor', 'weight', 'active'))
+        weights = weightsFromConfig(rows)
+      }
+    } catch (e) { cds.log('bms').warn('Risk weights load failed; using default weights:', e.message); weights = {} }
+    _riskWeightsByClass.set(key, weights)
+    return weights
   }
-
-  // Load active RiskBand thresholds (config-driven; rule 4). The band ladder is the
-  // source of truth for risk PRIORITY; null => fall back to the hardcoded default ladder
-  // (so a missing/invalid config never corrupts fleet scoring). Cached per process.
-  let _riskBands = null
-  let _riskBandsLoaded = false
-  const getRiskBands = async () => {
-    if (_riskBandsLoaded) return _riskBands
+  const getRiskBands = async (assetClass) => {
+    const key = assetClass || '*'
+    if (_riskBandsByClass.has(key)) return _riskBandsByClass.get(key)
+    let bands = null
     try {
       const db = await cds.connect.to('db')
-      const rows = await db.run(SELECT.from('bridge.management.RiskBand')
-        .columns('code', 'name', 'minScore', 'maxScore', 'sortOrder', 'active'))
-      _riskBands = bandsFromConfig(rows) // null if empty/invalid -> deriveRisk uses default
-      cds.log('bms').info('Risk bands loaded', { bands: _riskBands ? _riskBands.length : 0, source: _riskBands ? 'RiskBand table' : 'hardcoded default' })
-    } catch (e) {
-      cds.log('bms').warn('RiskBand load failed; using default bands:', e.message)
-      _riskBands = null
-    }
-    _riskBandsLoaded = true
-    return _riskBands
+      const active = await riskModelStore.loadActiveModel(db, key)
+      if (active) {
+        bands = bandsFromConfig(active.bandRows)
+      } else {
+        const rows = await db.run(SELECT.from('bridge.management.RiskBand').columns('code', 'name', 'minScore', 'maxScore', 'sortOrder', 'active'))
+        bands = bandsFromConfig(rows)
+      }
+    } catch (e) { cds.log('bms').warn('Risk bands load failed; using default bands:', e.message); bands = null }
+    _riskBandsByClass.set(key, bands)
+    return bands
   }
 
-  // Invalidate both risk caches — call after any RiskConfig/RiskBand write so the next
-  // score uses fresh config. Exposed on the service so handlers/imports can trigger it.
-  const invalidateRiskCaches = () => { _riskWeights = null; _riskBands = null; _riskBandsLoaded = false }
+  // Invalidate the per-class risk caches — call after any risk-config write (RiskModel activate,
+  // or legacy RiskConfig/RiskBand edit) so the next score uses fresh config.
+  const invalidateRiskCaches = () => { _riskWeightsByClass.clear(); _riskBandsByClass.clear() }
   this.invalidateRiskCaches = invalidateRiskCaches
+  // Idempotently seed the default RiskModel (migrating the legacy global RiskConfig/RiskBand).
+  cds.connect.to('db').then(db => riskModelStore.ensureSeed(db, { changedBy: 'system' })).catch(e => cds.log('bms').warn('ensureRiskModel skipped:', e.message))
 
   const bridgeIdFor = (ID, state) => {
     const stateMap = { NSW:'NSW', VIC:'VIC', QLD:'QLD', WA:'WA', SA:'SA', TAS:'TAS', ACT:'ACT', NT:'NT' }
@@ -458,8 +459,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
 
   // Compute risk score/priority on every bridge save (Phase 2; mode-aware via Gap B).
   this.before('SAVE', Bridges, async (req) => {
-    const weights = await getRiskWeights()
-    const bands = await getRiskBands()
+    const weights = await getRiskWeights(req.data.assetClass)
+    const bands = await getRiskBands(req.data.assetClass)
     const r = deriveRisk(req.data, weights, bands)
     req.data.riskConsequence = r.consequence
     req.data.riskLikelihood  = r.likelihood
@@ -651,10 +652,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
   const recomputeAllRisk = async (req) => {
     const db = await cds.connect.to('db')
     invalidateRiskCaches() // force a reload so freshly-edited weights AND bands take effect
-    const weights = await getRiskWeights()
-    const bands = await getRiskBands()
     const bridges = await db.run(SELECT.from('bridge.management.Bridges')
-      .columns('ID', 'bridgeId', 'transportMode', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
+      .columns('ID', 'bridgeId', 'transportMode', 'assetClass', 'importanceLevel', 'highPriorityAsset', 'conditionRating',
                'structuralAdequacyRating', 'averageDailyTraffic', 'riskOverride', 'riskConsequence',
                'riskLikelihood', 'riskScore', 'riskPriority', 'inspectionOverdue', 'policyInterventionDue',
                'lastInspectionDate', 'assetClassStrategy_ID',
@@ -670,6 +669,9 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
     const changedBy = req.user?.id || 'system'
     let n = 0, audited = 0
     for (const b of bridges) {
+      // Resolve weights + bands for THIS bridge's asset class (per-class → '*' default; cached per class).
+      const weights = await getRiskWeights(b.assetClass)
+      const bands = await getRiskBands(b.assetClass)
       const r = deriveRisk(b, weights, bands)
       const strat = stratById.get(b.assetClassStrategy_ID)
       const due = nextInspectionDue(b.lastInspectionDate, strat && strat.inspectionIntervalMonths)
@@ -772,8 +774,8 @@ module.exports = class AdminService extends cds.ApplicationService { init() {
       if (!b) return
       // Don't let an older (backfilled) inspection override a more recent condition.
       if (b.lastInspectionDate && insp.inspectionDate && insp.inspectionDate < b.lastInspectionDate) return
-      const weights = await getRiskWeights()
-      const bands = await getRiskBands()
+      const weights = await getRiskWeights(b.assetClass)
+      const bands = await getRiskBands(b.assetClass)
       const strat = await getStrategy(b.assetClassStrategy_ID)
       const merged = { ...b,
         conditionRating: insp.conditionRating,

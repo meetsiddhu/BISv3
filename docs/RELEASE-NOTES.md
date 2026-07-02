@@ -16,6 +16,34 @@
 
 ---
 
+## 3.55.5 — Named, cloneable Risk configurations (governed versioning)
+
+**New:** the **Risk** configuration — the weighting factors and the score→category bands — is now a
+**governed, versioned model**, the same way BHI/BSI and Prioritisation already are. A new
+**Risk Configuration** admin screen replaces the separate Risk Bands / Risk Factors tiles and adds a
+**Version** picker with **Clone** and **Activate**:
+
+- **Clone** the live risk configuration into a **Draft** and adjust factor weights or band thresholds
+  **without changing any live risk scores**.
+- **Activate** a Draft when you're satisfied — it becomes the configuration the engine uses, the
+  previous version is **retired** (kept for reference), and **the whole fleet is automatically
+  rescored** against the new version.
+- Switch between versions anytime; retired versions are read‑only until you clone them.
+
+Per‑asset‑class factor overrides are also supported (a Culvert can weight a factor differently from a
+girder bridge), resolved **class → default**.
+
+**Under the hood:** risk configuration moved from the standalone RiskConfig/RiskBand tables to
+**first‑class, relational, versioned records** (additive — your existing factors and bands were
+migrated automatically on upgrade, nothing lost). The risk engine reads the **active** version; every
+clone and activation is recorded in **Change Documents**. This completes the "admin gives a default,
+users copy and create their own" model across **all three** assessment engines (Prioritisation, BHI,
+Risk) on one shared, reusable governance foundation. **581** automated tests pass.
+
+> Open the app in a private/incognito window (or hard-refresh) to load 3.55.5 instead of a cached copy.
+
+---
+
 ## 3.55.4 — Named, cloneable BHI/BSI configurations (governed versioning)
 
 **New:** the **Bridge Health Index (BHI/BSI)** configuration is now a **governed, versioned model** you

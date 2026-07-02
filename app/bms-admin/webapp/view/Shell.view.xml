@@ -22,8 +22,7 @@
             <tnt:NavigationListItem text="{i18n>shell.nav.systemConfig}"     key="systemConfig"    icon="sap-icon://settings"      />
             <tnt:NavigationListItem text="{i18n>shell.nav.bnacConfig}"       key="bnacConfig"      icon="sap-icon://chain-link"    />
             <tnt:NavigationListItem text="{i18n>shell.nav.gisConfig}"        key="gisConfig"       icon="sap-icon://map"           />
-            <tnt:NavigationListItem text="{i18n>nav.riskBands}"        key="riskBands"       icon="sap-icon://measurement-document" />
-            <tnt:NavigationListItem text="{i18n>nav.riskFactors}"      key="riskFactors"     icon="sap-icon://settings"      />
+            <tnt:NavigationListItem text="{i18n>risk.nav.riskModel}"    key="riskModel"       icon="sap-icon://measurement-document" />
             <tnt:NavigationListItem text="{i18n>nav.assetStrategy}" key="assetStrategy" icon="sap-icon://example"     />
             <tnt:NavigationListItem text="{i18n>nav.prioModels}" key="prioritisationModels" icon="sap-icon://sort-descending" />
             <tnt:NavigationListItem text="{i18n>shell.nav.bhiConfig}"   key="bhiConfig"       icon="sap-icon://building"      />

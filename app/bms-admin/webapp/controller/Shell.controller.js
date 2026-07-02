@@ -13,6 +13,7 @@ sap.ui.define([
     riskFactors:      "riskFactors",
     assetStrategy:    "assetStrategy",
     bhiConfig:        "bhiConfig",
+    riskModel:        "riskModel",
     demoMode:         "demoMode"
   };
 

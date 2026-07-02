@@ -2487,6 +2487,8 @@ cds.on('bootstrap', (app) => {
   // logs an honest old→new ChangeLog entry (so the change is auditable like any other).
   const bhiLib = require('./lib/bhi')
   const bhiModelStore = require('./lib/bhi-model-store')
+  const riskLib = require('./lib/risk')
+  const riskModelStore = require('./lib/risk-model-store')
   sysRouter.get('/bhi-config', async (req, res) => {
     try {
       const db = await cds.connect.to('db')
@@ -2624,6 +2626,75 @@ cds.on('bootstrap', (app) => {
       res.json({ success: true, ...out })
     } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
+
+  // ── Governed RISK config (db/risk-model.cds) — version-aware factors + bands, clone/activate ──
+  sysRouter.get('/risk-config', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const models = await riskModelStore.listModels(db)
+      const wantID = req.query && req.query.modelID
+      const sel = (wantID && await riskModelStore.loadModel(db, wantID)) || await riskModelStore.loadActiveModel(db)
+      const factors = sel ? (sel.factors || []).map(f => ({ assetClass: f.assetClass, factorKey: f.factorKey, name: f.name, weight: Number(f.weight) })) : []
+      const bands = sel ? (sel.bands || []).map(b => ({ assetClass: b.assetClass, code: b.code, name: b.name, minScore: Number(b.minScore), maxScore: b.maxScore == null ? null : Number(b.maxScore), colour: b.colour, sortOrder: b.sortOrder, rationale: b.rationale })) : []
+      const classRows = await db.run(SELECT.from('bridge.management.AssetClasses').where({ isActive: true }))
+      const assetClasses = (classRows || []).filter(c => !c.objectType || /(^|,)\s*bridge\s*(,|$)/i.test(c.objectType)).map(c => ({ code: c.code, name: c.name || c.code })).sort((a, b) => a.name.localeCompare(b.name))
+      res.json({ factors, bands, assetClasses, models, selectedModel: sel ? { ID: sel.model.ID, code: sel.model.code, name: sel.model.name, version: sel.model.version, status: sel.model.status } : null, factorKeys: Object.keys(riskLib.DEFAULT_WEIGHTS) })
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
+  })
+
+  sysRouter.put('/risk-config', async (req, res) => {
+    try {
+      const body = req.body || {}
+      const factors = body.factors || []
+      const bands = body.bands || []
+      // validate: weights 0..10, and the global ('*') band ladder is a valid strictly-decreasing set to 0
+      const wv = riskLib.validateRiskWeights(factors.map(f => ({ factor: f.factorKey, weight: f.weight })), 10)
+      if (!wv.ok) return res.status(400).json({ error: { message: wv.errors.join(' ') } })
+      const globalBands = bands.filter(b => (b.assetClass || '*') === '*')
+      const bv = riskLib.validateRiskBands(globalBands)
+      if (!bv.ok) return res.status(400).json({ error: { message: bv.errors.join(' ') } })
+      const db = await cds.connect.to('db')
+      const active = await riskModelStore.loadActiveModel(db)
+      const targetID = (body && body.modelID) || (active && active.model.ID)
+      if (!targetID) return res.status(400).json({ error: { message: 'No risk model to write' } })
+      await riskModelStore.saveToModel(db, targetID, { factors, bands }, { changedBy: req.user?.id || 'system' })
+      // If the ACTIVE model was edited directly, refresh caches + rescore so stored scores stay in sync.
+      if (active && targetID === active.model.ID) await _riskRescore(req)
+      res.json({ success: true, modelID: targetID })
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
+  })
+
+  sysRouter.post('/risk-config/clone', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const modelID = req.body && req.body.modelID
+      if (!modelID) return res.status(400).json({ error: { message: 'modelID is required' } })
+      const out = await riskModelStore.cloneModel(db, modelID, { name: req.body.name, changedBy: req.user?.id || 'system' })
+      res.json({ success: true, ...out })
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
+  })
+
+  sysRouter.post('/risk-config/activate', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const modelID = req.body && req.body.modelID
+      if (!modelID) return res.status(400).json({ error: { message: 'modelID is required' } })
+      const out = await riskModelStore.activateModel(db, modelID, { changedBy: req.user?.id || 'system' })
+      await _riskRescore(req) // invalidate risk caches + rescore the fleet against the new active version
+      res.json({ success: true, ...out })
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
+  })
+
+  // Refresh the risk engine's config caches + rescore stored fleet scores (best-effort — a
+  // failure here must not fail the config change; reads self-heal on the next cache miss).
+  async function _riskRescore (req) {
+    try {
+      const admin = await cds.connect.to('AdminService')
+      if (typeof admin.invalidateRiskCaches === 'function') admin.invalidateRiskCaches()
+      const privUser = (cds.User && cds.User.privileged) || new cds.User({ id: req.user?.id || 'system', roles: { admin: 1 } })
+      await admin.tx({ user: privUser }, tx => tx.send('recalcRisk'))
+    } catch (e) { cds.log('bms').warn('risk rescore after config change skipped:', e.message) }
+  }
 
   // SEC (verify-round P0): SystemConfig mutation must require 'admin' — matches the
   // @restrict on the SystemConfig OData entity. requiresScope lets GET (config/banner

@@ -1,5 +1,6 @@
 using {bridge.management as my} from '../db/schema';
 using from '../db/bhi-model';   // governed BHI weight model (adds my.BhiModel / BhiWeight / BhiCoefficient)
+using from '../db/risk-model';  // governed risk model (adds my.RiskModel / RiskModelFactor / RiskModelBand)
 using {plugins.mapping as pmap} from './lib/plugins/mapping/mapping-schema';
 using {plugins.upload as pup} from './lib/plugins/mass-upload/upload-schema';
 
@@ -340,6 +341,16 @@ service AdminService {
   entity BhiWeights as projection on my.BhiWeight;
   @restrict: [{ grant: '*', to: 'admin' }, { grant: 'READ', to: ['manage','integration'] }]
   entity BhiCoefficients as projection on my.BhiCoefficient;
+
+  // Governed risk model (db/risk-model.cds + srv/lib/plugins/governed-config). Admin-maintained,
+  // versioned; the risk engine (srv/lib/risk.js via admin-service) reads the ACTIVE version. Edited
+  // via /system/api/risk-config, backed by these tables. Exposed here so the tables persist.
+  @restrict: [{ grant: '*', to: 'admin' }, { grant: 'READ', to: ['manage','integration'] }]
+  entity RiskModels as projection on my.RiskModel;
+  @restrict: [{ grant: '*', to: 'admin' }, { grant: 'READ', to: ['manage','integration'] }]
+  entity RiskModelFactors as projection on my.RiskModelFactor;
+  @restrict: [{ grant: '*', to: 'admin' }, { grant: 'READ', to: ['manage','integration'] }]
+  entity RiskModelBands as projection on my.RiskModelBand;
 
   // INSPECT-4 / EAM-4: bridge element hierarchy + element-type codelist.
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'manage' }]

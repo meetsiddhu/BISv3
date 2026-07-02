@@ -196,6 +196,11 @@
           "name": "bhiConfig",
           "pattern": "bhi-config",
           "target": "bhiConfig"
+        },
+        {
+          "name": "riskModel",
+          "pattern": "risk-model",
+          "target": "riskModel"
         }
       ],
       "targets": {
@@ -233,6 +238,10 @@
         },
         "bhiConfig": {
           "viewName": "BhiConfig",
+          "viewLevel": 1
+        },
+        "riskModel": {
+          "viewName": "RiskModel",
           "viewLevel": 1
         }
       }
