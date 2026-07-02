@@ -42,6 +42,13 @@ const DEFAULT_ENV_COEFFICIENTS = Object.freeze({
 const DEFAULT_BHI_CONFIG = Object.freeze({
   modeWeights: DEFAULT_MODE_WEIGHTS,
   env: DEFAULT_ENV_COEFFICIENTS,
+  // PER-ASSET-CLASS element-weight OVERRIDES (additive; default = none → every class uses the
+  // per-mode default, so legacy behaviour is unchanged). Shape:
+  //   { '<AssetClass>': { '<ModeKey>': { deck, superstructure, substructure, ... } } }
+  // Resolved with precedence (assetClass+mode → mode → Road) in weightsFor(). This is the
+  // hook that lets BHI/BSI be calibrated differently per asset class (e.g. a Culvert weights
+  // substructure/scour higher than a Beam Bridge) without forking the engine.
+  classModeWeights: Object.freeze({}),
   // Modes whose weight sets are within the road-calibrated scope. Rail/Pedestrian stay out
   // until a defensible weight set is sourced — bhiDetail labels them 'road-derived weights (calibrate)'.
   calibrated: Object.freeze(['Road', 'RoadOverWater'])
@@ -84,7 +91,24 @@ function resolveBhiConfig (raw) {
     for (const [k, v] of Object.entries(o.env)) { const n = Number(v); if (Number.isFinite(n) && k in DEFAULT_ENV_COEFFICIENTS) env[k] = n }
   }
   const calibrated = Array.isArray(o.calibrated) ? o.calibrated.map(String) : DEFAULT_BHI_CONFIG.calibrated.slice()
-  return { modeWeights, env, calibrated }
+  // PER-ASSET-CLASS overrides (additive): each class's per-mode bucket weights merge OVER the
+  // resolved per-mode default for that mode. Same hardening as modeWeights — non-finite/negative
+  // values are ignored so a bad class edit can never NaN the fleet, only soften back to default.
+  const classModeWeights = {}
+  if (o.classModeWeights && typeof o.classModeWeights === 'object') {
+    for (const [cls, perMode] of Object.entries(o.classModeWeights)) {
+      if (!perMode || typeof perMode !== 'object') continue
+      const resolved = {}
+      for (const [mode, over] of Object.entries(perMode)) {
+        if (!over || typeof over !== 'object') continue
+        const base = Object.assign({}, modeWeights[mode] || DEFAULT_MODE_WEIGHTS[mode] || {})
+        for (const [k, v] of Object.entries(over)) { const n = Number(v); if (Number.isFinite(n) && n >= 0) base[k] = n }
+        if (Object.keys(base).length) resolved[mode] = base
+      }
+      if (Object.keys(resolved).length) classModeWeights[String(cls)] = resolved
+    }
+  }
+  return { modeWeights, env, calibrated, classModeWeights }
 }
 // Module-level ACTIVE config — service handlers refresh it from SystemConfig before computing
 // (configure(await getConfig('bhiWeights'))); pure callers may pass cfg explicitly instead.
@@ -97,9 +121,14 @@ function modeKeyFor (mode, overWater) {
   if (/ped|active|shared/i.test(mode || '')) return 'Pedestrian'
   return overWater ? 'RoadOverWater' : 'Road'
 }
-function weightsFor (mode, overWater, cfg) {
+function weightsFor (mode, overWater, cfg, assetClass) {
   const c = cfg || _active
-  return c.modeWeights[modeKeyFor(mode, overWater)] || c.modeWeights.Road
+  const key = modeKeyFor(mode, overWater)
+  // PER-ASSET-CLASS precedence (additive): a class+mode override wins, else the per-mode default,
+  // else Road. assetClass omitted → identical to the legacy per-mode behaviour (back-compat).
+  const cmw = (c && c.classModeWeights) || {}
+  if (assetClass && cmw[assetClass] && cmw[assetClass][key]) return cmw[assetClass][key]
+  return c.modeWeights[key] || c.modeWeights.Road
 }
 const envPenaltyOf = (env, E) =>
   (num(env && env.floodExp, 1) - 1) * E.floodStep + (num(env && env.corrZone, 1) - 1) * E.corrStep + num(env && env.seismic, 0) * E.seismicStep
@@ -123,10 +152,10 @@ function effectiveRating (e) {
 // elements: BridgeElements rows (elementType + conditionRating 1-10, optional CS1-4 quantities).
 // env: {age, floodExp 1-5, corrZone 1-4, seismic 0-3, importClass 1-4, overWater}. Missing element
 // buckets are EXCLUDED from Σweight (never silently zeroed); fallback = bridge conditionRating.
-function computeBSI (elements, mode, env, cfg) {
+function computeBSI (elements, mode, env, cfg, assetClass) {
   const c = cfg || _active
   const E = c.env
-  const w = weightsFor(mode, env && env.overWater, c)
+  const w = weightsFor(mode, env && env.overWater, c, assetClass)
   const byBucket = {}
   for (const e of (elements || [])) {
     const b = bucketOf(e.elementType)

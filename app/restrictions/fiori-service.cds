@@ -362,7 +362,7 @@ annotate AdminService.Restrictions with {
   restrictionSeverity @(
     ValueList.entity:'RestrictionSeverities',
     Common.ValueListWithFixedValues
-  )  @title: 'Severity';
+  );  // @title set once above (was duplicated → build warning)
   laneAvailability @(
     ValueList.entity:'LaneAvailabilityTypes',
     Common.ValueListWithFixedValues

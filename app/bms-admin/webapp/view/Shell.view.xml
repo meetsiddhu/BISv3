@@ -9,8 +9,8 @@
 
     <tnt:header>
       <tnt:ToolHeader>
-        <Button icon="sap-icon://menu2" type="Transparent" press=".onToggleSideNav" tooltip="Toggle navigation" />
-        <Title text="BMS Administration" titleStyle="H4" class="sapUiSmallMarginBegin" />
+        <Button icon="sap-icon://menu2" type="Transparent" press=".onToggleSideNav" tooltip="{i18n>shell.toggleNav}" />
+        <Title text="{i18n>shell.admin.title}" titleStyle="H4" class="sapUiSmallMarginBegin" />
         <ToolbarSpacer />
       </tnt:ToolHeader>
     </tnt:header>
@@ -19,15 +19,15 @@
       <tnt:SideNavigation id="sideNav" itemSelect=".onNavSelect">
         <tnt:item>
           <tnt:NavigationList id="navList">
-            <tnt:NavigationListItem text="System Config"     key="systemConfig"    icon="sap-icon://settings"      />
-            <tnt:NavigationListItem text="BNAC Config"       key="bnacConfig"      icon="sap-icon://chain-link"    />
-            <tnt:NavigationListItem text="GIS Config"        key="gisConfig"       icon="sap-icon://map"           />
-            <tnt:NavigationListItem text="Risk Bands"        key="riskBands"       icon="sap-icon://measurement-document" />
-            <tnt:NavigationListItem text="Risk Factors"      key="riskFactors"     icon="sap-icon://settings"      />
-            <tnt:NavigationListItem text="Asset Class Strategy" key="assetStrategy" icon="sap-icon://example"     />
-            <tnt:NavigationListItem text="Prioritisation Models" key="prioritisationModels" icon="sap-icon://sort-descending" />
-            <tnt:NavigationListItem text="BSI / BHI Config"   key="bhiConfig"       icon="sap-icon://building"      />
-            <tnt:NavigationListItem text="Demo Mode"         key="demoMode"        icon="sap-icon://simulate"      />
+            <tnt:NavigationListItem text="{i18n>shell.nav.systemConfig}"     key="systemConfig"    icon="sap-icon://settings"      />
+            <tnt:NavigationListItem text="{i18n>shell.nav.bnacConfig}"       key="bnacConfig"      icon="sap-icon://chain-link"    />
+            <tnt:NavigationListItem text="{i18n>shell.nav.gisConfig}"        key="gisConfig"       icon="sap-icon://map"           />
+            <tnt:NavigationListItem text="{i18n>nav.riskBands}"        key="riskBands"       icon="sap-icon://measurement-document" />
+            <tnt:NavigationListItem text="{i18n>nav.riskFactors}"      key="riskFactors"     icon="sap-icon://settings"      />
+            <tnt:NavigationListItem text="{i18n>nav.assetStrategy}" key="assetStrategy" icon="sap-icon://example"     />
+            <tnt:NavigationListItem text="{i18n>nav.prioModels}" key="prioritisationModels" icon="sap-icon://sort-descending" />
+            <tnt:NavigationListItem text="{i18n>shell.nav.bhiConfig}"   key="bhiConfig"       icon="sap-icon://building"      />
+            <tnt:NavigationListItem text="{i18n>shell.nav.demoMode}"         key="demoMode"        icon="sap-icon://simulate"      />
           </tnt:NavigationList>
         </tnt:item>
       </tnt:SideNavigation>

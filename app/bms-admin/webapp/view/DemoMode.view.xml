@@ -11,10 +11,10 @@
     <customHeader>
       <Bar>
         <contentLeft>
-          <Title text="Demo Mode" level="H3" />
+          <Title text="{i18n>demo.title}" level="H3" />
         </contentLeft>
         <contentRight>
-          <Button icon="sap-icon://refresh" tooltip="Refresh status" press=".onRefresh" type="Transparent" />
+          <Button icon="sap-icon://refresh" tooltip="{i18n>demo.refreshStatus}" press=".onRefresh" type="Transparent" />
         </contentRight>
       </Bar>
     </customHeader>
@@ -31,84 +31,84 @@
           class="sapUiSmallMarginBottom" />
 
         <!-- What is Demo Mode -->
-        <Panel headerText="About Demo Mode" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>demo.aboutTitle}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <VBox class="sapUiSmallMargin">
             <Text wrapping="true" class="sapUiSmallMarginBottom"
-              text="Demo Mode loads a curated dataset of fictional, representative bridge assets. Use this when demonstrating BMS capabilities to stakeholders: the data illustrates typical bridge locations, condition ratings, restriction classifications, and structural attributes across a state road network. All names and locations are invented." />
+              text="{i18n>demo.about1}" />
             <Text wrapping="true" class="sapUiSmallMarginBottom"
-              text="Loading demo data replaces the current bridge dataset. Clearing demo data removes all bridges and returns the system to an empty state ready for a production data load." />
+              text="{i18n>demo.about2}" />
             <MessageStrip
-              text="Demo Mode is for demonstration purposes only. Do not use in a live production environment with real operational data."
+              text="{i18n>demo.warning}"
               type="Warning" showIcon="true" showCloseButton="false" />
           </VBox>
         </Panel>
 
         <!-- Demo Dataset Summary -->
-        <Panel headerText="Demo Dataset" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>demo.datasetTitle}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <VBox class="sapUiSmallMargin">
-            <Text text="The demo dataset includes 30 fictional bridges across all geographic regions:" wrapping="true" class="sapUiSmallMarginBottom" />
+            <Text text="{i18n>demo.datasetIntro}" wrapping="true" class="sapUiSmallMarginBottom" />
             <f:SimpleForm layout="ColumnLayout" columnsM="2" columnsL="3" editable="false">
               <f:content>
-                <Label text="Sydney Metropolitan" />       <Text text="7 bridges: Harbour Gate, Blackwattle, Riverview Arch, Coxley Cove, Marlow Creek, Westbrook, Tarlington" />
-                <Label text="Hunter" />             <Text text="3 bridges: Heaton Bascule, Milfield Truss, Carwell River" />
-                <Label text="Northern NSW" />       <Text text="5 bridges: Clarendon, Tallowood River, Westhaven River, Greenbank River, Fernleigh River" />
-                <Label text="New England / Western NSW" />  <Text text="3 bridges: Stonebrook River, Cooradah River, Pendleton River" />
-                <Label text="Southern NSW / Illawarra" />   <Text text="4 bridges: Saltwater River, Oyster Bay, Merrindale River, Silverwood River" />
-                <Label text="Far West / Riverina" />        <Text text="4 bridges: Dryfield River, Wheatfield River, Bindaree River, Borderton" />
-                <Label text="Central West / Other" />       <Text text="4 bridges: Millbrook, Hartley Gorge, Riverford, Alpine Creek" />
+                <Label text="{i18n>demo.region.sydney}" />       <Text text="{i18n>demo.region.sydney.bridges}" />
+                <Label text="{i18n>demo.region.hunter}" />             <Text text="{i18n>demo.region.hunter.bridges}" />
+                <Label text="{i18n>demo.region.northern}" />       <Text text="{i18n>demo.region.northern.bridges}" />
+                <Label text="{i18n>demo.region.newEngland}" />  <Text text="{i18n>demo.region.newEngland.bridges}" />
+                <Label text="{i18n>demo.region.southern}" />   <Text text="{i18n>demo.region.southern.bridges}" />
+                <Label text="{i18n>demo.region.farWest}" />        <Text text="{i18n>demo.region.farWest.bridges}" />
+                <Label text="{i18n>demo.region.centralWest}" />       <Text text="{i18n>demo.region.centralWest.bridges}" />
               </f:content>
             </f:SimpleForm>
             <HBox class="sapUiSmallMarginTop" wrap="Wrap">
-              <ObjectStatus text="Poor / Critical (rating 1–3)" state="Error"   class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
-              <ObjectStatus text="Restricted loading"           state="Warning" class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
-              <ObjectStatus text="Good / Excellent (rating 7–10)" state="Success" class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
-              <ObjectStatus text="Heritage listed assets"       state="None"    class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
+              <ObjectStatus text="{i18n>demo.legend.poor}" state="Error"   class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
+              <ObjectStatus text="{i18n>demo.legend.restricted}"           state="Warning" class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
+              <ObjectStatus text="{i18n>demo.legend.good}" state="Success" class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
+              <ObjectStatus text="{i18n>demo.legend.heritage}"       state="None"    class="sapUiTinyMarginEnd sapUiSmallMarginBottom" />
             </HBox>
           </VBox>
         </Panel>
 
         <!-- Controls -->
-        <Panel headerText="Demo Controls" expandable="false" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>demo.controlsTitle}" expandable="false" class="sapUiSmallMarginBottom">
           <VBox class="sapUiSmallMargin">
             <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
               <VBox class="sapUiMediumMarginEnd" width="18rem">
-                <Title text="Load Demo Data" level="H5" />
+                <Title text="{i18n>demo.loadTitle}" level="H5" />
                 <Text wrapping="true" class="sapUiTinyMarginTop sapUiSmallMarginBottom"
-                  text="Clears current bridge data and loads 30 fictional demonstration bridges." />
+                  text="{i18n>demo.loadText}" />
                 <Button
                   id="btnLoadDemo"
-                  text="Load Demo Data"
+                  text="{i18n>demo.loadButton}"
                   icon="sap-icon://begin"
                   type="Emphasized"
                   press=".onLoadDemoData"
                   enabled="{= !${demo>/demoActive} }" />
               </VBox>
               <VBox width="18rem">
-                <Title text="Clear Demo Data" level="H5" />
+                <Title text="{i18n>demo.clearTitle}" level="H5" />
                 <Text wrapping="true" class="sapUiTinyMarginTop sapUiSmallMarginBottom"
-                  text="Removes all demo bridge records and resets the system to an empty state for production data import." />
+                  text="{i18n>demo.clearText}" />
                 <Button
                   id="btnClearDemo"
-                  text="Clear Demo Data"
+                  text="{i18n>demo.clearButton}"
                   icon="sap-icon://clear-all"
                   type="Reject"
                   press=".onClearDemoData"
                   enabled="{demo>/demoActive}" />
               </VBox>
             </HBox>
-            <Text text="Note: Both operations are immediate and cannot be undone. Ensure you have a backup of any production data before using these controls." class="sapUiTinyText sapThemePositive" />
+            <Text text="{i18n>demo.controlsNote}" class="sapUiTinyText sapThemePositive" />
           </VBox>
         </Panel>
 
         <!-- Current bridge count -->
-        <Panel headerText="Current System State" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>demo.systemStateTitle}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <f:SimpleForm layout="ColumnLayout" columnsM="1" columnsL="2" editable="false">
             <f:content>
-              <Label text="Total Bridges in System" />
+              <Label text="{i18n>demo.totalBridges}" />
               <ObjectStatus text="{demo>/bridgeCount}" state="{= ${demo>/bridgeCount} > 0 ? 'Success' : 'None' }" />
-              <Label text="Demo Mode Status" />
+              <Label text="{i18n>demo.statusLabel}" />
               <ObjectStatus text="{demo>/statusLabel}" state="{demo>/statusState}" />
-              <Label text="Data Source" />
+              <Label text="{i18n>demo.dataSource}" />
               <Text text="{demo>/dataSource}" />
             </f:content>
           </f:SimpleForm>

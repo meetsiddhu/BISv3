@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.3% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>21/23</span>
+                <span class='fraction'>23/23</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">63.33% </span>
+                <span class="strong">90% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>19/30</span>
+                <span class='fraction'>27/30</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/5</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.5% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>14/16</span>
+                <span class='fraction'>16/16</span>
             </div>
         
             
@@ -129,36 +129,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-yes">49x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">29x</span>
-<span class="cline-any cline-yes">29x</span>
-<span class="cline-any cline-yes">29x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36x</span>
+<span class="cline-any cline-yes">36x</span>
+<span class="cline-any cline-yes">36x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">26x</span>
-<span class="cline-any cline-yes">22x</span>
-<span class="cline-any cline-yes">22x</span>
-<span class="cline-any cline-yes">22x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-yes">44x</span>
+<span class="cline-any cline-yes">38x</span>
+<span class="cline-any cline-yes">38x</span>
+<span class="cline-any cline-yes">38x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">'use strict'
 // ─────────────────────────────────────────────────────────────────────────────
 // Council B3a/B3b — ONE definition of "the effective current run set" shared by
@@ -180,11 +180,11 @@
 const isHeld = (r) =&gt; String((r &amp;&amp; r.reviewStatus) || '') === 'pending'
 // fleet = explicit runType OR a legacy pre-runType batch row (identified by fleetRunId,
 // the same heuristic the scoreFleet supersede path uses).
-const isFleet = (r) =&gt; r.runType === 'fleet' || (!r.runType &amp;&amp; <span class="branch-2 cbranch-no" title="branch not covered" >!!r.fleetRunId)</span>
+const isFleet = (r) =&gt; r.runType === 'fleet' || (!r.runType &amp;&amp; !!r.fleetRunId)
 const typeRank = (r) =&gt; (isFleet(r) ? 1 : 0) // manual (incl. legacy null) wins
-const ts = <span class="fstat-no" title="function not covered" >(r</span>) =&gt; {
-  const t = <span class="cstat-no" title="statement not covered" >Date.parse(r.assessedAt || r.createdAt || '')</span>
-<span class="cstat-no" title="statement not covered" >  return Number.isFinite(t) ? t : 0</span>
+const ts = (r) =&gt; {
+  const t = Date.parse(r.assessedAt || r.createdAt || <span class="branch-2 cbranch-no" title="branch not covered" >'')</span>
+  return Number.isFinite(t) ? t : <span class="branch-1 cbranch-no" title="branch not covered" >0</span>
 }
 &nbsp;
 /**
@@ -194,13 +194,13 @@ const ts = <span class="fstat-no" title="function not covered" >(r</span>) =&gt;
  */
 function effectiveRuns (runs) {
   const byBridge = new Map()
-  for (const r of (runs || <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>) {
+  for (const r of (runs || [])) {
     if (!r || r.active === false || isHeld(r)) continue
-    const key = r.bridge_ID != null ? 'b:' + r.bridge_ID : <span class="branch-1 cbranch-no" title="branch not covered" >'r:' + (r.bridgeRef || r.ID)</span>
+    const key = r.bridge_ID != null ? 'b:' + r.bridge_ID : 'r:' + (r.bridgeRef || <span class="branch-1 cbranch-no" title="branch not covered" >r.ID)</span>
     const cur = byBridge.get(key)
     if (!cur) { byBridge.set(key, r); continue }
     // candidate r beats cur when its type ranks higher (manual &lt; fleet) or, same type, it is newer
-    const verdict = (typeRank(r) - typeRank(cur)) || (<span class="branch-1 cbranch-no" title="branch not covered" >ts(cur) - ts(r))</span>
+    const verdict = (typeRank(r) - typeRank(cur)) || (ts(cur) - ts(r))
     if (verdict &lt; 0) byBridge.set(key, r)
   }
   return Array.from(byBridge.values())
@@ -214,7 +214,7 @@ module.exports = { effectiveRuns, isHeld, isFleet }
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-19T00:35:58.865Z
+                at 2026-06-22T00:31:15.461Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

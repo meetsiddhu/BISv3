@@ -10,12 +10,12 @@
     <customHeader>
       <Bar>
         <contentLeft>
-          <Title text="BNAC Integration Configuration" level="H3" />
+          <Title text="{i18n>bnac.pageTitle}" level="H3" />
         </contentLeft>
         <contentRight>
-          <Button icon="sap-icon://refresh" text="Refresh" press=".onRefreshEnvs" type="Transparent" />
-          <Button icon="sap-icon://add" text="Add Environment" press=".onAddEnv" type="Emphasized" class="sapUiSmallMarginBegin" />
-          <Button icon="sap-icon://information" tooltip="How to use this page" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
+          <Button icon="sap-icon://refresh" text="{i18n>bnac.refresh}" press=".onRefreshEnvs" type="Transparent" />
+          <Button icon="sap-icon://add" text="{i18n>bnac.addEnvironment}" press=".onAddEnv" type="Emphasized" class="sapUiSmallMarginBegin" />
+          <Button icon="sap-icon://information" tooltip="{i18n>bnac.help}" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
         </contentRight>
       </Bar>
     </customHeader>
@@ -23,16 +23,16 @@
     <content>
       <VBox class="sapUiSmallMargin">
 
-        <Title text="BNAC Environment URLs" level="H4" class="sapUiSmallMarginBottom" />
-        <Table id="envTable" mode="None" noDataText="No environments configured."
+        <Title text="{i18n>bnac.envUrlsTitle}" level="H4" class="sapUiSmallMarginBottom" />
+        <Table id="envTable" mode="None" noDataText="{i18n>bnac.noEnvironments}"
                items="{envModel>/environments}" class="sapUiSmallMarginBottom">
           <columns>
-            <Column width="120px"><Text text="Environment" /></Column>
-            <Column width="320px"><Text text="Base URL" /></Column>
-            <Column><Text text="Description" /></Column>
-            <Column width="80px"  hAlign="Center"><Text text="Active" /></Column>
-            <Column width="140px"><Text text="Modified By" /></Column>
-            <Column width="100px" hAlign="Center"><Text text="Actions" /></Column>
+            <Column width="120px"><Text text="{i18n>bnac.col.environment}" /></Column>
+            <Column width="320px"><Text text="{i18n>bnac.col.baseUrl}" /></Column>
+            <Column><Text text="{i18n>bnac.col.description}" /></Column>
+            <Column width="80px"  hAlign="Center"><Text text="{i18n>bnac.col.active}" /></Column>
+            <Column width="140px"><Text text="{i18n>bnac.col.modifiedBy}" /></Column>
+            <Column width="100px" hAlign="Center"><Text text="{i18n>bnac.col.actions}" /></Column>
           </columns>
           <items>
             <ColumnListItem>
@@ -43,20 +43,20 @@
                 <CheckBox selected="{envModel>active}" editable="false" />
                 <Text text="{envModel>modifiedBy}" />
                 <HBox justifyContent="Center">
-                  <Button icon="sap-icon://edit"   type="Transparent" press=".onEditEnv"   tooltip="Edit" />
-                  <Button icon="sap-icon://delete" type="Transparent" press=".onDeleteEnv" tooltip="Delete" />
+                  <Button icon="sap-icon://edit"   type="Transparent" press=".onEditEnv"   tooltip="{i18n>bnac.edit}" />
+                  <Button icon="sap-icon://delete" type="Transparent" press=".onDeleteEnv" tooltip="{i18n>bnac.delete}" />
                 </HBox>
               </cells>
             </ColumnListItem>
           </items>
         </Table>
 
-        <Title text="BNAC Object ID Mass Load" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom" />
-        <MessageStrip text="CSV format: bridgeId,bnacObjectId (one row per line, no header required)" type="Information" showCloseButton="false" class="sapUiSmallMarginBottom" />
+        <Title text="{i18n>bnac.massLoadTitle}" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom" />
+        <MessageStrip text="{i18n>bnac.csvFormat}" type="Information" showCloseButton="false" class="sapUiSmallMarginBottom" />
         <HBox alignItems="Center" class="sapUiSmallMarginBottom">
-          <Input id="fileNameDisplay" placeholder="No file selected" width="280px" editable="false" />
-          <Button text="Browse..." press=".onBrowse" class="sapUiSmallMarginBegin" />
-          <Select id="envSelect" width="120px" class="sapUiSmallMarginBegin">
+          <Input id="fileNameDisplay" placeholder="{i18n>bnac.noFileSelected}" width="280px" editable="false" />
+          <Button text="{i18n>bnac.browse}" press=".onBrowse" class="sapUiSmallMarginBegin" />
+          <Select id="envSelect" width="120px" tooltip="{i18n>bnac.environmentLabel}" class="sapUiSmallMarginBegin">
             <items>
               <core:Item key="DEV"     text="DEV" />
               <core:Item key="PREPROD" text="PREPROD" />
@@ -64,22 +64,22 @@
               <core:Item key="TEST"    text="TEST" />
             </items>
           </Select>
-          <Button id="uploadBtn" icon="sap-icon://upload" text="Upload BNAC IDs" press=".onUpload"
+          <Button id="uploadBtn" icon="sap-icon://upload" text="{i18n>bnac.uploadBnacIds}" press=".onUpload"
                   type="Emphasized" class="sapUiSmallMarginBegin" enabled="false" />
         </HBox>
         <MessageStrip id="uploadResult" visible="false" showCloseButton="true" class="sapUiSmallMarginBottom" />
 
-        <Title text="Load History" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom" />
-        <Table id="histTable" mode="None" noDataText="No BNAC load history."
+        <Title text="{i18n>bnac.loadHistoryTitle}" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom" />
+        <Table id="histTable" mode="None" noDataText="{i18n>bnac.noLoadHistory}"
                items="{histModel>/history}">
           <columns>
-            <Column width="180px"><Text text="Loaded At" /></Column>
-            <Column width="160px"><Text text="Loaded By" /></Column>
-            <Column><Text text="File Name" /></Column>
-            <Column width="80px"  hAlign="Center"><Text text="Env" /></Column>
-            <Column width="80px"  hAlign="End"><Text text="Total" /></Column>
-            <Column width="80px"  hAlign="End"><Text text="Success" /></Column>
-            <Column width="80px"  hAlign="End"><Text text="Failed" /></Column>
+            <Column width="180px"><Text text="{i18n>bnac.col.loadedAt}" /></Column>
+            <Column width="160px"><Text text="{i18n>bnac.col.loadedBy}" /></Column>
+            <Column><Text text="{i18n>bnac.col.fileName}" /></Column>
+            <Column width="80px"  hAlign="Center"><Text text="{i18n>bnac.col.env}" /></Column>
+            <Column width="80px"  hAlign="End"><Text text="{i18n>bnac.col.total}" /></Column>
+            <Column width="80px"  hAlign="End"><Text text="{i18n>bnac.col.success}" /></Column>
+            <Column width="80px"  hAlign="End"><Text text="{i18n>bnac.col.failed}" /></Column>
           </columns>
           <items>
             <ColumnListItem>

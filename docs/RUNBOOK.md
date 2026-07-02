@@ -13,8 +13,10 @@
 | CF CLI | v8 | install per `deploy.yml` |
 | MTA build tool (`mbt`) | latest | install per `deploy.yml` |
 
-> Local dev **must** use Node 20. `nvm use` (reads `.nvmrc`) or
-> `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"`. Node 16/18 cannot run @sap/cds v9.
+> Local dev **must** use Node 22 (LTS; pinned in `.nvmrc` / `.tool-versions`). `nvm use`
+> (reads `.nvmrc`) or `export PATH="$HOME/.nvm/versions/node/v22.23.1/bin:$PATH"`.
+> Node 16/18/20 cannot be used — `@sap/cds` v9 needs ≥20 and the compiled `better-sqlite3`
+> native addon is built for Node 22 (ABI mismatch on Node 20 makes the whole test suite fail).
 
 ## 2. Branch → Space mapping
 
@@ -37,7 +39,7 @@ binds it to a GitHub **Environment**. Configure required reviewers on `test` and
 ## 4. Manual deploy (fallback)
 
 ```bash
-nvm use                       # Node 20 from .nvmrc
+nvm use                       # Node 22 from .nvmrc
 npm ci
 mbt build                     # produces mta_archives/*.mtar
 cf login -a <CF_API> -o <ORG> -s <SPACE>

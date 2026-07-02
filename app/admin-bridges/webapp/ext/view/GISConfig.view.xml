@@ -172,7 +172,7 @@
                 <Toolbar id="customWmsToolbar">
                   <Title text="{i18n>gisConfigCustomWmsTitle}"/>
                   <ToolbarSpacer/>
-                  <Button id="btnAddWms" icon="sap-icon://add" press=".onAddCustomWms"/>
+                  <Button id="btnAddWms" icon="sap-icon://add" tooltip="{i18n>gisAddWmsLayer}" press=".onAddCustomWms"/>
                 </Toolbar>
               </headerToolbar>
               <columns>
@@ -187,7 +187,7 @@
                     <Input value="{config>label}" placeholder="{i18n>gisLayerNamePlaceholder}"/>
                     <Input value="{config>url}" placeholder="{i18n>gisWmsUrlPlaceholder}"/>
                     <Input value="{config>layers}" placeholder="{i18n>gisLayerNamesPlaceholder}"/>
-                    <Button icon="sap-icon://delete" type="Transparent" press=".onDeleteCustomWms"/>
+                    <Button icon="sap-icon://delete" type="Transparent" tooltip="{i18n>gisDeleteWmsLayer}" press=".onDeleteCustomWms"/>
                   </cells>
                 </ColumnListItem>
               </items>

@@ -1,4 +1,5 @@
 using {bridge.management as my} from '../db/schema';
+using from '../db/bhi-model';   // governed BHI weight model (adds my.BhiModel / BhiWeight / BhiCoefficient)
 using {plugins.mapping as pmap} from './lib/plugins/mapping/mapping-schema';
 using {plugins.upload as pup} from './lib/plugins/mass-upload/upload-schema';
 
@@ -328,6 +329,17 @@ service AdminService {
   @readonly
   @restrict: [{ grant: 'READ', to: ['manage','admin'] }]
   entity UploadSourceFiles as projection on pup.UploadSourceFile;
+
+  // Governed BHI/BSI weight model (db/bhi-model.cds + srv/lib/plugins/governed-config). Admin-
+  // maintained, versioned; the compute engine (srv/lib/bhi.js via prioritisation-service) reads
+  // the ACTIVE version. The structured BHI admin screen edits via /system/api/bhi-config, which is
+  // backed by these tables. Exposed here so the tables persist + Phase-2 version UI can bind them.
+  @restrict: [{ grant: '*', to: 'admin' }, { grant: 'READ', to: ['manage','integration'] }]
+  entity BhiModels as projection on my.BhiModel;
+  @restrict: [{ grant: '*', to: 'admin' }, { grant: 'READ', to: ['manage','integration'] }]
+  entity BhiWeights as projection on my.BhiWeight;
+  @restrict: [{ grant: '*', to: 'admin' }, { grant: 'READ', to: ['manage','integration'] }]
+  entity BhiCoefficients as projection on my.BhiCoefficient;
 
   // INSPECT-4 / EAM-4: bridge element hierarchy + element-type codelist.
   @restrict: [{ grant: 'READ', to: 'view' }, { grant: ['CREATE','UPDATE','DELETE'], to: 'manage' }]

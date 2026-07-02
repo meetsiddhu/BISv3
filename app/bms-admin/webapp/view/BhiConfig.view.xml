@@ -16,12 +16,32 @@
                         state="{= ${bhi>/isCustom} ? 'Information' : 'Success' }" class="sapUiSmallMarginEnd" />
           <Button icon="sap-icon://refresh" tooltip="{i18n>btn.refresh}" press=".onRefresh" type="Transparent" />
           <Button text="{i18n>bhi.btnReset}" icon="sap-icon://reset" press=".onResetDefaults" type="Transparent" />
-          <Button text="{i18n>action.save}" icon="sap-icon://save" press=".onSave" type="Emphasized" enabled="{bhi>/dirty}" />
+          <Button text="{i18n>action.save}" icon="sap-icon://save" press=".onSave" type="Emphasized"
+                  enabled="{= ${bhi>/dirty} &amp;&amp; ${bhi>/selectedModel/status} !== 'Retired' }" />
         </contentRight>
       </Bar>
     </customHeader>
     <content>
       <MessageStrip text="{i18n>bhi.note}" type="Information" showIcon="true" class="sapUiSmallMargin" />
+      <!-- ── Governed versioning: pick / clone / activate a named weight-set version ── -->
+      <OverflowToolbar class="sapUiSmallMarginBegin sapUiSmallMarginEnd">
+        <Label text="{i18n>bhi.version.label}" />
+        <Select items="{path:'bhi>/models', templateShareable:false}" selectedKey="{bhi>/selectedModel/ID}"
+                change=".onSelectVersion" autoAdjustWidth="true" tooltip="{i18n>bhi.version.tooltip}">
+          <core:Item key="{bhi>ID}" text="{bhi>label}" />
+        </Select>
+        <ObjectStatus text="{bhi>/selectedModel/status}"
+                      state="{= ${bhi>/selectedModel/status} === 'Active' ? 'Success' : ${bhi>/selectedModel/status} === 'Draft' ? 'Warning' : 'None' }" />
+        <ToolbarSpacer />
+        <Button text="{i18n>bhi.version.clone}" icon="sap-icon://duplicate" press=".onCloneVersion" type="Transparent"
+                tooltip="{i18n>bhi.version.cloneTip}" />
+        <Button text="{i18n>bhi.version.activate}" icon="sap-icon://accept" press=".onActivateVersion" type="Transparent"
+                visible="{= ${bhi>/selectedModel/status} !== 'Active' }" tooltip="{i18n>bhi.version.activateTip}" />
+      </OverflowToolbar>
+      <MessageStrip text="{i18n>bhi.version.draftHint}" type="Warning" showIcon="true" class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginBottom"
+                    visible="{= ${bhi>/selectedModel/status} === 'Draft' }" />
+      <MessageStrip text="{i18n>bhi.version.retiredHint}" type="Information" showIcon="true" class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginBottom"
+                    visible="{= ${bhi>/selectedModel/status} === 'Retired' }" />
       <IconTabBar id="bhiTabs" expandable="false" class="sapUiResponsiveContentPadding">
         <items>
           <!-- ── Element weights per transport mode ── -->
@@ -87,6 +107,40 @@
                 </cells>
               </ColumnListItem></items>
             </Table>
+          </IconTabFilter>
+
+          <!-- ── Per-asset-class element-weight overrides (additive; precedence class+mode → mode → Road) ── -->
+          <IconTabFilter text="{i18n>bhi.tab.classWeights}" key="classWeights" icon="sap-icon://org-chart">
+            <MessageStrip text="{i18n>bhi.classWeights.hint}" type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
+            <Table items="{path:'bhi>/classWeights', templateShareable:false}" growing="true" growingThreshold="120"
+                   noDataText="{i18n>bhi.classWeights.empty}">
+              <headerToolbar>
+                <OverflowToolbar>
+                  <Title text="{i18n>bhi.tab.classWeights}" level="H4" />
+                  <ToolbarSpacer />
+                  <Button text="{i18n>bhi.btnAddClass}" icon="sap-icon://add" press=".onAddClassOverride" type="Transparent" />
+                </OverflowToolbar>
+              </headerToolbar>
+              <columns>
+                <Column width="12rem"><Text text="{i18n>bhi.col.class}" /></Column>
+                <Column width="10rem"><Text text="{i18n>bhi.col.mode}" /></Column>
+                <Column><Text text="{i18n>bhi.col.bucket}" /></Column>
+                <Column hAlign="End" width="9rem"><Text text="{i18n>bhi.col.weight}" /></Column>
+                <Column hAlign="End" width="9rem"><Text text="{i18n>bhi.col.modeDefault}" /></Column>
+                <Column hAlign="Center" width="5rem"><Text text="" /></Column>
+              </columns>
+              <items><ColumnListItem>
+                <cells>
+                  <ObjectIdentifier title="{bhi>assetClass}" />
+                  <Text text="{bhi>mode}" />
+                  <Text text="{bhi>bucket}" />
+                  <Input value="{bhi>value}" type="Number" textAlign="End" change=".onCellChange" width="8rem" />
+                  <Text text="{bhi>def}" />
+                  <Button icon="sap-icon://delete" type="Transparent" tooltip="{i18n>action.remove}" press=".onRemoveClassRow" />
+                </cells>
+              </ColumnListItem></items>
+            </Table>
+            <Text text="{i18n>bhi.classWeights.note}" class="sapUiSmallMarginBegin sapUiTinyText" />
           </IconTabFilter>
         </items>
       </IconTabBar>

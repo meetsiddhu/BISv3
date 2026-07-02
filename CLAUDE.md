@@ -78,7 +78,8 @@
 ## 5. Working agreements
 
 - Change in small, logically-grouped commits; run `npx cds build` + `npm test`
-  (Node 20) before committing. CI must stay green.
+  (**Node 22** — see §1; Node 20 fails the suite via a `better-sqlite3` native-ABI
+  mismatch) before committing. CI must stay green.
 - Prefer event-driven over polling (see `FkMessageGuard.js` for the pattern).
 - Surface — do not silently perform — anything touching access controls, secrets,
   or destructive operations.

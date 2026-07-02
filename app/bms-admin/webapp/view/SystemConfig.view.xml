@@ -9,14 +9,14 @@
     <customHeader>
       <Bar>
         <contentLeft>
-          <Title text="System Configuration" level="H3" />
+          <Title text="{i18n>admin.systemConfig.title}" level="H3" />
         </contentLeft>
         <contentRight>
-          <Button id="saveBtn" text="Save Changes" type="Emphasized" enabled="false"
+          <Button id="saveBtn" text="{i18n>sysConfig.save}" type="Emphasized" enabled="false"
                   press=".onSaveChanges" icon="sap-icon://save" />
-          <Button text="Reset to Defaults" type="Transparent"
+          <Button text="{i18n>sysConfig.reset}" type="Transparent"
                   press=".onResetDefaults" icon="sap-icon://reset" class="sapUiSmallMarginBegin" />
-          <Button icon="sap-icon://information" tooltip="How to use this page" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
+          <Button icon="sap-icon://information" tooltip="{i18n>gis.help}" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
         </contentRight>
       </Bar>
     </customHeader>
@@ -24,18 +24,18 @@
     <content>
       <VBox class="sapUiSmallMargin">
         <MessageStrip
-          text="Changes take effect immediately without redeployment. Settings marked read-only cannot be edited here."
+          text="{i18n>sysConfig.info}"
           type="Information" showCloseButton="false" class="sapUiSmallMarginBottom" />
 
         <IconTabBar id="categoryTabs" select=".onCategoryChange" class="sapUiSmallMarginBottom" />
 
-        <Table id="configTable" mode="None" items="{/filtered}" noDataText="No settings in this category">
+        <Table id="configTable" mode="None" items="{/filtered}" noDataText="{i18n>sysConfig.noData}">
           <columns>
-            <Column width="22%"><Text text="Setting" /></Column>
-            <Column width="25%"><Text text="Current Value" /></Column>
-            <Column width="18%"><Text text="Default" /></Column>
-            <Column width="10%"><Text text="Data Type" /></Column>
-            <Column width="25%"><Text text="Description" /></Column>
+            <Column width="22%"><Text text="{i18n>sysConfig.col.setting}" /></Column>
+            <Column width="25%"><Text text="{i18n>sysConfig.col.currentValue}" /></Column>
+            <Column width="18%"><Text text="{i18n>sysConfig.col.default}" /></Column>
+            <Column width="10%"><Text text="{i18n>sysConfig.col.dataType}" /></Column>
+            <Column width="25%"><Text text="{i18n>sysConfig.col.description}" /></Column>
           </columns>
           <items>
             <ColumnListItem>

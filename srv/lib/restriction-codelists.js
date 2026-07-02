@@ -38,6 +38,10 @@ const RESTRICTION_TYPES = [
   { code: 'Load Limit', name: 'Load Limit', descr: 'Sign-posted load limit (NSW posted-load order) — distinct from a generic mass limit.', units: ['t'], numeric: true, valueField: 'grossMassLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
   { code: 'Gross Combination Mass', name: 'Gross Combination Mass', descr: 'Gross combination mass (GCM) limit for multi-unit combinations.', units: ['t'], numeric: true, valueField: 'grossCombinationLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
   { code: 'Axle Group Limit', name: 'Axle Group Limit', descr: 'Single / tandem / tri-axle group mass limit.', units: ['t', 't/axle'], numeric: true, valueField: 'axleMassLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
+  // UAT P3-001 (2026-06-22): a demo restriction carried restrictionType 'Axle Mass Limit',
+  // which was absent from the catalog (value-help integrity gap). Added as a proper NHVR
+  // single-axle mass code (additive; seeded insert-if-missing) rather than mutating the data.
+  { code: 'Axle Mass Limit', name: 'Axle Mass Limit', descr: 'Maximum mass permitted on a single axle.', units: ['t'], numeric: true, valueField: 'axleMassLimit', applicableModes: 'Road', category: 'Mass', defaultUnit: 't' },
   { code: 'Height Limit', name: 'Height Limit', descr: 'Vertical clearance limit.', units: ['m'], numeric: true, valueField: 'heightLimit', applicableModes: 'Road,Rail', category: 'Dimension', defaultUnit: 'm' },
   { code: 'Width Limit', name: 'Width Limit', descr: 'Vehicle width limit.', units: ['m'], numeric: true, valueField: 'widthLimit', applicableModes: 'Road', category: 'Dimension', defaultUnit: 'm' },
   { code: 'Length Limit', name: 'Length Limit', descr: 'Vehicle or combination length limit.', units: ['m'], numeric: true, valueField: 'lengthLimit', applicableModes: 'Road', category: 'Dimension', defaultUnit: 'm' },

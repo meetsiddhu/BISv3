@@ -4,6 +4,28 @@
   var API_BASE = '/attributes/api';
   var OBJECT_TYPE = 'bridge';
 
+  // i18n (§2.6): the region landmark's accessible name comes from the app resource bundle
+  // (customAttributesRegion) rather than the fragment's raw HTML string. Loaded once; falls
+  // back to the English literal until the bundle resolves.
+  var _regionLabel = 'Custom attributes';
+  function loadRegionLabel() {
+    try {
+      sap.ui.require(['sap/base/i18n/ResourceBundle'], function (ResourceBundle) {
+        try {
+          var url = sap.ui.require.toUrl('BridgeManagement/adminbridges/i18n/i18n.properties');
+          ResourceBundle.create({ url: url, async: true }).then(function (bundle) {
+            var t = bundle && bundle.getText('customAttributesRegion');
+            if (t) { _regionLabel = t; applyRegionLabel(); }
+          });
+        } catch (e) { /* keep fallback */ }
+      });
+    } catch (e) { /* keep fallback */ }
+  }
+  function applyRegionLabel() {
+    var root = document.getElementById('ca-bridge-root');
+    if (root) root.setAttribute('aria-label', _regionLabel);
+  }
+
   function getBridgeId() {
     var bridgeIdMatch = (window.location.hash || '').match(/Bridges\(ID=(\d+)/);
     return bridgeIdMatch ? bridgeIdMatch[1] : null;
@@ -22,7 +44,7 @@
 
   function renderGroups(groups, values, editMode) {
     if (!groups.length) {
-      return '<div style="color:#8696a9;padding:1rem;text-align:center">No custom attributes configured for bridges.</div>';
+      return '<div style="color:#5d6b7d;padding:1rem;text-align:center">No custom attributes configured for bridges.</div>';
     }
     var html = '';
     groups.forEach(function (group) {
@@ -32,15 +54,19 @@
       group.attributes.forEach(function (attr) {
         var val = values[attr.internalKey];
         var displayVal = displayValue(val);
+        var labelId = 'ca-label-' + attr.internalKey;
+        var inputId = 'ca-input-' + attr.internalKey;
         html += '<div style="display:flex;flex-direction:column;gap:3px">';
-        html += '<label style="font-size:12px;color:#6a7a8b;font-weight:500">' + esc(attr.name) + (attr.required ? ' <span style="color:#bb0000">*</span>' : '') + (attr.unit ? ' <span style="color:#aaa;font-weight:400">(' + esc(attr.unit) + ')</span>' : '') + '</label>';
+        // a11y (WCAG 1.3.1/3.3.2/4.1.2): associate the visible label with its control via
+        // for/id; group controls (radio/checkbox) are labelled via aria-labelledby in renderInput.
+        html += '<label id="' + labelId + '" for="' + inputId + '" style="font-size:12px;color:#5e6b78;font-weight:500">' + esc(attr.name) + (attr.required ? ' <span style="color:#bb0000" aria-hidden="true">*</span><span class="sapUiInvisibleText"> (required)</span>' : '') + (attr.unit ? ' <span style="color:#767676;font-weight:400">(' + esc(attr.unit) + ')</span>' : '') + '</label>';
         if (editMode) {
           html += renderInput(attr, val);
         } else {
-          html += '<div style="font-size:14px;color:#32363a;min-height:20px;padding:4px 0">' + (displayVal ? esc(displayVal) : '<span style="color:#ccc">-</span>') + '</div>';
+          html += '<div style="font-size:14px;color:#32363a;min-height:20px;padding:4px 0">' + (displayVal ? esc(displayVal) : '<span style="color:#767676">-</span>') + '</div>';
         }
         if (attr.helpText) {
-          html += '<div style="font-size:11px;color:#aaa">' + esc(attr.helpText) + '</div>';
+          html += '<div style="font-size:11px;color:#767676">' + esc(attr.helpText) + '</div>';
         }
         // Per-attribute history link removed — custom-attribute change history is surfaced
         // in the "Change Documents" report (AttributeValueHistory joined per object).
@@ -74,11 +100,14 @@
   function renderInput(attr, val) {
     var customFieldValue = val != null ? val : '';
     var id = 'ca-input-' + attr.internalKey;
-    var base = 'style="width:100%;padding:6px 8px;border:1px solid #c0c0c0;border-radius:4px;font-size:13px;box-sizing:border-box"';
+    var base = 'style="width:100%;padding:6px 8px;border:1px solid #8a8a8a;border-radius:4px;font-size:13px;box-sizing:border-box"';
     var avs = attr.allowedValues || [];
     var disp = effectiveDisplay(attr);
     var i;
 
+    // a11y: group controls (radio/checkbox set) cannot use a single <label for>; they are
+    // exposed as a named group via role + aria-labelledby pointing at the visible field label.
+    var labelId = 'ca-label-' + attr.internalKey;
     if (disp === 'RadioGroup') {
       var radios = '';
       for (i = 0; i < avs.length; i++) {
@@ -87,13 +116,13 @@
           '<input type="radio" name="' + esc(id) + '" value="' + esc(avs[i].value) + '"' + (String(customFieldValue) === avs[i].value ? ' checked' : '') + ' id="' + rid + '"/>' +
           esc(avs[i].label || avs[i].value) + '</label>';
       }
-      return '<div data-ca-radio="' + esc(attr.internalKey) + '" style="display:flex;flex-direction:column;gap:4px;padding:2px 0">' + radios + '</div>';
+      return '<div role="radiogroup" aria-labelledby="' + labelId + '" data-ca-radio="' + esc(attr.internalKey) + '" style="display:flex;flex-direction:column;gap:4px;padding:2px 0">' + radios + '</div>';
     }
     if (disp === 'Checkbox') {
       // Boolean → single checkbox; a select-with-values → a checkbox per value (multi).
       if (attr.dataType === 'Boolean' || !avs.length) {
         var on = customFieldValue === true || customFieldValue === 'true';
-        return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400"><input type="checkbox" id="' + id + '" data-ca-bool="1"' + (on ? ' checked' : '') + '/> Yes</label>';
+        return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400"><input type="checkbox" id="' + id + '" aria-labelledby="' + labelId + '" data-ca-bool="1"' + (on ? ' checked' : '') + '/> Yes</label>';
       }
       var sel = selectedSet(customFieldValue);
       var boxes = '';
@@ -102,7 +131,7 @@
           '<input type="checkbox" value="' + esc(avs[i].value) + '"' + (sel.has(avs[i].value) ? ' checked' : '') + '/>' +
           esc(avs[i].label || avs[i].value) + '</label>';
       }
-      return '<div data-ca-checks="' + esc(attr.internalKey) + '" style="display:flex;flex-direction:column;gap:4px;padding:2px 0">' + boxes + '</div>';
+      return '<div role="group" aria-labelledby="' + labelId + '" data-ca-checks="' + esc(attr.internalKey) + '" style="display:flex;flex-direction:column;gap:4px;padding:2px 0">' + boxes + '</div>';
     }
     if (disp === 'MultiComboBox') {
       var msel = selectedSet(customFieldValue);
@@ -182,7 +211,7 @@
     var names = _state.allGroups.filter(function (g) { return assignedSet.has(String(g.ID)); }).map(function (g) { return g.name; });
     var chips = names.length
       ? names.map(function (n) { return '<span style="display:inline-block;background:#e3f0fb;color:#0a6ed1;border-radius:10px;padding:2px 10px;margin:0 6px 6px 0;font-size:12px">' + esc(n) + '</span>'; }).join('')
-      : '<span style="color:#aaa;font-size:12px">None selected — pick the class(es) that apply to this bridge.</span>';
+      : '<span style="color:#767676;font-size:12px">None selected — pick the class(es) that apply to this bridge.</span>';
     return '<div style="background:#f7f9fb;border:1px solid #e5e5e5;border-radius:6px;padding:10px 12px;margin-bottom:14px">' +
       '<div style="display:flex;align-items:center;margin-bottom:8px">' +
       '<span style="font-size:12px;font-weight:600;color:#556b82;text-transform:uppercase;letter-spacing:.04em;flex:1">Classes (' + names.length + ')</span>' +
@@ -193,10 +222,10 @@
   function emptyMessage() {
     if (!_state.assigned.length) {
       return _state.editMode
-        ? '<div style="color:#8696a9;padding:1rem;text-align:center">No classes selected. Use <b>Select Classes…</b> above to choose which classes apply, then their characteristics appear here.</div>'
-        : '<div style="color:#8696a9;padding:1rem;text-align:center">No classes assigned to this bridge. Choose <b>Edit</b> to assign one or more classes and collect their data.</div>';
+        ? '<div style="color:#5d6b7d;padding:1rem;text-align:center">No classes selected. Use <b>Select Classes…</b> above to choose which classes apply, then their characteristics appear here.</div>'
+        : '<div style="color:#5d6b7d;padding:1rem;text-align:center">No classes assigned to this bridge. Choose <b>Edit</b> to assign one or more classes and collect their data.</div>';
     }
-    return '<div style="color:#8696a9;padding:1rem;text-align:center">The selected class(es) have no characteristics configured.</div>';
+    return '<div style="color:#5d6b7d;padding:1rem;text-align:center">The selected class(es) have no characteristics configured.</div>';
   }
 
   function render() {
@@ -217,6 +246,7 @@
     content += vis.length ? renderGroups(vis, _state.values, _state.editMode) : emptyMessage();
     content += '</div>';
     root.innerHTML = content;
+    root.setAttribute('aria-label', _regionLabel);
   }
 
   function load() {
@@ -224,7 +254,7 @@
     if (!id) return;
     var root = document.getElementById('ca-bridge-root');
     if (!root) return;
-    root.innerHTML = '<div style="padding:1rem;color:#8696a9">Loading...</div>';
+    root.innerHTML = '<div style="padding:1rem;color:#5d6b7d">Loading...</div>';
 
     // Class-aware (ATTR-1): fetch the bridge's assetClass so the pool shows the characteristics
     // configured for that class. /classes returns the bridge's explicit class assignment set.
@@ -323,5 +353,6 @@
   });
 
   // Initial load
+  loadRegionLabel();
   setTimeout(load, 800);
 }());

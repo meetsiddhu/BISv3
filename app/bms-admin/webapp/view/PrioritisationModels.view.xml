@@ -11,7 +11,7 @@
           <Title text="{i18n>prioModels.title}" level="H3" />
         </contentLeft>
         <contentRight>
-          <Label text="Model" class="sapUiTinyMarginEnd" />
+          <Label text="{i18n>prioModels.modelLabel}" labelFor="modelSelect" class="sapUiTinyMarginEnd" />
           <Select id="modelSelect" selectedKey="{pm>/selected}" change=".onModelChange" items="{path:'pm>/models', templateShareable:false}">
             <core:Item xmlns:core="sap.ui.core" key="{pm>ID}" text="{pm>code} v{pm>version} · {pm>status}" />
           </Select>

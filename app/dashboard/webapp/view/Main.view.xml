@@ -36,7 +36,7 @@
                 </VBox>
                 <Button
                   icon="sap-icon://information"
-                  tooltip="How to use this dashboard"
+                  tooltip="{i18n>helpTooltip}"
                   press=".onShowHelp"
                   type="Transparent" />
               </HBox>
@@ -65,7 +65,7 @@
                     </TileContent>
                   </tileContent>
                 </GenericTile>
-                <Button icon="sap-icon://information" tooltip="About: Total Assets" type="Transparent"
+                <Button icon="sap-icon://information" tooltip="{i18n>tileInfoTotalAssets}" type="Transparent"
                   press=".onTileInfo" class="dashboardKpiTileInfo">
                   <customData><core:CustomData key="tileKey" value="totalAssets"/></customData>
                 </Button>
@@ -90,7 +90,7 @@
                     </TileContent>
                   </tileContent>
                 </GenericTile>
-                <Button icon="sap-icon://information" tooltip="About: Active Restrictions" type="Transparent"
+                <Button icon="sap-icon://information" tooltip="{i18n>tileInfoActiveRestrictions}" type="Transparent"
                   press=".onTileInfo" class="dashboardKpiTileInfo">
                   <customData><core:CustomData key="tileKey" value="activeRestrictions"/></customData>
                 </Button>
@@ -115,7 +115,7 @@
                     </TileContent>
                   </tileContent>
                 </GenericTile>
-                <Button icon="sap-icon://information" tooltip="About: Bridges Closed" type="Transparent"
+                <Button icon="sap-icon://information" tooltip="{i18n>tileInfoBridgesClosed}" type="Transparent"
                   press=".onTileInfo" class="dashboardKpiTileInfo">
                   <customData><core:CustomData key="tileKey" value="bridgesClosed"/></customData>
                 </Button>
@@ -175,7 +175,7 @@
               <VBox class="dashboardIndicatorCard sapUiTinyMarginEnd sapUiTinyMarginBottom">
                 <HBox justifyContent="SpaceBetween" alignItems="Center">
                   <Text text="{i18n>indicatorSufficiency}" class="dashboardIndicatorLabel" />
-                  <Button icon="sap-icon://information" tooltip="About: Sufficiency Rating" type="Transparent" press=".onTileInfo">
+                  <Button icon="sap-icon://information" tooltip="{i18n>tileInfoSufficiency}" type="Transparent" press=".onTileInfo">
                     <customData><core:CustomData key="tileKey" value="sufficiency"/></customData>
                   </Button>
                 </HBox>
@@ -190,7 +190,7 @@
               <VBox class="dashboardIndicatorCard sapUiTinyMarginEnd sapUiTinyMarginBottom">
                 <HBox justifyContent="SpaceBetween" alignItems="Center">
                   <Text text="{i18n>indicatorDeficient}" class="dashboardIndicatorLabel" />
-                  <Button icon="sap-icon://information" tooltip="About: Structurally Deficient" type="Transparent" press=".onTileInfo">
+                  <Button icon="sap-icon://information" tooltip="{i18n>tileInfoDeficient}" type="Transparent" press=".onTileInfo">
                     <customData><core:CustomData key="tileKey" value="deficient"/></customData>
                   </Button>
                 </HBox>

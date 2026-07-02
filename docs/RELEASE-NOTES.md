@@ -16,6 +16,75 @@
 
 ---
 
+## 3.55.4 — Named, cloneable BHI/BSI configurations (governed versioning)
+
+**New:** the **Bridge Health Index (BHI/BSI)** configuration is now a **governed, versioned model** you
+can copy and manage — not a single set of settings. On the **BSI / BHI Configuration** admin screen there's
+now a **Version** picker with **Clone** and **Activate**:
+
+- **Clone** the live configuration into a new **Draft** you can freely tune (per‑mode *and* per‑class weights,
+  coefficients) **without affecting live scores**.
+- **Activate** a Draft when you're ready — it becomes the one the engine uses, and the previous version is
+  **retired** (kept for reference, not deleted).
+- Switch between versions at any time; retired versions are read‑only until you clone them.
+
+This is the "admin gives a default, users copy and create their own" model applied to bridge health — the same
+governed pattern the Prioritisation engine already uses (draft → review → activate, fully audited).
+
+**Under the hood:** BHI configuration moved from a single settings blob to **first‑class, relational,
+versioned records** (additive — existing settings were migrated automatically on upgrade, nothing lost). The
+calculation engine reads the **active** version; every clone and activation is recorded in **Change Documents**.
+**577** automated tests pass. No change to how scores are computed — only how the configuration is governed.
+
+> Open the app in a private/incognito window (or hard-refresh) to load 3.55.4 instead of a cached copy.
+
+---
+
+## 3.55.3 — Per‑asset‑class BHI/BSI weighting (configurable per class)
+
+**New:** the **Bridge Health Index (BHI/BSI)** can now be tuned **per asset class**, not just per
+transport mode. On the **BSI / BHI Configuration** admin screen there's a new **"Per‑class overrides"**
+tab: pick an asset class (e.g. *Culvert*, *Rail Bridge*) and a transport mode, and adjust how much each
+element group (deck, substructure, bearings, …) counts toward that class's score. Where you set no
+override, the class keeps using the per‑mode weights — so this is purely additive. Each override starts
+as a copy of the mode weights, which you then fine‑tune; delete a row to revert that element group.
+Resolution order is **class + mode → mode → default**, matching how prioritisation already works.
+
+**Why it matters:** a culvert and a girder bridge deteriorate and fail differently — now their health
+scores can reflect that, instead of one mode‑wide weighting for every structure type.
+
+**Fixed (admin config robustness):** saving the BHI configuration is now safe in two cases that
+previously misbehaved — saving *only* per‑class changes no longer resets the rest of the configuration,
+and saving from any tab no longer discards per‑class overrides. Every change is still audited
+(old → new) in **Change Documents**.
+
+**Under the hood:** the calculation engine, the admin API, and the screen all read the same governed
+config (nothing hard‑coded); **565** automated tests pass (added per‑class weighting + config
+round‑trip coverage). No data or workflow changes; existing scores are unaffected until you choose to
+add an override and recompute.
+
+> Open the app in a private/incognito window (or hard-refresh) to load 3.55.3 instead of a cached copy.
+
+---
+
+## 3.55.2 — "Show on Map" fix + accessibility contrast
+
+**Fixed:** clicking **Show on Map** from a bridge's detail page now **zooms the map to that exact
+bridge** (and opens its details) instead of opening the map zoomed out on every bridge. The bridge's
+identity is now read correctly from the launchpad navigation, so the map focuses where you expect.
+
+**Improved (accessibility):** muted helper text and input borders on the **Custom Attributes** panels
+(bridge + restriction) and the **GIS/map configuration** were too light to meet WCAG 2.2 AA contrast.
+They've been darkened to compliant tones — easier to read, and a step toward accessibility certification.
+
+**Under the hood:** added an automated **contrast guard** and **property-based tests** for the
+condition‑rating engine to the test suite (now **558+** automated tests, all passing) so these don't
+regress. No data or workflow changes.
+
+> Open the app in a private/incognito window (or hard-refresh) to load 3.55.2 instead of a cached copy.
+
+---
+
 ## 3.55.1 — Security: patched the spreadsheet-parsing library
 **Fixed (security):** the third-party library the app uses to read uploaded Excel/CSV files
 (SheetJS / `xlsx`) had a publicly-known **HIGH-severity** flaw, and the version published to the

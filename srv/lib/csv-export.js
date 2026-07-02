@@ -3,13 +3,21 @@
 // ARCH-T4: CSV export builders extracted from the server.js god-file. Pure functions —
 // independently unit-testable, with RFC-4180-style quoting (escape commas/quotes).
 
-// Quote a single CSV cell when it contains a comma or a double-quote, and neutralise
-// spreadsheet formula injection (OWASP CSV injection): a cell beginning with = + - @ (or
-// tab/CR) is prefixed with a single quote so Excel/Sheets treat it as text, not a formula.
-function csvCell (value) {
+// Neutralise spreadsheet formula injection (OWASP CSV injection): a cell whose text begins
+// with = + - @ (or tab/CR) is prefixed with a single quote so Excel/Sheets treat it as text,
+// not an executable formula. Use this for SheetJS (XLSX/CSV) cell VALUES — SheetJS applies its
+// own quoting, so only the formula prefix is needed there (the comma/quote wrapping in csvCell
+// would corrupt an .xlsx cell). Returns '' for null/undefined.
+function neutralizeFormula (value) {
   if (value == null) return ''
-  let text = String(value)
-  if (/^[=+\-@\t\r]/.test(text)) text = "'" + text
+  const text = String(value)
+  return /^[=+\-@\t\r]/.test(text) ? "'" + text : text
+}
+
+// Quote a single CSV cell when it contains a comma or a double-quote, and neutralise
+// spreadsheet formula injection. For hand-built CSV strings (not SheetJS).
+function csvCell (value) {
+  const text = neutralizeFormula(value)
   return (text.includes(',') || text.includes('"') || text.includes('\n')) ? '"' + text.replace(/"/g, '""') + '"' : text
 }
 
@@ -51,4 +59,4 @@ function buildRestrictionsCsv (restrictions, customAttributeColumns = [], custom
   return buildCsv(restrictions, RESTRICTION_EXPORT_FIELDS, customAttributeColumns, customFieldValuesByObjectId)
 }
 
-module.exports = { csvCell, buildCsv, buildBridgesCsv, buildRestrictionsCsv, BRIDGE_EXPORT_FIELDS, RESTRICTION_EXPORT_FIELDS }
+module.exports = { csvCell, neutralizeFormula, buildCsv, buildBridgesCsv, buildRestrictionsCsv, BRIDGE_EXPORT_FIELDS, RESTRICTION_EXPORT_FIELDS }

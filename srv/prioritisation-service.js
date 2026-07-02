@@ -6,6 +6,7 @@ const engine = require('./lib/prioritisation')
 const ruleEngine = require('./lib/prioritisation-rule-engine')
 const { effectiveRuns } = require('./lib/effective-runs')
 const bhiLib = require('./lib/bhi')
+const bhiModelStore = require('./lib/bhi-model-store')
 const { Pdf } = require('./lib/pdf')
 
 // B1 (council v3.12): module-scope numeric coercion helper — single source of truth for every
@@ -36,11 +37,18 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       return v === null || v === undefined ? true : (v === 'true' || v === '1' || v === 'yes')
     }
 
-    // B8: BSI/BHI mode weights + environmental coefficients are GOVERNED CONFIG (SystemConfig
-    // row 'bhiWeights', JSON) — refreshed at every computing entry point (60s-cached read).
-    // The documented defaults (representative published-practice values) live in srv/lib/bhi.js; a
-    // missing/invalid row resolves to those defaults, so default-parity holds untouched.
-    const refreshBhiConfig = async () => bhiLib.configure(await getConfig('bhiWeights'))
+    // B8: BSI/BHI mode weights + environmental coefficients are GOVERNED CONFIG. Source of truth
+    // is now the relational, versioned BhiModel (db/bhi-model.cds) — the ACTIVE version's rows are
+    // assembled into the engine's config object. If no model exists yet (bare/legacy db) it falls
+    // back to the legacy SystemConfig 'bhiWeights' JSON, then to the documented defaults in
+    // srv/lib/bhi.js — so default-parity + back-compat hold untouched.
+    const refreshBhiConfig = async () => {
+      try {
+        const active = await bhiModelStore.loadActiveConfig(db)
+        if (active) return bhiLib.configure(active.config)
+      } catch (e) { log.warn('BhiModel read failed; falling back to SystemConfig/defaults:', e.message) }
+      return bhiLib.configure(await getConfig('bhiWeights'))
+    }
 
     // Active config row -> resolved numeric params (engine handles null/non-finite -> defaults).
     const activeConfigRow = async () => {
@@ -167,6 +175,12 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       } catch (e) { log.warn('ensureBhiConfigRow skipped:', e.message) }
     }
     ensureBhiConfigRow()
+
+    // Migrate BSI/BHI config onto the governed relational model (db/bhi-model.cds): idempotently
+    // seed the default Active BhiModel — folding any legacy 'bhiWeights' JSON override into its
+    // rows — if none exists. The compute engine reads this model via refreshBhiConfig; the
+    // SystemConfig row above remains a legacy fallback + audit surface only.
+    bhiModelStore.ensureSeed(db, { changedBy: 'system' }).catch(e => log.warn('ensureBhiModel skipped:', e.message))
 
     const monthsSince = (date) => {
       if (!date) return null
@@ -501,7 +515,7 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       for (const b of bridges) {
         const elements = await db.run(SELECT.from('bridge.management.BridgeElements').where({ bridge_ID: b.ID }))
         const env = bhiLib.envFromBridge(b)
-        const r = bhiLib.computeBSI(elements, b.transportMode, env, bhiCfg)
+        const r = bhiLib.computeBSI(elements, b.transportMode, env, bhiCfg, b.assetClass)
         if (r.bsi === null) continue
         const bhi = bhiLib.computeBHI(r.bsi, env, bhiCfg)
         await db.run(cds.ql.UPDATE('bridge.management.Bridges').set({
@@ -524,11 +538,11 @@ module.exports = class PrioritisationService extends cds.ApplicationService {
       const env = bhiLib.envFromBridge(b)
       const mode = b.transportMode || 'Road'
       const modeKey = bhiLib.modeKeyFor(mode, env.overWater)
-      const main = bhiLib.computeBSI(elements, mode, env, bhiCfg)
+      const main = bhiLib.computeBSI(elements, mode, env, bhiCfg, b.assetClass)
       const bhi = bhiLib.computeBHI(main.bsi, env, bhiCfg)
       const rsl = bhiLib.remainingServiceLife(main.bsi, env.age, bhiCfg)
       // element buckets actually used (worst per bucket) + the active weight set
-      const w = bhiLib.weightsFor(mode, env.overWater, bhiCfg)
+      const w = bhiLib.weightsFor(mode, env.overWater, bhiCfg, b.assetClass)
       const buckets = {}
       for (const e of elements) {
         const bk = bhiLib.bucketOf(e.elementType)

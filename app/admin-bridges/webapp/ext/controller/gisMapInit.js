@@ -98,7 +98,7 @@
         // No-coordinates placeholder
         var noCoords = document.createElement("div");
         noCoords.id = "gisNoCoords";
-        noCoords.style.cssText = "display:none;align-items:center;justify-content:center;flex-direction:column;height:220px;color:#8696a9;text-align:center";
+        noCoords.style.cssText = "display:none;align-items:center;justify-content:center;flex-direction:column;height:220px;color:#5d6b7d;text-align:center";
 
         var noIcon = document.createElement("div");
         noIcon.style.cssText = "font-size:40px;margin-bottom:8px";
@@ -109,7 +109,7 @@
         noLabel.textContent = T("gisNoLocation", "No Location Data");
 
         var noHint = document.createElement("div");
-        noHint.style.cssText = "font-size:12px;color:#aaa;margin-top:4px";
+        noHint.style.cssText = "font-size:12px;color:#767676;margin-top:4px";
         noHint.textContent = T("gisNoLocationHint", "Add latitude and longitude to see the map.");
 
         noCoords.appendChild(noIcon);

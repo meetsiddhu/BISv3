@@ -941,9 +941,14 @@ sap.ui.define([
     },
 
     _checkUrlParams: function () {
-      const search = window.location.search || "";
-      const params = new URLSearchParams(search);
-      const bridgeId = params.get("bridgeId") || params.get("highlightId");
+      // FIX (show-on-map): cross-app nav from the bridge object page delivers the target bridge in
+      // the launchpad INTENT HASH (gisMapInit sets window.location.hash = "Map-display?bridgeId=<id>"),
+      // not window.location.search. The old code only read .search (empty inside the FLP), so the map
+      // never focused and showed ALL bridges. Scan BOTH the hash and the search (search also covers the
+      // standalone window.open("...?highlightId=") path) so the map zooms to the selected bridge.
+      const haystack = (window.location.search || "") + " " + (window.location.hash || "");
+      const match = haystack.match(/(?:bridgeId|highlightId)=([^&?#\s]+)/);
+      const bridgeId = match ? decodeURIComponent(match[1]) : null;
       if (bridgeId) {
         const allBridges = this._vm().getProperty("/allBridges") || [];
         const bridge = allBridges.find(function (candidateBridge) { return String(candidateBridge.ID) === String(bridgeId) || candidateBridge.bridgeId === bridgeId; });

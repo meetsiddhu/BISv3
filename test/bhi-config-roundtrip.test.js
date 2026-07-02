@@ -39,6 +39,23 @@ describe('BSI/BHI config round-trip (UI ⇄ engine contract)', () => {
     expect(twice).toEqual(once)
   })
 
+  test('per-class overrides round-trip + stay idempotent (the screen always re-sends classModeWeights)', () => {
+    // The admin screen rebuilds classModeWeights from its rows and ALWAYS includes it on save,
+    // so a save from any tab cannot wipe per-class overrides. Pin that the engine preserves them.
+    const once = b.resolveBhiConfig({ classModeWeights: { Culvert: { Road: { substructure: 0.5, deck: -2 } } } })
+    expect(once.classModeWeights.Culvert.Road.substructure).toBe(0.5)
+    // junk (-2) dropped → the bucket inherits the effective Road weight (no mode override here → default)
+    expect(once.classModeWeights.Culvert.Road.deck).toBe(b.DEFAULT_MODE_WEIGHTS.Road.deck)
+    const twice = b.resolveBhiConfig(JSON.stringify(once))
+    expect(twice).toEqual(once) // idempotent: save→reload→save cannot drift the per-class block
+  })
+
+  test('a per-class override inherits a mode-level override, then applies its own delta (precedence class → mode → default)', () => {
+    const cfg = b.resolveBhiConfig({ modeWeights: { Road: { deck: 0.4 } }, classModeWeights: { Culvert: { Road: { substructure: 0.5 } } } })
+    expect(cfg.classModeWeights.Culvert.Road.substructure).toBe(0.5) // class delta
+    expect(cfg.classModeWeights.Culvert.Road.deck).toBe(0.4)         // inherited from the mode-level override, not the raw default
+  })
+
   test('the screen renders from these exact keys (no hardcoding): defaults expose modes, buckets, coefficientKeys', () => {
     const modes = Object.keys(b.DEFAULT_MODE_WEIGHTS)
     expect(modes).toEqual(expect.arrayContaining(['Road', 'Rail', 'Pedestrian']))

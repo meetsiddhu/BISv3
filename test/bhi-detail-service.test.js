@@ -65,19 +65,19 @@ describe('bhiDetail — governed config + calibration honesty (council B8)', () 
     expect(d.calibration).toBeNull()
   })
 
-  test('an admin edit of the bhiWeights JSON changes the computation (and the printed formulas)', async () => {
+  test('an admin edit of the governed BHI model changes the computation (and the printed formulas)', async () => {
+    // Post-migration: the engine reads the ACTIVE BhiModel (db/bhi-model.cds), not the legacy JSON.
+    // An admin edit persists via the model store; the computation must reflect it.
     const db = await cds.connect.to('db')
+    const store = require('../srv/lib/bhi-model-store')
     const before = JSON.parse((await asViewer((tx) => tx.send('bhiDetail', { bridgeID: B_RAIL }))).detail)
     // age 36 (built 1990): default ageFactor = 1 - (36/120)*0.3 = 0.91; halve the wear knob
-    await db.run(UPDATE('bridge.management.SystemConfig')
-      .set({ value: JSON.stringify({ env: { ageWearMax: 0.15 } }) }).where({ configKey: 'bhiWeights' }))
-    require('../srv/system-config').invalidateCache('bhiWeights')
+    await store.saveToActive(db, { env: { ageWearMax: 0.15 } }, { changedBy: 'test' })
     const after = JSON.parse((await asViewer((tx) => tx.send('bhiDetail', { bridgeID: B_RAIL }))).detail)
     expect(after.bsi).toBeGreaterThan(before.bsi) // gentler age wear ⇒ higher BSI
     expect(after.formulas.join()).toMatch(/x0\.15/) // the substituted formula shows what RAN
-    // restore defaults for any suite that follows
-    await db.run(UPDATE('bridge.management.SystemConfig').set({ value: null }).where({ configKey: 'bhiWeights' }))
-    require('../srv/system-config').invalidateCache('bhiWeights')
+    // restore engine defaults for any suite that follows
+    await store.saveToActive(db, {}, { changedBy: 'test' })
     require('../srv/lib/bhi').configure(null)
   })
 })

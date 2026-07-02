@@ -35,7 +35,7 @@
                   <Column hAlign="End" width="6rem"><Text text="{i18n>worklist.col.score}" /></Column>
                   <Column hAlign="End" width="10rem"><Text text="{i18n>worklist.col.confidence}" /></Column>
                   <Column hAlign="End" width="9rem"><Text text="{i18n>worklist.col.assessed}" /></Column>
-                  <Column hAlign="End" width="9rem"><Text text="Detail" /></Column>
+                  <Column hAlign="End" width="9rem"><Text text="{i18n>worklist.col.detail}" /></Column>
                 </columns>
                 <items>
                   <ColumnListItem type="Active">
@@ -57,7 +57,7 @@
                       <Text text="{wl>confidence}" />
                       <Text text="{wl>assessedAtText}" />
                       <HBox justifyContent="End">
-                        <Button icon="sap-icon://detail-view" type="Transparent" press=".onOpenRun" tooltip="Open this run's frozen inputs + methodology (audit)" />
+                        <Button icon="sap-icon://detail-view" type="Transparent" press=".onOpenRun" tooltip="{i18n>worklist.openRunTooltip}" />
                         <!-- B3a: release the hold (manage scope; server-enforced + ChangeLogged) -->
                         <Button icon="sap-icon://accept" type="Transparent" press=".onReleaseRun"
                                 visible="{= ${wl>reviewStatus} === 'pending' }"
@@ -95,12 +95,12 @@
                 </VBox>
 
                 <!-- federated read-only facts with provenance -->
-                <Panel headerText="Federated facts (read-only · from register / EAM / restrictions)" visible="{= !!${v>/bridgeID} }" class="sapUiTinyMarginBottom">
+                <Panel headerText="{i18n>assess.federatedTitle}" visible="{= !!${v>/bridgeID} }" class="sapUiTinyMarginBottom">
                   <l:Grid defaultSpan="L3 M6 S12" hSpacing="1" vSpacing="0">
-                    <VBox><Label text="Condition (EAM)" /><Text text="{v>/facts/conditionText}" /></VBox>
-                    <VBox><Label text="Load rating" /><Text text="{v>/facts/loadText}" /></VBox>
-                    <VBox><Label text="Active restriction (BIS)" /><Text text="{v>/facts/restrictionSummary}" /></VBox>
-                    <VBox><Label text="Register risk (BIS)" /><Text text="{v>/facts/riskText}" /></VBox>
+                    <VBox><Label text="{i18n>assess.facts.condition}" /><Text text="{v>/facts/conditionText}" /></VBox>
+                    <VBox><Label text="{i18n>assess.facts.load}" /><Text text="{v>/facts/loadText}" /></VBox>
+                    <VBox><Label text="{i18n>assess.facts.restriction}" /><Text text="{v>/facts/restrictionSummary}" /></VBox>
+                    <VBox><Label text="{i18n>assess.facts.risk}" /><Text text="{v>/facts/riskText}" /></VBox>
                   </l:Grid>
                 </Panel>
 
@@ -133,10 +133,10 @@
                   <HBox alignItems="Center" wrap="Wrap">
                     <Label text="{i18n>assess.strategy}" labelFor="strategySelect" class="sapUiTinyMarginEnd" />
                     <Select id="strategySelect" selectedKey="{v>/strategy}" change=".onChange">
-                      <core:Item key="Renew" text="Renew" />
-                      <core:Item key="Maintain" text="Maintain" />
-                      <core:Item key="Monitor" text="Monitor" />
-                      <core:Item key="Decommission" text="Decommission" />
+                      <core:Item key="Renew" text="{i18n>assess.strategy.renew}" />
+                      <core:Item key="Maintain" text="{i18n>assess.strategy.maintain}" />
+                      <core:Item key="Monitor" text="{i18n>assess.strategy.monitor}" />
+                      <core:Item key="Decommission" text="{i18n>assess.strategy.decommission}" />
                     </Select>
                     <ToolbarSpacer />
                     <Label text="{i18n>assess.priority}" class="sapUiTinyMarginEnd" />
@@ -172,32 +172,32 @@
                 </l:Grid>
                 <Title text="{i18n>reports.byBand}" level="H6" class="sapUiSmallMarginTop sapUiTinyMarginBottom" />
                 <Table items="{path:'rep>/bands'}" noDataText="{i18n>reports.noData}">
-                  <columns><Column><Text text="Band" /></Column><Column hAlign="End"><Text text="Count" /></Column></columns>
+                  <columns><Column><Text text="{i18n>reports.col.band}" /></Column><Column hAlign="End"><Text text="{i18n>reports.col.count}" /></Column></columns>
                   <items><ColumnListItem>
                     <cells><ObjectStatus text="{rep>code}" state="{rep>state}" inverted="true" /><ObjectNumber number="{rep>count}" /></cells>
                   </ColumnListItem></items>
                 </Table>
                 <Text text="{rep>/headline}" class="sapUiSmallMarginTop" />
-                <Panel headerText="Governance" class="sapUiSmallMarginTop">
+                <Panel headerText="{i18n>reports.governance}" class="sapUiSmallMarginTop">
                   <l:Grid defaultSpan="L4 M6 S12" hSpacing="1" vSpacing="0">
-                    <VBox><Label text="Prepared (as-at)" /><Text text="{rep>/asAt}" /></VBox>
-                    <VBox><Label text="Methodology owner" /><Text text="{rep>/methodologyOwner}" /></VBox>
-                    <VBox><Label text="Methodology version" /><Text text="{v>/configVersion}" /></VBox>
+                    <VBox><Label text="{i18n>reports.preparedAsAt}" /><Text text="{rep>/asAt}" /></VBox>
+                    <VBox><Label text="{i18n>reports.methodologyOwner}" /><Text text="{rep>/methodologyOwner}" /></VBox>
+                    <VBox><Label text="{i18n>reports.methodologyVersion}" /><Text text="{v>/configVersion}" /></VBox>
                   </l:Grid>
-                  <Text text="Endorsed by / date: ____________________ — figures reconcile to the immutable stored runs." class="sapUiTinyMarginTop sapUiContentLabelColor" />
+                  <Text text="{i18n>reports.endorsedBy}" class="sapUiTinyMarginTop sapUiContentLabelColor" />
                 </Panel>
-                <Button text="Export PDF" icon="sap-icon://pdf-attachment" press=".onExportPdf" class="sapUiSmallMarginTop" />
+                <Button text="{i18n>reports.exportPdf}" icon="sap-icon://pdf-attachment" press=".onExportPdf" class="sapUiSmallMarginTop" />
               </VBox>
               <!-- engineer detail (from the stored run) -->
               <VBox visible="{= ${rep>/mode} === 'eng' }">
                 <Table items="{path:'wl>/rows'}" noDataText="{i18n>reports.noData}" mode="SingleSelectMaster">
                   <columns>
-                    <Column><Text text="Bridge" /></Column><Column width="7rem"><Text text="Priority" /></Column>
-                    <Column hAlign="End" width="6rem"><Text text="Crit/Tier" /></Column>
-                    <Column hAlign="End" width="6rem"><Text text="Residual" /></Column>
-                    <Column hAlign="End" width="6rem"><Text text="Score" /></Column>
-                    <Column hAlign="End" width="9rem"><Text text="Confidence" /></Column>
-                    <Column hAlign="End" width="13rem"><Text text="EAM work request" /></Column>
+                    <Column><Text text="{i18n>reports.col.bridge}" /></Column><Column width="7rem"><Text text="{i18n>reports.col.priority}" /></Column>
+                    <Column hAlign="End" width="6rem"><Text text="{i18n>reports.col.critTier}" /></Column>
+                    <Column hAlign="End" width="6rem"><Text text="{i18n>reports.col.residual}" /></Column>
+                    <Column hAlign="End" width="6rem"><Text text="{i18n>reports.col.score}" /></Column>
+                    <Column hAlign="End" width="9rem"><Text text="{i18n>reports.col.confidence}" /></Column>
+                    <Column hAlign="End" width="13rem"><Text text="{i18n>reports.col.eamWorkRequest}" /></Column>
                   </columns>
                   <items><ColumnListItem>
                     <cells>
@@ -207,8 +207,8 @@
                       <Text text="{wl>residualText}" />
                       <ObjectNumber number="{wl>priorityScore}" />
                       <Text text="{wl>confidence}" />
-                      <Button text="Raise to EAM" icon="sap-icon://outbox" press=".onRaiseWorkRequest" type="Transparent"
-                              tooltip="Raise an inspection work request to SAP EAM (queued; EAM is never modified here)" />
+                      <Button text="{i18n>reports.raiseWorkRequest}" icon="sap-icon://outbox" press=".onRaiseWorkRequest" type="Transparent"
+                              tooltip="{i18n>reports.raiseWorkRequestTooltip}" />
                     </cells>
                   </ColumnListItem></items>
                 </Table>

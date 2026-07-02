@@ -270,10 +270,10 @@
 
                   <Label text="{i18n>conditionRating}" class="nhvrFilterLabel nhvrFilterLabelTop" />
                   <HBox alignItems="Center" justifyContent="SpaceBetween" class="nhvrRangeRow">
-                    <Label text="{i18n>min}" />
-                    <StepInput value="{view>/filters/minCondition}" min="1" max="10" step="1" width="5rem" change=".onApplyFilters" />
-                    <Label text="{i18n>max}" />
-                    <StepInput value="{view>/filters/maxCondition}" min="1" max="10" step="1" width="5rem" change=".onApplyFilters" />
+                    <Label id="nhvrMinCondLabel" text="{i18n>min}" labelFor="nhvrMinConditionInput" />
+                    <StepInput id="nhvrMinConditionInput" value="{view>/filters/minCondition}" min="1" max="10" step="1" width="5rem" change=".onApplyFilters" ariaLabelledBy="nhvrMinCondLabel" />
+                    <Label id="nhvrMaxCondLabel" text="{i18n>max}" labelFor="nhvrMaxConditionInput" />
+                    <StepInput id="nhvrMaxConditionInput" value="{view>/filters/maxCondition}" min="1" max="10" step="1" width="5rem" change=".onApplyFilters" ariaLabelledBy="nhvrMaxCondLabel" />
                   </HBox>
 
                   <HBox justifyContent="SpaceBetween" class="nhvrFilterActions">
@@ -398,7 +398,7 @@
                   <Input id="proxLat" value="{view>/proximity/lat}" placeholder="-33.8688" width="100%" />
                   <Label text="{i18n>longitude}" labelFor="proxLng" class="nhvrFilterLabel nhvrFilterLabelTop" />
                   <Input id="proxLng" value="{view>/proximity/lng}" placeholder="151.2093" width="100%" />
-                  <Label text="{i18n>radiusKm}" class="nhvrFilterLabel nhvrFilterLabelTop" />
+                  <Label text="{i18n>radiusKm}" labelFor="proxRadius" class="nhvrFilterLabel nhvrFilterLabelTop" />
                   <StepInput id="proxRadius" value="{view>/proximity/radius}" min="1" max="500" step="5" width="100%" />
                   <HBox justifyContent="SpaceBetween" class="nhvrFilterActions">
                     <Button text="{i18n>proximityClear}" icon="sap-icon://clear-filter" press=".onClearProximity"

@@ -44,7 +44,7 @@
             icon="sap-icon://undo"
             enabled="{= ${view>/dirtyCount} > 0 }"
             press="onDiscard"/>
-          <Button icon="sap-icon://information" tooltip="How to use Mass Edit" type="Transparent" press="onShowHelp"/>
+          <Button icon="sap-icon://information" tooltip="{i18n>howToUse}" type="Transparent" press="onShowHelp"/>
         </f:actions>
       </f:DynamicPageTitle>
     </f:title>
@@ -76,24 +76,24 @@
               liveChange="onFilterChange"/>
 
             <VBox visible="{view>/showStateFilter}">
-              <Label text="{i18n>state}"/>
-              <Select selectedKey="{view>/filters/state}" change="onFilterChange" width="10rem"
+              <Label text="{i18n>state}" labelFor="meStateFilterSelect"/>
+              <Select id="meStateFilterSelect" selectedKey="{view>/filters/state}" change="onFilterChange" width="10rem"
                       items="{view>/options/states}">
                 <core:Item key="{view>key}" text="{view>text}"/>
               </Select>
             </VBox>
 
             <VBox visible="{view>/showStatusFilter}">
-              <Label text="{view>/statusFilterLabel}"/>
-              <Select selectedKey="{view>/filters/status}" change="onFilterChange" width="12rem"
+              <Label text="{view>/statusFilterLabel}" labelFor="meStatusFilterSelect"/>
+              <Select id="meStatusFilterSelect" selectedKey="{view>/filters/status}" change="onFilterChange" width="12rem"
                       items="{view>/statusFilterOptions}">
                 <core:Item key="{view>key}" text="{view>text}"/>
               </Select>
             </VBox>
 
             <VBox>
-              <Label text="{i18n>showChangedOnly}"/>
-              <Switch state="{view>/filters/onlyDirty}" change="onFilterChange"/>
+              <Label id="meOnlyDirtyLabel" text="{i18n>showChangedOnly}"/>
+              <Switch state="{view>/filters/onlyDirty}" change="onFilterChange" ariaLabelledBy="meOnlyDirtyLabel"/>
             </VBox>
 
             <Button
@@ -102,7 +102,7 @@
               press="onToggleBulkApply"/>
             <Button
               icon="sap-icon://action-settings"
-              tooltip="Select Columns"
+              tooltip="{i18n>selectColumns}"
               type="Transparent"
               press="onColumnSelect"/>
           </HBox>

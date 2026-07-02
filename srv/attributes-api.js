@@ -15,6 +15,9 @@
 const cds = require('@sap/cds')
 const express = require('express')
 const XLSX = require('xlsx')
+// SEC: neutralise CSV/XLSX formula injection on user-writable cell values before they reach
+// SheetJS (which does NOT escape a leading = + - @). Reuses the canonical export helper.
+const { neutralizeFormula } = require('./lib/csv-export')
 
 const { SELECT, INSERT } = cds.ql
 // Single source of truth: the generic class/characteristic/value engine lives in the reusable
@@ -306,7 +309,7 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
       }
 
       const idCol = objectType === 'bridge' ? 'bridgeId' : 'restrictionRef'
-      const headers = [idCol, ...attrCols.map(c => c.label)]
+      const headers = [idCol, ...attrCols.map(c => neutralizeFormula(c.label))]  // SEC: neutralise formula injection in labels
       const requiredFlags = ['*', ...attrCols.map(c => c.required ? '*' : '')]
 
       const wb = XLSX.utils.book_new()
@@ -435,9 +438,13 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
               errors.push(`${col.label.split(' (')[0]} is required`)
               continue
             }
-            if ((col.dataType === 'SingleSelect' || col.dataType === 'MultiSelect') && coerced !== null) {
+            // Enforce allowed values whenever the characteristic defines them — for ANY data type,
+            // not only select types (mirrors the interactive save path). Previously a bulk upload
+            // could write an off-list/disabled value into a Text/Number characteristic that carries
+            // an allowed-value list, bypassing Council fix #5 (controlled-vocabulary enforcement).
+            if (Array.isArray(col.allowedValues) && col.allowedValues.length > 0 && coerced !== null && coerced !== '') {
               const allowed = col.allowedValues.map(av => av.value)
-              const selectedValues = col.dataType === 'MultiSelect' ? coerced.split(',').map(value => value.trim()) : [coerced]
+              const selectedValues = col.dataType === 'MultiSelect' ? String(coerced).split(',').map(value => value.trim()) : [coerced]
               for (const selectedValue of selectedValues) {
                 if (!allowed.includes(selectedValue)) errors.push(`${col.label.split(' (')[0]}: "${selectedValue}" is not an allowed value`)
               }
@@ -506,12 +513,14 @@ module.exports = function mountAttributesApi(app, requiresAuthentication, valida
         valueMap.get(exportedCustomField.objectId).set(exportedCustomField.attributeKey, exportDisplayText != null ? String(exportDisplayText) : '')
       }
 
-      const headerRow = [...coreFields, ...attrCols.map(attributeColumn => attributeColumn.label)]
+      // SEC: neutralise formula injection on every cell — headers (admin-authored attribute
+      // labels) and data (user-writable attribute values) alike — before SheetJS builds the sheet.
+      const headerRow = [...coreFields, ...attrCols.map(attributeColumn => neutralizeFormula(attributeColumn.label))]
       const dataRows = objects.map(obj => {
         const objValues = valueMap.get(String(obj[idField])) || new Map()
         return [
-          ...coreFields.map(f => obj[f] != null ? obj[f] : ''),
-          ...attrCols.map(c => objValues.get(c.key) || '')
+          ...coreFields.map(f => neutralizeFormula(obj[f] != null ? obj[f] : '')),
+          ...attrCols.map(c => neutralizeFormula(objValues.get(c.key) || ''))
         ]
       })
 

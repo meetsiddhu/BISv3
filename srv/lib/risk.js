@@ -5,6 +5,12 @@
 // -> 0-100 score -> band. Engineer override keeps manually-set consequence/likelihood.
 // Bands match the RiskBand seed thresholds.
 
+// §4b single-source-of-truth: the legacy-1-10 → 1-5 condition-band mapping lives ONLY in
+// condition-rating.js. Import it so risk likelihood can never drift from the displayed
+// condition band (both used to hand-roll `ceil((11-r)/2)`, which is identical today but
+// would silently diverge if the canonical band boundaries were ever retuned).
+const { legacyToBand } = require('./condition-rating')
+
 // Default bands mirror the RiskBand seed thresholds, so scoring is unchanged when no
 // config is supplied. The RiskBand TABLE is the source of truth (rule 4: config-driven);
 // admin edits flow in via bandsFromConfig(). This array is only the fallback.
@@ -122,8 +128,10 @@ function deriveRisk (b, weights, bands) {
   // Likelihood: worse of condition / structural ratings, each weighted. P3-002: a missing
   // rating defaults to band 3 (Medium) — deliberately neutral, to avoid over- or
   // under-weighting incomplete data (documented in METHODOLOGY.md).
-  const condLk = b.conditionRating != null ? clampRisk(Math.ceil((11 - b.conditionRating) / 2), 1, 5) : 3
-  const strLk  = b.structuralAdequacyRating != null ? clampRisk(Math.ceil((11 - b.structuralAdequacyRating) / 2), 1, 5) : condLk
+  // legacyToBand returns null for an out-of-range/garbage rating; treat that like a MISSING
+  // rating → neutral band 3 (P3-002), never the accidental "best" a null would clamp to.
+  const condLk = b.conditionRating != null ? clampRisk(legacyToBand(b.conditionRating) ?? 3, 1, 5) : 3
+  const strLk  = b.structuralAdequacyRating != null ? clampRisk(legacyToBand(b.structuralAdequacyRating) ?? 3, 1, 5) : condLk
   // P1-001: clamp each weighted likelihood component to [1,5] BEFORE the max, so an
   // out-of-range weight can't push a single component arbitrarily high pre-clamp. The
   // worse (higher) of condition/structural still drives likelihood.

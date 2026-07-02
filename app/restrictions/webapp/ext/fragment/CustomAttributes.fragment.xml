@@ -1,12 +1,7 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
-  <core:HTML id="customAttrsHostRestr" content="
-    &lt;div id='ca-restriction-root' class='sapUiSmallMargin'&gt;&lt;/div&gt;
-    &lt;script&gt;
-      (function() {
-        var customAttributesScript = document.createElement('script');
-        customAttributesScript.src = '../webapp/ext/controller/CustomAttributesRestrInit.js?' + Date.now();
-        document.head.appendChild(customAttributesScript);
-      })();
-    &lt;/script&gt;
-  "/>
+  <!-- Bare host div only. The collector script (CustomAttributesRestrInit.js) is injected
+       once by Component.js via sap.ui.require.toUrl, so its URL resolves correctly on the
+       BTP managed approuter (no "/webapp/" segment) — a fragment-relative <script src> 404s
+       there and left this panel blank. Mirrors the admin-bridges CustomAttributes fragment. -->
+  <core:HTML id="customAttrsHostRestr" content="&lt;div id='ca-restriction-root' role='region' aria-label='Custom attributes' class='sapUiSmallMargin'&gt;&lt;/div&gt;"/>
 </core:FragmentDefinition>

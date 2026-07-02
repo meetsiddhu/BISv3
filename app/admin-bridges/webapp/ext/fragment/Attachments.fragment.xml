@@ -9,17 +9,18 @@
     modelContextChange="Attachments.onContextChange"
     class="sapUiSmallMargin">
     <OverflowToolbar>
-      <Title text="Attachments" level="H3"/>
+      <Title text="{i18n>attachmentsTitle}" level="H3"/>
       <ToolbarSpacer/>
       <Button
         icon="sap-icon://refresh"
         type="Transparent"
-        tooltip="Refresh attachments"
+        tooltip="{i18n>attachmentsRefresh}"
         press="Attachments.onRefresh"/>
       <unified:FileUploader
         id="bridgeAttachmentUploader"
         buttonOnly="true"
-        buttonText="Upload"
+        buttonText="{i18n>attachmentsUpload}"
+        tooltip="{i18n>attachmentsUpload}"
         icon="sap-icon://upload"
         sameFilenameAllowed="true"
         change="Attachments.onFileChange"/>
@@ -27,24 +28,24 @@
     <Table
       id="bridgeAttachmentsTable"
       items="{attachments>/items}"
-      noDataText="No attachments uploaded"
+      noDataText="{i18n>attachmentsNoData}"
       growing="true"
       growingThreshold="20">
       <columns>
         <Column>
-          <Text text="File Name"/>
+          <Text text="{i18n>attachmentsColFileName}"/>
         </Column>
         <Column width="12rem">
-          <Text text="Type"/>
+          <Text text="{i18n>attachmentsColType}"/>
         </Column>
         <Column width="8rem" hAlign="End">
-          <Text text="Size"/>
+          <Text text="{i18n>attachmentsColSize}"/>
         </Column>
         <Column width="12rem">
-          <Text text="Uploaded"/>
+          <Text text="{i18n>attachmentsColUploaded}"/>
         </Column>
         <Column width="8rem" hAlign="End">
-          <Text text="Actions"/>
+          <Text text="{i18n>attachmentsColActions}"/>
         </Column>
       </columns>
       <items>
@@ -58,17 +59,17 @@
               <Button
                 icon="sap-icon://display"
                 type="Transparent"
-                tooltip="Open"
+                tooltip="{i18n>attachmentsOpen}"
                 press="Attachments.onOpen"/>
               <Button
                 icon="sap-icon://download"
                 type="Transparent"
-                tooltip="Download"
+                tooltip="{i18n>attachmentsDownload}"
                 press="Attachments.onDownload"/>
               <Button
                 icon="sap-icon://delete"
                 type="Transparent"
-                tooltip="Delete"
+                tooltip="{i18n>attachmentsDelete}"
                 press="Attachments.onDelete"/>
             </HBox>
           </cells>

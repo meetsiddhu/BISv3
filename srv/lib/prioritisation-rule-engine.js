@@ -51,8 +51,8 @@ const DERIVED = {
   maxOpenDefectSeverity: (ctx) => agg('max', (ctx.defects || []).filter(d => (d.status || 'Open') === 'Open' || d.status === 'InProgress'), 'severity'),
   latestRatingFactor: (ctx) => latest(ctx.capacities || [], 'ratingDate')?.ratingFactor ?? null,
   activeRestrictionCount: (ctx) => (ctx.restrictions || []).filter(r => r.active !== false && (r.restrictionStatus || 'Active') === 'Active').length,
-  bsi: (ctx) => bhiLib.computeBSI(ctx.elements, ctx.bridge?.transportMode, bhiLib.envFromBridge(ctx.bridge)).bsi,
-  bhi: (ctx) => { const r = bhiLib.computeBSI(ctx.elements, ctx.bridge?.transportMode, bhiLib.envFromBridge(ctx.bridge)); return bhiLib.computeBHI(r.bsi, bhiLib.envFromBridge(ctx.bridge)) },
+  bsi: (ctx) => bhiLib.computeBSI(ctx.elements, ctx.bridge?.transportMode, bhiLib.envFromBridge(ctx.bridge), undefined, ctx.bridge?.assetClass).bsi,
+  bhi: (ctx) => { const r = bhiLib.computeBSI(ctx.elements, ctx.bridge?.transportMode, bhiLib.envFromBridge(ctx.bridge), undefined, ctx.bridge?.assetClass); return bhiLib.computeBHI(r.bsi, bhiLib.envFromBridge(ctx.bridge)) },
   conditionTrend: (ctx) => { // condition change per year over inspection history (negative = deteriorating)
     const rows = (ctx.inspections || []).filter(i => has(i.inspectionDate) && has(i.conditionRating))
       .sort((a, b) => String(a.inspectionDate).localeCompare(String(b.inspectionDate)))

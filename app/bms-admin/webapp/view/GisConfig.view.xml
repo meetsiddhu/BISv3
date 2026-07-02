@@ -11,13 +11,13 @@
     <customHeader>
       <Bar>
         <contentLeft>
-          <Title text="GIS Configuration" level="H3" />
+          <Title text="{i18n>admin.gisConfig.title}" level="H3" />
         </contentLeft>
         <contentRight>
-          <Button text="Save"    icon="sap-icon://save"    press=".onSave"    type="Emphasized" />
-          <Button text="Discard" icon="sap-icon://decline"  press=".onDiscard" type="Transparent" class="sapUiSmallMarginBegin" />
-          <Button icon="sap-icon://refresh"  tooltip="Reload from server" press=".onRefresh"   type="Transparent" class="sapUiSmallMarginBegin" />
-          <Button icon="sap-icon://information" tooltip="How to use this page" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
+          <Button text="{i18n>gis.save}"    icon="sap-icon://save"    press=".onSave"    type="Emphasized" />
+          <Button text="{i18n>gis.discard}" icon="sap-icon://decline"  press=".onDiscard" type="Transparent" class="sapUiSmallMarginBegin" />
+          <Button icon="sap-icon://refresh"  tooltip="{i18n>gis.refresh}" press=".onRefresh"   type="Transparent" class="sapUiSmallMarginBegin" />
+          <Button icon="sap-icon://information" tooltip="{i18n>gis.help}" press=".onShowHelp" type="Transparent" class="sapUiSmallMarginBegin" />
         </contentRight>
       </Bar>
     </customHeader>
@@ -26,10 +26,10 @@
       <VBox class="sapUiMediumMargin">
 
         <!-- Basemap settings -->
-        <Panel headerText="Basemap Settings" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>gis.basemapHeader}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <f:SimpleForm layout="ColumnLayout" columnsM="1" columnsL="2" editable="true">
             <f:content>
-              <Label text="Default Basemap" />
+              <Label text="{i18n>gis.defaultBasemap}" />
               <Select id="selBasemap" selectedKey="{config>/defaultBasemap}">
                 <items>
                   <core:Item key="osm"         text="OpenStreetMap" />
@@ -41,69 +41,69 @@
                   <core:Item key="here"         text="HERE Maps" />
                 </items>
               </Select>
-              <Label text="HERE Maps API Key" />
-              <Input id="inpHereApiKey" value="{config>/hereApiKey}" placeholder="Required only for HERE Maps basemap" type="Password" />
+              <Label text="{i18n>gis.hereApiKey}" />
+              <Input id="inpHereApiKey" value="{config>/hereApiKey}" placeholder="{i18n>gis.hereApiKeyPlaceholder}" type="Password" />
             </f:content>
           </f:SimpleForm>
         </Panel>
 
         <!-- Reference layers -->
-        <Panel headerText="Reference Layers" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>gis.referenceLayersHeader}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <f:SimpleForm layout="ColumnLayout" columnsM="1" columnsL="2" editable="true">
             <f:content>
-              <Label text="Show State Boundaries" />
+              <Label text="{i18n>gis.showStateBoundaries}" />
               <Switch id="swStateBoundaries" state="{config>/showStateBoundaries}" />
-              <Label text="Show LGA Boundaries" />
+              <Label text="{i18n>gis.showLgaBoundaries}" />
               <Switch id="swLgaBoundaries" state="{config>/showLgaBoundaries}" />
             </f:content>
           </f:SimpleForm>
         </Panel>
 
         <!-- Advanced features -->
-        <Panel headerText="Advanced Map Features" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>gis.advancedHeader}" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <f:SimpleForm layout="ColumnLayout" columnsM="1" columnsL="2" editable="true">
             <f:content>
-              <Label text="Scale Bar" />
+              <Label text="{i18n>gis.scaleBar}" />
               <Switch id="swScaleBar" state="{config>/enableScaleBar}" />
-              <Label text="GPS / Locate Me" />
+              <Label text="{i18n>gis.gps}" />
               <Switch id="swGps" state="{config>/enableGps}" />
-              <Label text="Mini-map" />
+              <Label text="{i18n>gis.minimap}" />
               <Switch id="swMinimap" state="{config>/enableMinimap}" />
-              <Label text="Heatmap Layer" />
+              <Label text="{i18n>gis.heatmap}" />
               <Switch id="swHeatmap" state="{config>/enableHeatmap}" />
-              <Label text="Time Slider" />
+              <Label text="{i18n>gis.timeSlider}" />
               <Switch id="swTimeSlider" state="{config>/enableTimeSlider}" />
-              <Label text="Stats Panel" />
+              <Label text="{i18n>gis.statsPanel}" />
               <Switch id="swStatsPanel" state="{config>/enableStatsPanel}" />
-              <Label text="Proximity Search" />
+              <Label text="{i18n>gis.proximity}" />
               <Switch id="swProximity" state="{config>/enableProximity}" />
-              <Label text="MGA Coordinates" />
+              <Label text="{i18n>gis.mgaCoords}" />
               <Switch id="swMgaCoords" state="{config>/enableMgaCoords}" />
-              <Label text="Street View" />
+              <Label text="{i18n>gis.streetView}" />
               <Switch id="swStreetView" state="{config>/enableStreetView}" />
-              <Label text="Condition Alerts" />
+              <Label text="{i18n>gis.conditionAlerts}" />
               <Switch id="swConditionAlerts" state="{config>/enableConditionAlerts}" />
-              <Label text="Custom WMS Layers" />
+              <Label text="{i18n>gis.customWms}" />
               <Switch id="swCustomWms" state="{config>/enableCustomWms}" />
-              <Label text="Server-side Clustering" />
+              <Label text="{i18n>gis.serverClustering}" />
               <Switch id="swServerClustering" state="{config>/enableServerClustering}" />
             </f:content>
           </f:SimpleForm>
         </Panel>
 
         <!-- Thresholds -->
-        <Panel headerText="Thresholds &amp; Defaults" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
+        <Panel headerText="{i18n>gis.thresholdsHeader}" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
           <f:SimpleForm layout="ColumnLayout" columnsM="1" columnsL="2" editable="true">
             <f:content>
-              <Label text="Condition Alert Threshold (1–10)" />
+              <Label text="{i18n>gis.conditionAlertThreshold}" />
               <StepInput id="siConditionAlert" value="{config>/conditionAlertThreshold}" min="1" max="10" step="1" />
-              <Label text="Proximity Default Radius (km)" />
+              <Label text="{i18n>gis.proximityRadius}" />
               <StepInput id="siProximityRadius" value="{config>/proximityDefaultRadiusKm}" min="1" max="500" step="5" />
-              <Label text="Heatmap Radius (px)" />
+              <Label text="{i18n>gis.heatmapRadius}" />
               <StepInput id="siHeatmapRadius" value="{config>/heatmapRadius}" min="5" max="80" step="5" />
-              <Label text="Heatmap Blur (px)" />
+              <Label text="{i18n>gis.heatmapBlur}" />
               <StepInput id="siHeatmapBlur" value="{config>/heatmapBlur}" min="5" max="50" step="5" />
-              <Label text="Viewport Loading Zoom Level" />
+              <Label text="{i18n>gis.viewportZoom}" />
               <StepInput id="siViewportZoom" value="{config>/viewportLoadingZoom}" min="6" max="14" step="1" />
             </f:content>
           </f:SimpleForm>
@@ -113,22 +113,22 @@
         <Panel expandable="true" expanded="true" class="sapUiSmallMarginBottom">
           <headerToolbar>
             <OverflowToolbar>
-              <Title text="Reference Layer Library" level="H4" />
+              <Title text="{i18n>gis.refLayerLibrary}" level="H4" />
               <ToolbarSpacer />
-              <Button icon="sap-icon://add" text="Add Custom Layer" press=".onAddRefLayer" type="Default" />
+              <Button icon="sap-icon://add" text="{i18n>gis.addCustomLayer}" press=".onAddRefLayer" type="Default" />
             </OverflowToolbar>
           </headerToolbar>
           <VBox class="sapUiSmallMargin">
-            <Text text="Enable layers to make them available in the Map View Reference Layers panel. Preset layers (🔒) cannot be deleted: only activated or deactivated. Layers enabled by default will be switched on when users first open the map." class="sapUiSmallMarginBottom" wrapping="true" />
-            <Table id="tblRefLayers" items="{refLayers>/layers}" noDataText="No reference layers configured." growing="true" growingThreshold="20">
+            <Text text="{i18n>gis.refLayerHint}" class="sapUiSmallMarginBottom" wrapping="true" />
+            <Table id="tblRefLayers" items="{refLayers>/layers}" noDataText="{i18n>gis.noRefLayers}" growing="true" growingThreshold="20">
               <columns>
-                <Column width="3rem" hAlign="Center"><Text text="On"/></Column>
-                <Column width="8rem"><Text text="Category"/></Column>
-                <Column><Text text="Name"/></Column>
-                <Column width="4rem"><Text text="Type"/></Column>
-                <Column><Text text="Description"/></Column>
-                <Column width="5rem" hAlign="Center"><Text text="Default On"/></Column>
-                <Column width="6rem" hAlign="Center"><Text text="Actions"/></Column>
+                <Column width="3rem" hAlign="Center"><Text text="{i18n>gis.col.on}"/></Column>
+                <Column width="8rem"><Text text="{i18n>gis.col.category}"/></Column>
+                <Column><Text text="{i18n>gis.col.name}"/></Column>
+                <Column width="4rem"><Text text="{i18n>gis.col.type}"/></Column>
+                <Column><Text text="{i18n>gis.col.description}"/></Column>
+                <Column width="5rem" hAlign="Center"><Text text="{i18n>gis.col.defaultOn}"/></Column>
+                <Column width="6rem" hAlign="Center"><Text text="{i18n>gis.col.actions}"/></Column>
               </columns>
               <items>
                 <ColumnListItem>
@@ -143,9 +143,9 @@
                     <Text text="{refLayers>description}" maxLines="2" wrapping="true" />
                     <Switch state="{refLayers>enabledByDefault}" change=".onToggleRefLayerDefault" />
                     <HBox>
-                      <Button icon="sap-icon://edit" type="Transparent" tooltip="Edit layer" press=".onEditRefLayer" visible="{= !${refLayers>isPreset} }" />
-                      <Button icon="sap-icon://locked" type="Transparent" tooltip="System preset: cannot be deleted" visible="{refLayers>isPreset}" enabled="false" />
-                      <Button icon="sap-icon://delete" type="Transparent" tooltip="Delete layer" press=".onDeleteRefLayer" visible="{= !${refLayers>isPreset} }" />
+                      <Button icon="sap-icon://edit" type="Transparent" tooltip="{i18n>gis.editLayer}" press=".onEditRefLayer" visible="{= !${refLayers>isPreset} }" />
+                      <Button icon="sap-icon://locked" type="Transparent" tooltip="{i18n>gis.presetCannotDelete}" visible="{refLayers>isPreset}" enabled="false" />
+                      <Button icon="sap-icon://delete" type="Transparent" tooltip="{i18n>gis.deleteLayer}" press=".onDeleteRefLayer" visible="{= !${refLayers>isPreset} }" />
                     </HBox>
                   </cells>
                 </ColumnListItem>
@@ -155,31 +155,31 @@
         </Panel>
 
         <!-- Custom WMS layers -->
-        <Panel headerText="Custom WMS Layers" expandable="true" expanded="false"
+        <Panel headerText="{i18n>gis.customWmsHeader}" expandable="true" expanded="false"
                visible="{config>/enableCustomWms}" class="sapUiSmallMarginBottom">
           <headerToolbar>
             <Toolbar>
-              <Title text="WMS Layer List" level="H4" />
+              <Title text="{i18n>gis.wmsLayerList}" level="H4" />
               <ToolbarSpacer />
-              <Button icon="sap-icon://add" text="Add Layer" press=".onAddCustomWms" />
+              <Button icon="sap-icon://add" text="{i18n>gis.addLayer}" press=".onAddCustomWms" />
             </Toolbar>
           </headerToolbar>
           <content>
-            <Text text="Add external WMS tile services to appear as toggleable overlays in the Bridge Map." class="sapUiSmallMargin" />
-            <Table id="tblCustomWms" items="{config>/customWmsLayers}" noDataText="No custom WMS layers defined. Click Add Layer to create one.">
+            <Text text="{i18n>gis.customWmsHint}" class="sapUiSmallMargin" />
+            <Table id="tblCustomWms" items="{config>/customWmsLayers}" noDataText="{i18n>gis.noCustomWms}">
               <columns>
-                <Column><Text text="Layer Name" /></Column>
-                <Column><Text text="WMS URL" /></Column>
-                <Column><Text text="Layer Names" /></Column>
-                <Column width="4rem" hAlign="Center"><Text text="Del" /></Column>
+                <Column><Text text="{i18n>gis.col.layerName}" /></Column>
+                <Column><Text text="{i18n>gis.col.wmsUrl}" /></Column>
+                <Column><Text text="{i18n>gis.col.layerNames}" /></Column>
+                <Column width="4rem" hAlign="Center"><Text text="{i18n>gis.col.del}" /></Column>
               </columns>
               <items>
                 <ColumnListItem>
                   <cells>
-                    <Input value="{config>label}" placeholder="Display name" />
+                    <Input value="{config>label}" placeholder="{i18n>gis.wmsDisplayNamePlaceholder}" />
                     <Input value="{config>url}" placeholder="https://..." />
-                    <Input value="{config>layers}" placeholder="layer1,layer2" />
-                    <Button icon="sap-icon://delete" type="Transparent" press=".onDeleteCustomWms" />
+                    <Input value="{config>layers}" placeholder="{i18n>gis.wmsLayersPlaceholder}" />
+                    <Button icon="sap-icon://delete" type="Transparent" tooltip="{i18n>gis.deleteLayer}" press=".onDeleteCustomWms" />
                   </cells>
                 </ColumnListItem>
               </items>

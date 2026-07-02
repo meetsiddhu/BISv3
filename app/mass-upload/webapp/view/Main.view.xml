@@ -14,7 +14,7 @@
           <Title text="{i18n>appTitle}" level="H1" />
         </f:heading>
         <f:actions>
-          <Button icon="sap-icon://information" tooltip="How to use Mass Upload" press=".onShowHelp" type="Transparent" />
+          <Button icon="sap-icon://information" tooltip="{i18n>helpTooltip}" press=".onShowHelp" type="Transparent" />
         </f:actions>
       </f:DynamicPageTitle>
     </f:title>
@@ -107,7 +107,7 @@
                         </headerToolbar>
                         <columns>
                           <Column width="6rem"><Text text="{i18n>previewColRow}" /></Column>
-                          <Column width="10rem"><Text text="Sheet" /></Column>
+                          <Column width="10rem"><Text text="{i18n>previewColSheet}" /></Column>
                           <Column><Text text="{view>/previewColHdr1}" /></Column>
                           <Column><Text text="{view>/previewColHdr2}" /></Column>
                           <Column width="30rem"><Text text="{view>/previewColHdr3}" /></Column>
@@ -253,7 +253,7 @@
               <IconTabFilter id="tabHistory" key="history" text="{i18n>tabHistory}" icon="sap-icon://history">
                 <VBox class="sapUiSmallMargin">
                   <Toolbar class="sapUiSmallMarginBottom">
-                    <Label text="{i18n>historyFilterType}" class="sapUiSmallMarginEnd" />
+                    <Label text="{i18n>historyFilterType}" labelFor="historyTypeFilter" class="sapUiSmallMarginEnd" />
                     <Select
                       id="historyTypeFilter"
                       selectedKey="{view>/historyFilter}"
@@ -310,16 +310,16 @@
                   <MessageStrip text="{i18n>adminReportInfo}" type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
                   <VBox class="sapUiSmallMarginBottom">
                     <HBox alignItems="Center" class="sapUiTinyMarginBottom" wrap="Wrap">
-                      <Label text="{i18n>adminReportFrom}" width="8rem" />
-                      <DatePicker value="{view>/adminReport/fromDate}" valueFormat="yyyy-MM-dd" displayFormat="dd MMM yyyy" width="12rem" />
+                      <Label text="{i18n>adminReportFrom}" labelFor="adminReportFromDate" width="8rem" />
+                      <DatePicker id="adminReportFromDate" value="{view>/adminReport/fromDate}" valueFormat="yyyy-MM-dd" displayFormat="dd MMM yyyy" width="12rem" />
                     </HBox>
                     <HBox alignItems="Center" class="sapUiTinyMarginBottom" wrap="Wrap">
-                      <Label text="{i18n>adminReportTo}" width="8rem" />
-                      <DatePicker value="{view>/adminReport/toDate}" valueFormat="yyyy-MM-dd" displayFormat="dd MMM yyyy" width="12rem" />
+                      <Label text="{i18n>adminReportTo}" labelFor="adminReportToDate" width="8rem" />
+                      <DatePicker id="adminReportToDate" value="{view>/adminReport/toDate}" valueFormat="yyyy-MM-dd" displayFormat="dd MMM yyyy" width="12rem" />
                     </HBox>
                     <HBox alignItems="Center" wrap="Wrap">
-                      <Label text="{i18n>historyFilterType}" width="8rem" />
-                      <Select selectedKey="{view>/adminReport/dataset}" width="16rem" items="{view>/historyFilterOptions}">
+                      <Label text="{i18n>historyFilterType}" labelFor="adminReportDatasetSelect" width="8rem" />
+                      <Select id="adminReportDatasetSelect" selectedKey="{view>/adminReport/dataset}" width="16rem" items="{view>/historyFilterOptions}">
                         <core:Item key="{view>name}" text="{view>label}" />
                       </Select>
                     </HBox>
@@ -366,43 +366,43 @@
                 </VBox>
               </IconTabFilter>
 
-              <IconTabFilter id="tabAttributes" key="attributes" text="Custom Attributes" icon="sap-icon://customize">
+              <IconTabFilter id="tabAttributes" key="attributes" text="{i18n>attrTabTitle}" icon="sap-icon://customize">
                 <VBox class="sapUiSmallMargin">
                   <MessageStrip
-                    text="Bulk create or update custom attribute values. Pick the object type, download the template, fill in a value per record, then upload. Matching is by Bridge ID / Restriction Ref."
+                    text="{i18n>attrInfo}"
                     type="Information" showIcon="true" class="sapUiSmallMarginBottom" />
                   <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginBottom">
-                    <Label text="Object Type" width="8rem" />
-                    <SegmentedButton selectedKey="{view>/attr/objectType}">
+                    <Label id="attrObjectTypeLabel" text="{i18n>attrObjectType}" width="8rem" />
+                    <SegmentedButton selectedKey="{view>/attr/objectType}" ariaLabelledBy="attrObjectTypeLabel">
                       <items>
-                        <SegmentedButtonItem key="bridge" text="Bridge" />
-                        <SegmentedButtonItem key="restriction" text="Restriction" />
+                        <SegmentedButtonItem key="bridge" text="{i18n>attrObjectBridge}" />
+                        <SegmentedButtonItem key="restriction" text="{i18n>attrObjectRestriction}" />
                       </items>
                     </SegmentedButton>
                     <ToolbarSpacer />
-                    <Button text="Download Template" icon="sap-icon://download" press=".onAttrTemplateDownload" type="Transparent" />
+                    <Button text="{i18n>attrDownloadTemplate}" icon="sap-icon://download" press=".onAttrTemplateDownload" type="Transparent" />
                   </HBox>
-                  <Panel headerText="Upload filled template" class="sapUiSmallMarginBottom">
+                  <Panel headerText="{i18n>attrUploadPanelTitle}" class="sapUiSmallMarginBottom">
                     <VBox>
-                      <unified:FileUploader name="attrUpload" fileType="xlsx,csv" placeholder="Choose .xlsx or .csv file…"
-                        change=".onAttrFileChange" buttonText="Browse" width="100%" />
-                      <Button text="Import Values" icon="sap-icon://upload" type="Emphasized"
+                      <unified:FileUploader name="attrUpload" fileType="xlsx,csv" placeholder="{i18n>attrFilePlaceholder}"
+                        change=".onAttrFileChange" buttonText="{i18n>attrBrowse}" width="100%" />
+                      <Button text="{i18n>attrImportValues}" icon="sap-icon://upload" type="Emphasized"
                         press=".onAttrImport" enabled="{view>/attr/hasFile}" class="sapUiSmallMarginTop" />
                     </VBox>
                   </Panel>
-                  <Panel headerText="Result" visible="{view>/attr/resultVisible}">
+                  <Panel headerText="{i18n>attrResultTitle}" visible="{view>/attr/resultVisible}">
                     <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
-                      <ObjectStatus title="Created" text="{view>/attr/result/created}" state="Success" class="sapUiMediumMarginEnd" />
-                      <ObjectStatus title="Updated" text="{view>/attr/result/updated}" state="Warning" class="sapUiMediumMarginEnd" />
-                      <ObjectStatus title="Skipped" text="{view>/attr/result/skipped}" state="None" class="sapUiMediumMarginEnd" />
-                      <ObjectStatus title="Errors" text="{view>/attr/result/errors}" state="Error" />
+                      <ObjectStatus title="{i18n>attrCreated}" text="{view>/attr/result/created}" state="Success" class="sapUiMediumMarginEnd" />
+                      <ObjectStatus title="{i18n>attrUpdated}" text="{view>/attr/result/updated}" state="Warning" class="sapUiMediumMarginEnd" />
+                      <ObjectStatus title="{i18n>attrSkipped}" text="{view>/attr/result/skipped}" state="None" class="sapUiMediumMarginEnd" />
+                      <ObjectStatus title="{i18n>attrErrors}" text="{view>/attr/result/errors}" state="Error" />
                     </HBox>
-                    <Table items="{view>/attr/result/rows}" mode="None" noDataText="No row details" growing="true" growingThreshold="50">
+                    <Table items="{view>/attr/result/rows}" mode="None" noDataText="{i18n>attrNoRowDetails}" growing="true" growingThreshold="50">
                       <columns>
-                        <Column width="5rem"><Text text="Row" /></Column>
-                        <Column><Text text="Reference" /></Column>
-                        <Column width="8rem"><Text text="Status" /></Column>
-                        <Column><Text text="Message" /></Column>
+                        <Column width="5rem"><Text text="{i18n>attrColRow}" /></Column>
+                        <Column><Text text="{i18n>attrColReference}" /></Column>
+                        <Column width="8rem"><Text text="{i18n>attrColStatus}" /></Column>
+                        <Column><Text text="{i18n>attrColMessage}" /></Column>
                       </columns>
                       <items>
                         <ColumnListItem>
