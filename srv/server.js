@@ -25,6 +25,14 @@ const { normalizeMassEditValue: _normalizeMassEditValue } = require('./lib/mass-
 
 const { SELECT, INSERT, UPDATE, DELETE } = cds.ql
 
+// App version for /health — read from package.json directly so it is correct regardless of
+// how the process is launched (`npm start` sets npm_package_version; a bare `cds serve` does
+// not, which previously made /health report a misleading '1.0.0').
+const APP_VERSION = (() => {
+  try { return require('../package.json').version || process.env.npm_package_version || '0.0.0' }
+  catch (_e) { return process.env.npm_package_version || '0.0.0' }
+})()
+
 // ── Process-level safety net (P2-001) ────────────────────────────────────────
 // A single malformed request (e.g. a bad OData `/$count` path segment) must never
 // take down the whole srv instance. Log via cds.log for observability and keep the
@@ -34,6 +42,16 @@ const _bootLog = cds.log('server')
 // is undefined and a failing audit write would throw a ReferenceError, turning a
 // recoverable logging path into a silent black hole over the audit trail.
 const LOG = cds.log('bms')
+
+// P2-001 (UAT 2026-06-22): send a JSON error WITHOUT leaking internal detail. The full
+// error is logged server-side (observability) and only the caller-supplied friendly
+// message reaches the client. Use for 5xx where `err` may originate from a library
+// (DB driver, xlsx parser, fetch) whose .message could expose paths/SQL/internal URLs.
+// 4xx app-authored validation messages are returned directly elsewhere (they are safe).
+function sendError (res, status, friendly, err) {
+  if (err) LOG.error(friendly + ':', err && err.stack ? err.stack : err)
+  return res.status(status).json({ error: { message: friendly } })
+}
 process.on('uncaughtException', (err) => {
   _bootLog.error('uncaughtException (kept alive):', err && err.stack ? err.stack : err)
 })
@@ -1367,6 +1385,58 @@ const _jwtDecodeScopes = (authHeader) => {
   } catch { return [] }
 }
 
+// ── XSUAA cryptographic token verification for custom Express routes (SEC-P1) ──
+// GO-LIVE-READINESS §1 / SEC-P1: the custom Express routers register on
+// cds.on('bootstrap'), BEFORE CAP's XSUAA middleware, so a Bearer token reaching
+// them was otherwise only *decoded*, never signature-verified. Any of these routes
+// exposed on a directly-reachable srv URL would accept a FORGED token carrying an
+// admin scope. We close that gap by verifying the JWT signature ourselves via
+// @sap/xssec, using the bound XSUAA instance's credentials. Dummy (local/test)
+// auth is left untouched so the Jest suite is unaffected.
+//
+// _getXsuaaService: lazily constructs (once) the @sap/xssec XsuaaService used to
+// verify tokens. Returns null in dummy auth or when no usable XSUAA binding exists
+// — in the latter (a real misconfiguration) the caller FAILS CLOSED rather than
+// falling back to trusting an unverified token.
+let _xsuaaServiceResolved = false
+let _xsuaaServiceInstance = null
+const _getXsuaaService = () => {
+  if (_xsuaaServiceResolved) return _xsuaaServiceInstance
+  _xsuaaServiceResolved = true
+  try {
+    if (_isDummyAuth) return (_xsuaaServiceInstance = null)
+    // Prefer CAP's parsed auth credentials; fall back to VCAP_SERVICES.xsuaa[0].
+    let creds = cds.env.requires?.auth?.credentials
+    if (!creds && process.env.VCAP_SERVICES) {
+      const vcap = JSON.parse(process.env.VCAP_SERVICES)
+      creds = (vcap.xsuaa || [])[0]?.credentials
+    }
+    if (!creds || !creds.clientid || !creds.url) {
+      cds.log('auth').error('XSUAA credentials not found — custom-route token verification cannot initialise; requests will be rejected (fail-closed)')
+      return (_xsuaaServiceInstance = null)
+    }
+    const { XsuaaService } = require('@sap/xssec')
+    _xsuaaServiceInstance = new XsuaaService(creds)
+    cds.log('auth').info('XSUAA token verification enabled for custom Express routes')
+  } catch (e) {
+    cds.log('auth').error('Failed to initialise XSUAA verification service (fail-closed):', e.message)
+    _xsuaaServiceInstance = null
+  }
+  return _xsuaaServiceInstance
+}
+
+// _verifyXsuaaToken: cryptographically verify the request's Bearer token against
+// the bound XSUAA instance. Resolves to the @sap/xssec security context on success;
+// throws (invalid/expired/forged token, or verifier unavailable) otherwise. Passing
+// { req } lets @sap/xssec extract the Bearer token, correlation id and any forwarded
+// client certificate itself.
+const _verifyXsuaaToken = async (req) => {
+  const xsuaa = _getXsuaaService()
+  if (!xsuaa) { const e = new Error('XSUAA verifier unavailable'); e.code = 'AUTH_UNAVAILABLE'; throw e }
+  const { createSecurityContext } = require('@sap/xssec')
+  return createSecurityContext(xsuaa, { req })
+}
+
 cds.on('bootstrap', (app) => {
   // ── Correlation ID (observability) ───────────────────────────────────────
   // Assign a correlation ID to every request so logs from a single user action
@@ -1401,31 +1471,29 @@ cds.on('bootstrap', (app) => {
     res.json({
       status: 'UP',
       ts: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0',
+      version: APP_VERSION,
       env: process.env.NODE_ENV || 'development'
     })
   })
 
   // ── Security middleware ────────────────────────────────────────────────────
 
-  // FIX 3: Authentication guard — blocks unauthenticated requests in production.
-  // In dev (no XSUAA bound) req.user is absent; allow through with a warning.
-  // UAT-FIX-4: Also accept requests with a Bearer token header. CAP's XSUAA middleware
-  // sets req.user for OData routes only. For custom Express routes added in cds.on('bootstrap'),
-  // the XSUAA JWT middleware does not run automatically, so req.user / req.tokenInfo are
-  // not set even for valid XSUAA tokens. Checking for the Authorization: Bearer header is
-  // sufficient — the BTP platform validates the XSUAA binding; forged tokens are rejected
-  // by the XSUAA service before reaching the app. req.authInfo is also checked in case
-  // @sap/xssec has already parsed the token.
-  // In CDS dummy-auth (dev), req.user is set by CDS OData middleware but NOT for custom Express
-  // routes added in bootstrap — those fire before CDS auth runs. Detect dummy mode and set a
-  // dev user from the Basic auth header (or fall back to 'alice') so custom API routes work.
-  // NOTE: _isDummyAuth is defined at module scope above.
+  // FIX 3 / SEC-P1: Authentication guard for the custom Express routers, which run
+  // in cds.on('bootstrap') BEFORE CAP's XSUAA middleware, so CAP never validates their
+  // tokens. Two paths:
+  //   • Dummy auth (local/test): unchanged — derive a dev user from the Basic auth header
+  //     (or default to 'alice') so custom API routes work without a real IdP.
+  //   • XSUAA (prod/test on BTP): cryptographically verify the Bearer token via @sap/xssec
+  //     (_verifyXsuaaToken). A present-but-forged/expired token is now REJECTED instead of
+  //     trusted on mere header presence (the GO-LIVE §1 gap). The verified security context
+  //     is attached to req so requiresScope reads authentic scopes, and req.user.id carries
+  //     the real logon name for the ChangeLog audit trail. Fail-closed if the verifier can't
+  //     initialise (missing/mis-shaped binding) — MUST be smoke-tested on BTP `test` first.
+  // NOTE: _isDummyAuth / _verifyXsuaaToken are defined at module scope above.
 
-  const requiresAuthentication = (req, res, next) => {
-    if (req.user || req.tokenInfo || req.authInfo) return next()
-    if ((req.headers.authorization || '').startsWith('Bearer ')) return next()
+  const requiresAuthentication = async (req, res, next) => {
     if (_isDummyAuth) {
+      if (req.user || req.tokenInfo || req.authInfo) return next()
       const auth = req.headers.authorization || ''
       if (auth.startsWith('Basic ')) {
         const username = Buffer.from(auth.slice(6), 'base64').toString().split(':')[0]
@@ -1436,7 +1504,25 @@ cds.on('bootstrap', (app) => {
       }
       return next()
     }
-    return res.status(401).json({ error: 'Authentication required', code: 'UNAUTHENTICATED' })
+    // XSUAA path — verify the JWT signature ourselves (CAP's middleware hasn't run yet).
+    const authHeader = req.headers.authorization || ''
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required', code: 'UNAUTHENTICATED' })
+    }
+    try {
+      const securityContext = await _verifyXsuaaToken(req)
+      req.xssecContext = securityContext
+      req.authInfo = securityContext
+      if (!req.user) req.user = { id: securityContext.token?.logonName || securityContext.token?.clientId || 'xsuaa-user' }
+      return next()
+    } catch (err) {
+      if (err.code === 'AUTH_UNAVAILABLE') {
+        cds.log('auth').error('Rejecting request: XSUAA verifier unavailable (fail-closed)', { correlationId: req.correlationId })
+        return res.status(401).json({ error: 'Authentication unavailable', code: 'AUTH_UNAVAILABLE' })
+      }
+      cds.log('auth').warn('JWT verification failed for custom route', { statusCode: err.statusCode, correlationId: req.correlationId })
+      return res.status(401).json({ error: 'Invalid or expired token', code: 'TOKEN_INVALID' })
+    }
   }
 
   // SEC-T1/T2: scope guard for custom Express mutation routers (which run before CDS
@@ -1450,9 +1536,15 @@ cds.on('bootstrap', (app) => {
       const ok = roles.includes('Admin') || roles.map(r => String(r).toLowerCase()).includes(scope)
       return ok ? next() : res.status(403).json({ error: 'Forbidden', code: 'SCOPE_REQUIRED', scope })
     }
-    return _jwtHasScope(req.headers.authorization, scope)
-      ? next()
-      : res.status(403).json({ error: 'Forbidden', code: 'SCOPE_REQUIRED', scope })
+    // SEC-P1: prefer the scopes from the @sap/xssec security context that
+    // requiresAuthentication verified upstream (authentic, signature-checked).
+    // checkLocalScope() matches the scope suffix ignoring the xsappname prefix,
+    // mirroring _jwtHasScope's '.<scope>' rule. Fall back to the raw decode only
+    // if no verified context is present (should not happen — auth runs first).
+    const ok = req.xssecContext
+      ? req.xssecContext.checkLocalScope(scope)
+      : _jwtHasScope(req.headers.authorization, scope)
+    return ok ? next() : res.status(403).json({ error: 'Forbidden', code: 'SCOPE_REQUIRED', scope })
   }
 
   const validateCsrfToken = (req, res, next) => {
@@ -1501,7 +1593,7 @@ cds.on('bootstrap', (app) => {
       const rows = await getUploadHistory()
       res.json({ rows })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load upload history' } })
+      sendError(res, 500, 'Failed to load upload history', error)
     }
   })
 
@@ -1520,7 +1612,7 @@ cds.on('bootstrap', (app) => {
       res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`)
       res.send(content)
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to download source file' } })
+      sendError(res, 500, 'Failed to download source file', error)
     }
   })
 
@@ -1531,7 +1623,7 @@ cds.on('bootstrap', (app) => {
       res.setHeader('Content-Disposition', 'attachment; filename="BridgeManagement-MassUploadTemplate.xlsx"')
       res.send(content)
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to generate workbook template' } })
+      sendError(res, 500, 'Failed to generate workbook template', error)
     }
   })
 
@@ -1543,7 +1635,7 @@ cds.on('bootstrap', (app) => {
       res.setHeader('Content-Disposition', `attachment; filename="${dataset || 'lookup-template'}.csv"`)
       res.send(content)
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to generate CSV template' } })
+      sendError(res, 500, 'Failed to generate CSV template', error)
     }
   })
 
@@ -1628,7 +1720,7 @@ cds.on('bootstrap', (app) => {
       const data = await loadDashboardAnalytics()
       res.json(data)
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load analytics' } })
+      sendError(res, 500, 'Failed to load analytics', error)
     }
   }
   dashboardRouter.get('/analytics', dashboardHandler)
@@ -1647,7 +1739,7 @@ cds.on('bootstrap', (app) => {
       const bridges = await loadMapBridges({ bbox })
       res.json({ bridges })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load bridge map data' } })
+      sendError(res, 500, 'Failed to load bridge map data', error)
     }
   })
 
@@ -1660,7 +1752,7 @@ cds.on('bootstrap', (app) => {
       const restrictions = await loadMapRestrictions({ bbox });
       res.json({ restrictions });
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load restriction map data' } });
+      sendError(res, 500, 'Failed to load restriction map data', error);
     }
   });
 
@@ -1754,7 +1846,7 @@ cds.on('bootstrap', (app) => {
       res.setHeader('Content-Disposition', 'attachment; filename="bridges.geojson"');
       res.json(geojson);
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Export failed' } });
+      sendError(res, 500, 'Export failed', error);
     }
   });
 
@@ -1763,7 +1855,7 @@ cds.on('bootstrap', (app) => {
       const result = await loadClusters({ bbox: req.query.bbox, zoom: req.query.zoom });
       res.json(result);
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load cluster data' } });
+      sendError(res, 500, 'Failed to load cluster data', error);
     }
   });
 
@@ -1775,8 +1867,10 @@ cds.on('bootstrap', (app) => {
       const bridges = await loadProximityBridges({ lat, lng, radiusKm });
       res.json({ bridges, searchCenter: { lat: Number(lat), lng: Number(lng) }, radiusKm: Number(radiusKm) });
     } catch (error) {
-      res.status(error.message.includes('required') ? 400 : 500)
-         .json({ error: { message: error.message || 'Proximity search failed' } });
+      if (error.message && error.message.includes('required')) {
+        return res.status(400).json({ error: { message: error.message } });
+      }
+      return sendError(res, 500, 'Proximity search failed', error);
     }
   });
 
@@ -1806,7 +1900,7 @@ cds.on('bootstrap', (app) => {
       }
       res.json(cfg);
     } catch (err) {
-      res.status(500).json({ error: { message: err.message || 'Failed to load GIS config' } });
+      sendError(res, 500, 'Failed to load GIS config', err);
     }
   });
 
@@ -1860,7 +1954,7 @@ cds.on('bootstrap', (app) => {
       })
       res.json({ generatedAt: new Date().toISOString(), count: feed.length, mode: mode || 'all', restrictions: feed })
     } catch (err) {
-      res.status(500).json({ error: { message: err.message || 'Failed to build route feed' } })
+      sendError(res, 500, 'Failed to build route feed', err)
     }
   })
   app.use('/restrictions/api', requiresAuthentication, routeFeedRouter)
@@ -1873,7 +1967,7 @@ cds.on('bootstrap', (app) => {
       const lookups = await loadMassEditLookups()
       res.json(lookups)
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load mass edit lookups' } })
+      sendError(res, 500, 'Failed to load mass edit lookups', error)
     }
   })
 
@@ -1882,7 +1976,7 @@ cds.on('bootstrap', (app) => {
       const bridges = await loadMassEditBridges()
       res.json({ bridges })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load bridges for mass edit' } })
+      sendError(res, 500, 'Failed to load bridges for mass edit', error)
     }
   })
 
@@ -1891,7 +1985,7 @@ cds.on('bootstrap', (app) => {
       const restrictions = await loadMassEditRestrictions()
       res.json({ restrictions })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load restrictions for mass edit' } })
+      sendError(res, 500, 'Failed to load restrictions for mass edit', error)
     }
   })
 
@@ -1900,7 +1994,7 @@ cds.on('bootstrap', (app) => {
       const inspections = await loadMassEditInspections()
       res.json({ inspections })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load inspections for mass edit' } })
+      sendError(res, 500, 'Failed to load inspections for mass edit', error)
     }
   })
 
@@ -1909,7 +2003,7 @@ cds.on('bootstrap', (app) => {
       const defects = await loadMassEditDefects()
       res.json({ defects })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load defects for mass edit' } })
+      sendError(res, 500, 'Failed to load defects for mass edit', error)
     }
   })
 
@@ -1918,7 +2012,7 @@ cds.on('bootstrap', (app) => {
       const capacities = await loadMassEditCapacities()
       res.json({ capacities })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load capacities for mass edit' } })
+      sendError(res, 500, 'Failed to load capacities for mass edit', error)
     }
   })
 
@@ -1927,7 +2021,7 @@ cds.on('bootstrap', (app) => {
       const dropdowns = await loadMassEditDropdownValues()
       res.json({ dropdowns })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load dropdown values for mass edit' } })
+      sendError(res, 500, 'Failed to load dropdown values for mass edit', error)
     }
   })
 
@@ -2037,7 +2131,7 @@ cds.on('bootstrap', (app) => {
       const merged = await changeDocs.buildChangeDocuments(db, { ...changeDocOpts(req.query), maxRows })
       res.json({ changes: merged })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load change log' } })
+      sendError(res, 500, 'Failed to load change log', error)
     }
   })
 
@@ -2051,7 +2145,7 @@ cds.on('bootstrap', (app) => {
       res.setHeader('Content-Disposition', 'attachment; filename="change-documents.csv"')
       res.send(changeDocs.toCsv(merged))
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to export change log' } })
+      sendError(res, 500, 'Failed to export change log', error)
     }
   })
 
@@ -2071,7 +2165,7 @@ cds.on('bootstrap', (app) => {
         topUsers: recentUsers || []
       })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load audit summary' } })
+      sendError(res, 500, 'Failed to load audit summary', error)
     }
   })
 
@@ -2090,7 +2184,7 @@ cds.on('bootstrap', (app) => {
       )
       res.json({ users: users || [] })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message } })
+      sendError(res, 500, 'Internal server error', error)
     }
   })
 
@@ -2110,7 +2204,7 @@ cds.on('bootstrap', (app) => {
         activeThisWeek: Number(activeThisWeek?.cnt || 0)
       })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message } })
+      sendError(res, 500, 'Internal server error', error)
     }
   })
 
@@ -2277,7 +2371,7 @@ cds.on('bootstrap', (app) => {
         byCategory
       })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load quality summary' } })
+      sendError(res, 500, 'Failed to load quality summary', error)
     }
   })
 
@@ -2334,7 +2428,7 @@ cds.on('bootstrap', (app) => {
 
       res.json({ bridges: results })
     } catch (error) {
-      res.status(500).json({ error: { message: error.message || 'Failed to load quality issues' } })
+      sendError(res, 500, 'Failed to load quality issues', error)
     }
   })
 
@@ -2351,7 +2445,7 @@ cds.on('bootstrap', (app) => {
         SELECT.from('bridge.management.SystemConfig').orderBy('category', 'sortOrder')
       )
       res.json({ configs: rows || [] })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   sysRouter.patch('/config/:key', async (req, res) => {
@@ -2371,7 +2465,7 @@ cds.on('bootstrap', (app) => {
       const { invalidateCache } = require('./system-config')
       invalidateCache(key)
       res.json({ success: true })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   sysRouter.get('/banner', async (_req, res) => {
@@ -2383,7 +2477,7 @@ cds.on('bootstrap', (app) => {
       ])
       const active = modeRow?.value === 'true'
       res.json({ active, message: active ? (msgRow?.value || '') : '' })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // ── BHI/BSI structured config (council BHI-1) — replaces raw-JSON editing of the
@@ -2392,20 +2486,42 @@ cds.on('bootstrap', (app) => {
   // renders structurally without hardcoding any weight. PUT validates, persists, and
   // logs an honest old→new ChangeLog entry (so the change is auditable like any other).
   const bhiLib = require('./lib/bhi')
-  sysRouter.get('/bhi-config', async (_req, res) => {
+  const bhiModelStore = require('./lib/bhi-model-store')
+  sysRouter.get('/bhi-config', async (req, res) => {
     try {
       const db = await cds.connect.to('db')
+      // Source of truth is the governed relational BhiModel (db/bhi-model.cds). Load the SELECTED
+      // version (?modelID) if given, else the ACTIVE one; fall back to the legacy SystemConfig
+      // 'bhiWeights' JSON only if no model exists yet (bare/legacy db).
+      const models = await bhiModelStore.listModels(db)
+      const wantID = req.query && req.query.modelID
+      const selected = (wantID && await bhiModelStore.loadConfig(db, wantID)) || await bhiModelStore.loadActiveConfig(db)
       const row = await db.run(SELECT.one.from('bridge.management.SystemConfig').where({ configKey: 'bhiWeights' }))
-      const effective = bhiLib.resolveBhiConfig(row?.value)
+      const effective = selected ? selected.config : bhiLib.resolveBhiConfig(row?.value)
+      const selectedModel = selected ? { ID: selected.model.ID, code: selected.model.code, name: selected.model.name, version: selected.model.version, status: selected.model.status } : null
+      // "Custom" = the effective set differs from the pure engine defaults. Order-insensitive: the
+      // relational round-trip can reorder object keys / arrays without changing meaning.
+      const canon = (v) => Array.isArray(v) ? v.map(canon).sort() : (v && typeof v === 'object') ? Object.keys(v).sort().reduce((a, k) => { a[k] = canon(v[k]); return a }, {}) : v
+      const isCustom = JSON.stringify(canon(effective)) !== JSON.stringify(canon(bhiLib.resolveBhiConfig(null)))
+      // Per-class override picker source: active asset classes relevant to bridges (BHI is a
+      // bridge metric). objectType null/empty = all objects; else a comma list that must include 'bridge'.
+      const classRows = await db.run(SELECT.from('bridge.management.AssetClasses').where({ isActive: true }))
+      const assetClasses = (classRows || [])
+        .filter(c => !c.objectType || /(^|,)\s*bridge\s*(,|$)/i.test(c.objectType))
+        .map(c => ({ code: c.code, name: c.name || c.code }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       res.json({
         effective,
         defaults: { modeWeights: bhiLib.DEFAULT_MODE_WEIGHTS, env: bhiLib.DEFAULT_ENV_COEFFICIENTS, calibrated: bhiLib.DEFAULT_BHI_CONFIG.calibrated },
         modes: Object.keys(bhiLib.DEFAULT_MODE_WEIGHTS),
         buckets: Object.fromEntries(Object.entries(bhiLib.DEFAULT_MODE_WEIGHTS).map(([m, w]) => [m, Object.keys(w)])),
         coefficientKeys: Object.keys(bhiLib.DEFAULT_ENV_COEFFICIENTS),
-        isCustom: !!(row && row.value)
+        assetClasses,
+        isCustom,
+        models,          // every version (for the admin version picker)
+        selectedModel    // the version whose weights `effective` reflects (selected or active)
       })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   sysRouter.put('/bhi-config', async (req, res) => {
@@ -2413,7 +2529,7 @@ cds.on('bootstrap', (app) => {
       const body = req.body || {}
       // null/empty body = reset to engine defaults (store null → defaults apply)
       let newValue = null
-      if (body && (body.modeWeights || body.env || body.calibrated)) {
+      if (body && (body.modeWeights || body.env || body.calibrated || body.classModeWeights)) {
         // validate: every weight/coefficient finite and >= 0
         const bad = []
         for (const [mode, w] of Object.entries(body.modeWeights || {})) {
@@ -2424,6 +2540,14 @@ cds.on('bootstrap', (app) => {
         for (const [k, v] of Object.entries(body.env || {})) {
           const n = Number(v); if (!Number.isFinite(n) || n < 0) bad.push(`env.${k}`)
         }
+        // Per-class element-weight overrides (additive): same numeric/non-negative rule.
+        for (const [cls, perMode] of Object.entries(body.classModeWeights || {})) {
+          for (const [mode, w] of Object.entries(perMode || {})) {
+            for (const [k, v] of Object.entries(w || {})) {
+              const n = Number(v); if (!Number.isFinite(n) || n < 0) bad.push(`${cls}.${mode}.${k}`)
+            }
+          }
+        }
         if (bad.length) return res.status(400).json({ error: { message: 'Invalid (non-numeric or negative) values: ' + bad.join(', ') } })
         // resolveBhiConfig normalises + drops junk; store the normalised form
         newValue = JSON.stringify(bhiLib.resolveBhiConfig(body))
@@ -2433,13 +2557,26 @@ cds.on('bootstrap', (app) => {
       const oldValue = existing?.value ?? null
       const now = new Date().toISOString()
       const changedBy = req.user?.id || 'system'
-      if (existing) {
-        await db.run(UPDATE('bridge.management.SystemConfig').set({ value: newValue, modifiedAt: now, modifiedBy: changedBy }).where({ configKey: 'bhiWeights' }))
+      // MIGRATE (source of truth): write the governed relational BhiModel — the engine reads THIS via
+      // refreshBhiConfig. A specific version (body.modelID, e.g. a Draft being tuned) or the ACTIVE one.
+      // Empty/reset body → engine defaults for that model. Authoritative: a failure here 500s.
+      const targetID = (body && body.modelID) || null
+      const cfg = newValue ? JSON.parse(newValue) : {}
+      if (targetID) {
+        await bhiModelStore.saveToModel(db, targetID, cfg, { changedBy })
       } else {
-        await db.run(INSERT.into('bridge.management.SystemConfig').entries({
-          configKey: 'bhiWeights', category: 'Prioritisation', label: 'BSI/BHI weights & coefficients (JSON)',
-          value: newValue, dataType: 'string', modifiedAt: now, modifiedBy: changedBy
-        }))
+        await bhiModelStore.saveToActive(db, cfg, { changedBy })
+        // Legacy mirror + rollback fallback (best-effort) — only tracks the ACTIVE config.
+        try {
+          if (existing) {
+            await db.run(UPDATE('bridge.management.SystemConfig').set({ value: newValue, modifiedAt: now, modifiedBy: changedBy }).where({ configKey: 'bhiWeights' }))
+          } else {
+            await db.run(INSERT.into('bridge.management.SystemConfig').entries({
+              configKey: 'bhiWeights', category: 'Prioritisation', label: 'BSI/BHI weights & coefficients (JSON)',
+              value: newValue, dataType: 'string', modifiedAt: now, modifiedBy: changedBy
+            }))
+          }
+        } catch (_e) { /* mirror is best-effort — the model is the source of truth */ }
       }
       const { invalidateCache } = require('./system-config')
       invalidateCache('bhiWeights')
@@ -2454,7 +2591,38 @@ cds.on('bootstrap', (app) => {
         })
       } catch (_e) { /* audit best-effort */ }
       res.json({ success: true, isCustom: !!newValue })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
+  })
+
+  // ── BHI versioning (governed-config): clone a version to a new Draft, and activate a version ──
+  sysRouter.post('/bhi-config/clone', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const modelID = req.body && req.body.modelID
+      if (!modelID) return res.status(400).json({ error: { message: 'modelID is required' } })
+      const out = await bhiModelStore.cloneModel(db, modelID, { name: req.body.name, changedBy: req.user?.id || 'system' })
+      res.json({ success: true, ...out })
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
+  })
+
+  sysRouter.post('/bhi-config/activate', async (req, res) => {
+    try {
+      const db = await cds.connect.to('db')
+      const modelID = req.body && req.body.modelID
+      if (!modelID) return res.status(400).json({ error: { message: 'modelID is required' } })
+      const out = await bhiModelStore.activateModel(db, modelID, { changedBy: req.user?.id || 'system' })
+      // Sync the legacy SystemConfig mirror to the newly-active config (best-effort rollback safety).
+      try {
+        const active = await bhiModelStore.loadActiveConfig(db)
+        if (active) {
+          const canonDefault = JSON.stringify(bhiLib.resolveBhiConfig(null))
+          const val = JSON.stringify(active.config) === canonDefault ? null : JSON.stringify(active.config)
+          const ex = await db.run(SELECT.one.from('bridge.management.SystemConfig').where({ configKey: 'bhiWeights' }))
+          if (ex) await db.run(UPDATE('bridge.management.SystemConfig').set({ value: val, modifiedAt: new Date().toISOString(), modifiedBy: req.user?.id || 'system' }).where({ configKey: 'bhiWeights' }))
+        }
+      } catch (_e) { /* mirror best-effort */ }
+      res.json({ success: true, ...out })
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // SEC (verify-round P0): SystemConfig mutation must require 'admin' — matches the
@@ -2478,7 +2646,8 @@ cds.on('bootstrap', (app) => {
       )
       res.json({ attachments: (rows || []).map(row => attachmentResponse(row, bridgeId)) })
     } catch (error) {
-      res.status(error.status || 500).json({ error: { message: error.message || 'Failed to load attachments' } })
+      if (error.status) return res.status(error.status).json({ error: { message: error.message } })
+      sendError(res, 500, 'Failed to load attachments', error)
     }
   })
 
@@ -2540,7 +2709,8 @@ cds.on('bootstrap', (app) => {
       res.setHeader('Content-Disposition', `${disposition}; filename="${fileName}"`)
       res.send(content)
     } catch (error) {
-      res.status(error.status || 500).json({ error: { message: error.message || 'Failed to open attachment' } })
+      if (error.status) return res.status(error.status).json({ error: { message: error.message } })
+      sendError(res, 500, 'Failed to open attachment', error)
     }
   })
 
@@ -2557,7 +2727,8 @@ cds.on('bootstrap', (app) => {
       }
       res.status(204).end()
     } catch (error) {
-      res.status(error.status || 500).json({ error: { message: error.message || 'Failed to delete attachment' } })
+      if (error.status) return res.status(error.status).json({ error: { message: error.message } })
+      sendError(res, 500, 'Failed to delete attachment', error)
     }
   })
 
@@ -2573,7 +2744,7 @@ cds.on('bootstrap', (app) => {
       const db = await cds.connect.to('db')
       const rows = await db.run(SELECT.from('bridge.management.BnacEnvironment').orderBy('environment'))
       res.json({ environments: rows || [] })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // POST add environment
@@ -2595,7 +2766,7 @@ cds.on('bootstrap', (app) => {
         modifiedBy: req.user?.id || 'system'
       }))
       res.json({ success: true })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // PATCH update environment
@@ -2610,7 +2781,7 @@ cds.on('bootstrap', (app) => {
       if (active !== undefined) patch.active = active
       await db.run(UPDATE('bridge.management.BnacEnvironment').set(patch).where({ environment: env }))
       res.json({ success: true })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // DELETE environment
@@ -2620,7 +2791,7 @@ cds.on('bootstrap', (app) => {
       const db = await cds.connect.to('db')
       await db.run(DELETE.from('bridge.management.BnacEnvironment').where({ environment: env }))
       res.json({ success: true })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // GET load history
@@ -2629,7 +2800,7 @@ cds.on('bootstrap', (app) => {
       const db = await cds.connect.to('db')
       const rows = await db.run(SELECT.from('bridge.management.BnacLoadHistory').orderBy('loadedAt desc').limit(100))
       res.json({ history: rows || [] })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // GET object ID mappings (for a bridge)
@@ -2638,7 +2809,7 @@ cds.on('bootstrap', (app) => {
       const db = await cds.connect.to('db')
       const row = await db.run(SELECT.one.from('bridge.management.BnacObjectIdMap').where({ bridgeId: req.params.bridgeId }))
       res.json({ mapping: row || null })
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   // POST CSV upload of bridgeId,bnacObjectId
@@ -2707,7 +2878,7 @@ cds.on('bootstrap', (app) => {
         await tx.rollback()
         throw error
       }
-    } catch (error) { res.status(500).json({ error: { message: error.message } }) }
+    } catch (error) { sendError(res, 500, 'Internal server error', error) }
   })
 
   app.use('/bnac/api', requiresAuthentication, requiresScope('admin'), validateCsrfToken, bnacRouter)

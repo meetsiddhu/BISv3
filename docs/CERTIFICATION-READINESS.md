@@ -161,6 +161,21 @@ here. SAP certification permits freestyle with a written rationale.
 
 ## 6. Change history
 
+- **2026-07-03 (v3.55.3, go-live SME council):** Full-app expert-council review — see
+  `docs/GO-LIVE-READINESS-2026-07.md`. Baseline re-established: **574/574 tests green on Node 22**
+  (a stale "Node 20" instruction in CLAUDE.md/RUNBOOK/deploy.yml was breaking the suite via a
+  `better-sqlite3` native-ABI mismatch — corrected). Fixed: CSV/XLSX **formula-injection** in the
+  custom-attributes export; **bulk-upload allowed-value** bypass (now enforced for all types, Council
+  #5 parity); `risk.js` **§4b duplicate 1-10→1-5 mapping** (now imports `condition-rating.legacyToBand`);
+  BhiConfig dialog `class:` UI bug; `/health` version now read from package.json; a duplicate-`@title`
+  build warning. **P1 (custom Express routes trusted an *unverified* JWT) — now CLOSED in code**
+  via Option A: XSUAA signature verification added to `requiresAuthentication`/`requiresScope` in
+  `srv/server.js` using `@sap/xssec` (`createSecurityContext`), fail-closed on verifier init failure,
+  dummy-auth/dev path unchanged (577/577 tests green on Node 22). **Not yet deployed — must be staged
+  on BTP `test` and smoke-tested before `prod` (owner-approved; touches prod auth).** See
+  `docs/GO-LIVE-READINESS-2026-07.md` §1 for the BTP validation steps. Also open: audit-atomicity
+  (ChangeLog outside tx), `computeBhi` scale/1000-cap, two BHI scoring-policy items (CS-extent 0.95
+  threshold, waterway/scour weight set) pending engineering sign-off, and the ~90-string i18n sweep.
 - **2026-06-28 (v3.55.1):** Closed the D18 supply-chain HIGH in `xlsx` (SheetJS) — pinned to the
   vendor's patched **0.20.3** from `cdn.sheetjs.com` (npm's frozen 0.18.5 had prototype-pollution +
   ReDoS advisories with no npm fix). `npm audit --omit=dev` now clean; 558/558 tests green; no code
